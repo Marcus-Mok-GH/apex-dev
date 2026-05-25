@@ -1,0 +1,32 @@
+{
+  "name": "apex-dev",
+  "version": "3.10.4",
+  "description": "Apex AI - a friendly agentic coding assistant for the terminal",
+  "main": "dist/index.js",
+  "bin": {
+    "apex": "./dist/index.js"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "NODE_ENV=production bun build index.jsx --target=bun --outdir=dist",
+    "prepack": "npm run build",
+    "start": "bun index.jsx",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@opentui/core": "^0.1.83",
+    "@opentui/react": "^0.1.83",
+    "@sourcegraph/amp": "^0.0.1772503238-g61db4a",
+    "codebuff": "^1.0.622",
+    "openai": "^6.25.0",
+    "opencode-ai": "1.2.14",
+    "react": "^19.2.4",
+    "react-reconciler": "^0.32.0",
+    "vercel": "^50.25.6"
+  }
+}
