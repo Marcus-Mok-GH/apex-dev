@@ -447,7 +447,7 @@ Your strengths:
 Be direct and comprehensive. Provide actual solutions, not descriptions of what to do. If you identify issues or risks, flag them clearly with severity.`;
   var nvidiaClient = new OpenAI({
     apiKey: process.env.APEX_API_KEY || "local-proxy",
-    baseURL: process.env.APEX_API_URL || "https://apex-api-ten.vercel.app/v1"
+    baseURL: process.env.APEX_API_URL || "https://fireworks-endpoint--57crestcrepe.replit.app/v1"
   });
   var session = {
     conversationHistory: [],

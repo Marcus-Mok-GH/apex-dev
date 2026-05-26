@@ -10,7 +10,7 @@
     "dist/"
   ],
   "scripts": {
-    "build": "NODE_ENV=production bun build index.jsx --target=bun --outdir=dist",
+    "build": "NODE_ENV=production bun build entry.mjs --target=bun --outfile=dist/index.js --packages=external",
     "prepack": "npm run build",
     "start": "bun entry.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
