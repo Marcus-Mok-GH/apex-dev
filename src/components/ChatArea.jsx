@@ -1,3 +1,4 @@
+var import_react = __toESM(require_react(), 1);
 var import_theme11 = __toESM(require_theme(), 1);
 
 var import_store4 = __toESM(require_store(), 1);
@@ -55,19 +56,27 @@ function MessageItem({ message }) {
 }
 function ChatArea({ messages, streamingContent, streamingThinking, isProcessing }) {
   const { indent } = useLayout();
+  // Memoize messages to prevent unnecessary re-renders of the entire list
+  const renderedMessages = import_react.useMemo(() => 
+    messages.map((msg) => /* @__PURE__ */ jsx_runtime11.jsx(MessageItem, {
+      message: msg
+    }, msg.id)),
+    [messages]
+  );
+
   return /* @__PURE__ */ jsx_runtime11.jsx("scrollbox", {
     style: { flexGrow: 1 },
     focused: true,
     stickyScroll: true,
     stickyStart: "bottom",
     scrollY: true,
+    // Use a fixed key for the scrollbox to prevent it from being recreated
+    key: "main-chat-scroll",
     children: /* @__PURE__ */ jsx_runtime11.jsxs("box", {
       style: { flexDirection: "column" },
       children: [
         /* @__PURE__ */ jsx_runtime11.jsx(Welcome, {}),
-        messages.map((msg) => /* @__PURE__ */ jsx_runtime11.jsx(MessageItem, {
-          message: msg
-        }, msg.id)),
+        renderedMessages,
         streamingThinking ? /* @__PURE__ */ jsx_runtime11.jsx("box", {
           style: { paddingLeft: 2, marginTop: 0 },
           children: /* @__PURE__ */ jsx_runtime11.jsxs("text", {

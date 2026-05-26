@@ -17,11 +17,18 @@ var require_store = __commonJS((exports, module2) => {
     listeners.add(listener);
     return () => listeners.delete(listener);
   }
+  let renderRequested = false;
   function notify() {
     for (const fn of listeners)
       fn();
-    if (renderer)
-      renderer.requestRender();
+    if (renderer && !renderRequested) {
+      renderRequested = true;
+      // Use setImmediate to throttle renders to once per event loop tick
+      setImmediate(() => {
+        renderRequested = false;
+        renderer.requestRender();
+      });
+    }
   }
   function setState(partial) {
     state = { ...state, ...partial };
