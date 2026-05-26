@@ -2680,10 +2680,6 @@ var require_agent = __commonJS((exports, module2) => {
         errorMsg += `
 Status: ${err.status}`;
       }
-      if (!process.env.NVIDIA_API_KEY) {
-        errorMsg += `
-Set the NVIDIA_API_KEY environment variable with your API key from build.nvidia.com`;
-      }
       store.addMessage({ role: "system", content: errorMsg });
     }
     store.addMessage({ role: "divider" });
