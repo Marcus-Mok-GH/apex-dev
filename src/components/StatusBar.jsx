@@ -23,7 +23,7 @@ function StatusBar({ isProcessing }) {
     return () => clearInterval(id);
   }, [isProcessing]);
 
-  const elapsed = ((Date.now() - import_config3.session.startTime) / 1000 / 60).toFixed(1);
+  const elapsed = (tick, ((Date.now() - import_config3.session.startTime) / 1000 / 60).toFixed(1));
   const { totalCost, totalTokens, toolCallCount, turnCount, filesModified } = import_config3.session;
   const tokStr = totalTokens >= 1000
     ? (totalTokens / 1000).toFixed(1) + "k"
