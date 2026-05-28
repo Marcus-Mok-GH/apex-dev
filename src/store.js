@@ -5,7 +5,9 @@ var require_store = __commonJS((exports, module2) => {
     streamingThinking: "",
     isProcessing: false,
     showHelp: false,
-    showSummary: false
+    showSummary: false,
+    apiKey: process.env.FIREWORKS_API_KEY || "",
+    needsConfig: !process.env.FIREWORKS_API_KEY
   };
   var nextId = 1;
   var listeners = new Set;

@@ -8,6 +8,7 @@ var require_server = __commonJS((exports, module2) => {
       return serverInstance;
     const apiKey = process.env.NVIDIA_API_KEY || "";
     const upstream = new OpenAI({ apiKey, baseURL: NVIDIA_BASE_URL });
+    globalThis._upstream = upstream;
     serverInstance = Bun.serve({
       port: PORT,
       async fetch(req) {
@@ -88,6 +89,11 @@ var require_server = __commonJS((exports, module2) => {
   function getPort() {
     return PORT;
   }
-  module2.exports = { startServer, getServerURL, getPort };
+  function updateApiKey(key) {
+    if (globalThis._upstream) {
+      globalThis._upstream.apiKey = key;
+    }
+  }
+  module2.exports = { startServer, getServerURL, getPort, updateApiKey };
 });
 

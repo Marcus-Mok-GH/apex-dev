@@ -77,13 +77,14 @@ function App() {
         isProcessing: state.isProcessing
       }),
       /* @__PURE__ */ jsx_runtime15.jsx(InputBar, {
-        disabled: state.isProcessing || state.showHelp,
+        disabled: state.isProcessing || state.showHelp || state.needsConfig,
         onSubmit: handleInput
       }),
       state.showHelp ? /* @__PURE__ */ jsx_runtime15.jsx(HelpModal, {
         onClose: () => import_store5.setState({ showHelp: false }),
         onCommand: handleHelpCommand
-      }) : null
+      }) : null,
+      state.needsConfig ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ApiKeyModal, {}) : null
     ]
   });
 }

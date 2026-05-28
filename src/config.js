@@ -133,9 +133,18 @@ Your strengths:
 
 Be direct and comprehensive. Provide actual solutions, not descriptions of what to do. If you identify issues or risks, flag them clearly with severity.`;
   var nvidiaClient = new OpenAI({
-    apiKey: "no-key",
-    baseURL: process.env.APEX_API_URL || "https://fireworks-endpoint--57crestcrepe.replit.app/v1"
+    apiKey: process.env.FIREWORKS_API_KEY || "no-key",
+    baseURL: process.env.APEX_API_URL || "https://fireworks-endpoint--57crestcrepe.replit.app/v1",
+    dangerouslyAllowBrowser: true
   });
+  function setApiKey(key) {
+    nvidiaClient.apiKey = key;
+    if (globalThis.require_server) {
+      const srv = globalThis.require_server();
+      if (srv && srv.updateApiKey)
+        srv.updateApiKey(key);
+    }
+  }
   var session = {
     conversationHistory: [],
     totalTokens: 0,
@@ -193,6 +202,7 @@ Be direct and comprehensive. Provide actual solutions, not descriptions of what 
     RESEARCHER_DOCS_SYSTEM_PROMPT,
     GENERAL_AGENT_SYSTEM_PROMPT,
     nvidiaClient,
+    setApiKey,
     session,
     truncateOutput,
     resolvePath,

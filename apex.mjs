@@ -67,6 +67,7 @@ await import("./src/components/ChatArea.jsx");
 await import("./src/components/InputBar.jsx");
 await import("./src/components/StatusBar.jsx");
 await import("./src/components/HelpModal.jsx");
+await import("./src/components/ApiKeyModal.jsx");
 
 // Load app
 const appMod = await import("./src/app.jsx");
