@@ -1,6 +1,6 @@
 var require_agent = __commonJS((exports, module2) => {
   var {
-    NVIDIA_MODEL,
+    currentModels,
     MAX_TOOL_ITERATIONS,
     nvidiaClient,
     session,
@@ -43,7 +43,7 @@ var require_agent = __commonJS((exports, module2) => {
         for (let attempt = 0;attempt <= maxRetries; attempt++) {
           try {
             stream = await nvidiaClient.chat.completions.create({
-              model: NVIDIA_MODEL,
+              model: currentModels.NVIDIA_MODEL,
               messages: messages.map((m2) => {
                 const clean = { role: m2.role, content: m2.content };
                 if (m2.tool_calls)
@@ -336,15 +336,14 @@ var require_agent = __commonJS((exports, module2) => {
         break;
       }
       if (iterations >= MAX_TOOL_ITERATIONS) {
-        store.addMessage({ role: "system", content: `\u26A0 Reached maximum tool iterations (${MAX_TOOL_ITERATIONS}). Stopping.` });
+        store.addMessage({ role: "system", content: `⚠ Reached maximum tool iterations (${MAX_TOOL_ITERATIONS}). Stopping.` });
       }
       session.totalTokens += turnTokens;
     } catch (err) {
       store.clearStreaming();
       let errorMsg = `Error: ${err.message}`;
       if (err.status) {
-        errorMsg += `
-Status: ${err.status}`;
+        errorMsg += `\nStatus: ${err.status}`;
       }
       store.addMessage({ role: "system", content: errorMsg });
     }
@@ -357,4 +356,3 @@ Status: ${err.status}`;
     getIsProcessing
   };
 });
-
