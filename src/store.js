@@ -6,8 +6,9 @@ var require_store = __commonJS((exports, module2) => {
     isProcessing: false,
     showHelp: false,
     showSummary: false,
-    apiKey: process.env.FIREWORKS_API_KEY || "",
-    needsConfig: !process.env.FIREWORKS_API_KEY
+    apiKey: process.env.FIREWORKS_API_KEY || process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY || process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY || process.env.TOGETHER_API_KEY || "",
+    provider: process.env.APEX_PROVIDER || (process.env.OPENAI_API_KEY ? "openai" : process.env.OPENROUTER_API_KEY ? "openrouter" : process.env.GROQ_API_KEY ? "groq" : process.env.GEMINI_API_KEY ? "gemini" : process.env.TOGETHER_API_KEY ? "together" : "fireworks"),
+    needsConfig: !(process.env.FIREWORKS_API_KEY || process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY || process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY || process.env.TOGETHER_API_KEY)
   };
   var nextId = 1;
   var listeners = new Set;
@@ -100,4 +101,3 @@ var require_store = __commonJS((exports, module2) => {
     getRenderer
   };
 });
-
