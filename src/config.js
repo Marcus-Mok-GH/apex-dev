@@ -234,7 +234,7 @@ Your strengths:
 
 Be direct and comprehensive. Provide actual solutions, not descriptions of what to do. If you identify issues or risks, flag them clearly with severity.`;
   var _initialProvider = PROVIDERS[currentProvider];
-  var _initialKey = process.env[_initialProvider.envKey] || process.env.FIREWORKS_API_KEY || "no-key";
+  var _initialKey = process.env[_initialProvider.envKey] || "no-key";
 
   // ── Internal client holder ────────────────────────────────────────────────
   // The OpenAI SDK v6 does NOT allow mutating .apiKey or .baseURL after
@@ -332,6 +332,7 @@ Be direct and comprehensive. Provide actual solutions, not descriptions of what 
     // Provider management
     PROVIDERS,
     get currentProvider()     { return currentProvider; },
+    detectInitialProvider,
     setProvider,
     // Unchanged exports
     MAX_TOOL_ITERATIONS,

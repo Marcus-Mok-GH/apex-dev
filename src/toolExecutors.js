@@ -23,6 +23,20 @@ var require_toolExecutors = __commonJS((exports, module2) => {
     sleep
   } = require_config();
   var { parseThinkBlocks } = require_thinking();
+
+  // Shared error formatter for exec failures
+  function formatExecError(err) {
+    const stdout = err.stdout || "";
+    const stderr = err.stderr || "";
+    let statusLine;
+    if (err.signal) {
+      statusLine = `Killed by signal: ${err.signal}`;
+    } else {
+      statusLine = `Exit code: ${err.status ?? 1}`;
+    }
+    return `${statusLine}\n${stdout}\n${stderr}`.trim();
+  }
+
   async function streamCompletion(params, onStream) {
     for (let attempt = 0;attempt <= 2; attempt++) {
       let content = "";
@@ -198,10 +212,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
             });
             return truncateOutput(output || "(no output)");
           } catch (err) {
-            const stdout = err.stdout || "";
-            const stderr = err.stderr || "";
-            const exitCode = err.status || 1;
-            return truncateOutput(`Exit code: ${exitCode}\n${stdout}\n${stderr}`.trim());
+            return truncateOutput(formatExecError(err));
           }
         }
         case "Grep": {
@@ -294,7 +305,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
               results.push(`✓ ${cmd}\n${output.trim()}`);
               session.commandsRun.push(cmd);
             } catch (err) {
-              results.push(`✗ ${cmd}\nExit code: ${err.status}\n${(err.stdout || "").trim()}\n${(err.stderr || "").trim()}`);
+              results.push(`✗ ${cmd}\n${formatExecError(err)}`);
               session.commandsRun.push(cmd);
               break;
             }
@@ -469,6 +480,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
             return "CodeReview skipped — no files were modified this session.";
           }
           const fileContents = [];
+          const relativePaths = [];
           for (const filePath of allFiles) {
             if (!fs2.existsSync(filePath)) {
               fileContents.push(`--- ${filePath} ---\n[File not found]`);
@@ -478,12 +490,17 @@ var require_toolExecutors = __commonJS((exports, module2) => {
             if (stat.isDirectory())
               continue;
             const content = fs2.readFileSync(filePath, "utf-8");
-            fileContents.push(`--- ${path2.relative(PROJECT_ROOT, filePath) || filePath} ---\n${content}`);
+            const relPath = path2.relative(PROJECT_ROOT, filePath) || filePath;
+            fileContents.push(`--- ${relPath} ---\n${content}`);
+            relativePaths.push(relPath);
           }
           let gitDiff = "";
-          try {
-            gitDiff = execSync("git diff 2>/dev/null", { encoding: "utf-8", cwd: PROJECT_ROOT, timeout: 1e4 }).trim();
-          } catch {}
+          if (relativePaths.length > 0) {
+            try {
+              const filesArg = relativePaths.map(p => `"${p}"`).join(" ");
+              gitDiff = execSync(`git diff -- ${filesArg} 2>/dev/null`, { encoding: "utf-8", cwd: PROJECT_ROOT, timeout: 1e4 }).trim();
+            } catch {}
+          }
           const reviewMessages = [
             {
               role: "system",
@@ -774,7 +791,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
               results.push(`✓ ${command}${description ? `\n  (${description})` : ""}\n${(output || "").trim()}`);
               session.commandsRun.push(command);
             } catch (err) {
-              results.push(`✗ ${command}\nExit code: ${err.status}\n${(err.stdout || "").trim()}\n${(err.stderr || "").trim()}`);
+              results.push(`✗ ${command}\n${formatExecError(err)}`);
               session.commandsRun.push(command);
               break;
             }
@@ -938,6 +955,8 @@ var require_toolExecutors = __commonJS((exports, module2) => {
               const remaining = MAX_TOTAL_CHARS - totalChars;
               if (remaining > 500) {
                 fileContents.push(`--- ${fp} ---\n${content.slice(0, remaining)}\n[Truncated — context limit reached]`);
+              } else {
+                fileContents.push(`--- ${fp} ---\n[Skipped — context limit reached]`);
               }
               totalChars = MAX_TOTAL_CHARS;
               break;

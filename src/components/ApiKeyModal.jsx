@@ -2,6 +2,7 @@ var import_react = __toESM(require_react(), 1);
 var import_theme = __toESM(require_theme(), 1);
 var import_store = __toESM(require_store(), 1);
 var import_config = __toESM(require_config(), 1);
+var import_useLayout = __toESM(require_useLayout(), 1);
 var jsx_runtime = __toESM(require_jsx_runtime(), 1);
 
 var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together"];
@@ -10,7 +11,7 @@ function ApiKeyModal() {
   var [input, setInput] = import_react.useState("");
   var [selectedIdx, setSelectedIdx] = import_react.useState(0);
   var [step, setStep] = import_react.useState("provider"); // "provider" | "key"
-  var { width, height } = useLayout();
+  var { width, height } = import_useLayout.useLayout();
 
   var providers = import_config.PROVIDERS;
   var providerKey = PROVIDER_ORDER[selectedIdx];
