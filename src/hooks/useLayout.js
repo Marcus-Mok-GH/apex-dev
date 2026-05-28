@@ -11,5 +11,5 @@ function useLayout() {
   };
 }
 
+globalThis.useLayout = useLayout;
 module.exports = { useLayout };
-

@@ -86,7 +86,7 @@ function ApiKeyModal() {
         jsx_runtime.jsx("text", {
           style: { marginBottom: 1 },
           fg: import_theme.colors.dim,
-          children: "Env var: " + provider.envKey + "  ·  Esc to go back"
+          children: "Env var: " + provider.envKey + "  \xB7  Esc to go back"
         }),
         jsx_runtime.jsx("box", {
           style: {
@@ -100,10 +100,8 @@ function ApiKeyModal() {
             focused: true,
             value: input,
             onChange: setInput,
-            onKeyPress: handleKeyPress,
             onSubmit: handleSubmit,
             placeholder: "Paste your API key here...",
-            mask: "*",
             fg: import_theme.colors.text
           })
         }),
@@ -122,14 +120,14 @@ function ApiKeyModal() {
       top,
       width: modalWidth,
       height: modalHeight,
-      borderStyle: "round",
+      borderStyle: "rounded",
       borderColor: import_theme.colors.primary,
       paddingLeft: 2,
       paddingRight: 2,
       paddingTop: 1,
       flexDirection: "column"
     },
-    onKeyPress: handleKeyPress,
+    onKeyDown: handleKeyPress,
     children: step === "provider" ? renderProviderStep() : renderKeyStep()
   });
 }
