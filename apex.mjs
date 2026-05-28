@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { TextAttributes, createCliRenderer } from "@opentui/core";
-import { createRoot, useTerminalDimensions } from "@opentui/react";
+import { createRoot, useTerminalDimensions, useKeyboard } from "@opentui/react";
 import React from "react";
 import * as ReactJSXRuntime from "react/jsx-runtime";
 import OpenAI from "openai";
@@ -35,6 +35,7 @@ globalThis.TextAttributes = TextAttributes;
 globalThis.createCliRenderer = createCliRenderer;
 globalThis.createRoot = createRoot;
 globalThis.useTerminalDimensions = useTerminalDimensions;
+globalThis.useKeyboard = useKeyboard;
 
 // Load all modules in dependency order (each defines its require_ global)
 await import("./src/store.js");

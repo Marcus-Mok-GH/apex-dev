@@ -4,3 +4,4 @@ function useStore() {
   return import_react11.useSyncExternalStore(import_store.subscribe, import_store.getSnapshot);
 }
 
+globalThis.useStore = useStore;
