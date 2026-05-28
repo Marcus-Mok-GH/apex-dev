@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 // @bun
 // Proper entry for Apex AI
 

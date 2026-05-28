@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import { TextAttributes, createCliRenderer } from "@opentui/core";
 import { createRoot, useTerminalDimensions } from "@opentui/react";
 import React from "react";

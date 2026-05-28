@@ -1,6 +1,6 @@
 {
   "name": "apex-dev",
-  "version": "3.10.5",
+  "version": "3.10.6",
   "description": "Apex AI - a friendly agentic coding assistant for the terminal",
   "main": "dist/index.js",
   "bin": {
@@ -10,9 +10,9 @@
     "dist/"
   ],
   "scripts": {
-    "build": "NODE_ENV=production bun build entry.mjs --target=bun --outfile=dist/index.js --packages=external",
+    "build": "NODE_ENV=production bun build apex.mjs --target=bun --outfile=dist/index.js --packages=external && sed -i '1s/^/#!\\/usr\\/bin\\/env bun\\n/' dist/index.js",
     "prepack": "npm run build",
-    "start": "bun entry.mjs",
+    "start": "bun apex.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
