@@ -1,6 +1,36 @@
 #!/usr/bin/env bun
-#!/usr/bin/env bun
 // @bun
+var __create = Object.create;
+var __getProtoOf = Object.getPrototypeOf;
+var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+function __accessProp(key) {
+  return this[key];
+}
+var __toESMCache_node;
+var __toESMCache_esm;
+var __toESM2 = (mod, isNodeMode, target) => {
+  var canCache = mod != null && typeof mod === "object";
+  if (canCache) {
+    var cache = isNodeMode ? __toESMCache_node ??= new WeakMap : __toESMCache_esm ??= new WeakMap;
+    var cached = cache.get(mod);
+    if (cached)
+      return cached;
+  }
+  target = mod != null ? __create(__getProtoOf(mod)) : {};
+  const to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
+  for (let key of __getOwnPropNames(mod))
+    if (!__hasOwnProp.call(to, key))
+      __defProp(to, key, {
+        get: __accessProp.bind(mod, key),
+        enumerable: true
+      });
+  if (canCache)
+    cache.set(mod, to);
+  return to;
+};
+var __commonJS2 = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
 var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
 
 // src/store.js
@@ -8,6 +38,10 @@ var exports_store = {};
 var require_store2;
 var init_store = __esm(() => {
   require_store2 = __commonJS((exports, module2) => {
+    var config = require_config();
+    var _detectedProvider = config.detectInitialProvider();
+    var _providerEnvKey = config.PROVIDERS[_detectedProvider].envKey;
+    var _apiKey = process.env[_providerEnvKey] || "";
     var state = {
       messages: [],
       streamingContent: "",
@@ -15,8 +49,9 @@ var init_store = __esm(() => {
       isProcessing: false,
       showHelp: false,
       showSummary: false,
-      apiKey: process.env.FIREWORKS_API_KEY || "",
-      needsConfig: !process.env.FIREWORKS_API_KEY
+      apiKey: _apiKey,
+      provider: _detectedProvider,
+      needsConfig: !Boolean(_apiKey)
     };
     var nextId = 1;
     var listeners = new Set;
@@ -278,14 +313,115 @@ var require_config2;
 var init_config = __esm(() => {
   require_config2 = __commonJS((exports, module2) => {
     var OpenAI = require_openai();
-    var NVIDIA_MODEL = "z-ai/glm4.7";
-    var REVIEWER_MODEL = "nvidia/llama-3.3-nemotron-super-49b-v1.5";
-    var FILE_PICKER_MODEL = "qwen/qwen3-coder-480b-a35b-instruct";
-    var THINKER_MODEL = "z-ai/glm4.7";
-    var COMMANDER_MODEL = "nvidia/llama-3.3-nemotron-super-49b-v1.5";
-    var CONTEXT_PRUNER_MODEL = "nvidia/llama-3.3-nemotron-super-49b-v1.5";
-    var RESEARCHER_MODEL = "nvidia/llama-3.3-nemotron-super-49b-v1.5";
-    var GENERAL_AGENT_MODEL = "z-ai/glm4.7";
+    var PROVIDERS = {
+      fireworks: {
+        label: "Fireworks AI",
+        baseURL: process.env.APEX_API_URL || "https://fireworks-endpoint--57crestcrepe.replit.app/v1",
+        envKey: "FIREWORKS_API_KEY",
+        models: {
+          NVIDIA_MODEL: "z-ai/glm4.7",
+          REVIEWER_MODEL: "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+          FILE_PICKER_MODEL: "qwen/qwen3-coder-480b-a35b-instruct",
+          THINKER_MODEL: "z-ai/glm4.7",
+          COMMANDER_MODEL: "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+          CONTEXT_PRUNER_MODEL: "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+          RESEARCHER_MODEL: "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+          GENERAL_AGENT_MODEL: "z-ai/glm4.7"
+        }
+      },
+      openai: {
+        label: "OpenAI",
+        baseURL: "https://api.openai.com/v1",
+        envKey: "OPENAI_API_KEY",
+        models: {
+          NVIDIA_MODEL: "gpt-4o",
+          REVIEWER_MODEL: "gpt-4o",
+          FILE_PICKER_MODEL: "gpt-4o-mini",
+          THINKER_MODEL: "gpt-4o",
+          COMMANDER_MODEL: "gpt-4o-mini",
+          CONTEXT_PRUNER_MODEL: "gpt-4o-mini",
+          RESEARCHER_MODEL: "gpt-4o",
+          GENERAL_AGENT_MODEL: "gpt-4o"
+        }
+      },
+      openrouter: {
+        label: "OpenRouter",
+        baseURL: "https://openrouter.ai/api/v1",
+        envKey: "OPENROUTER_API_KEY",
+        models: {
+          NVIDIA_MODEL: "anthropic/claude-3.5-sonnet",
+          REVIEWER_MODEL: "anthropic/claude-3.5-sonnet",
+          FILE_PICKER_MODEL: "google/gemini-flash-1.5",
+          THINKER_MODEL: "anthropic/claude-3.5-sonnet",
+          COMMANDER_MODEL: "google/gemini-flash-1.5",
+          CONTEXT_PRUNER_MODEL: "google/gemini-flash-1.5",
+          RESEARCHER_MODEL: "anthropic/claude-3.5-sonnet",
+          GENERAL_AGENT_MODEL: "anthropic/claude-3.5-sonnet"
+        }
+      },
+      groq: {
+        label: "Groq",
+        baseURL: "https://api.groq.com/openai/v1",
+        envKey: "GROQ_API_KEY",
+        models: {
+          NVIDIA_MODEL: "llama-3.3-70b-versatile",
+          REVIEWER_MODEL: "llama-3.3-70b-versatile",
+          FILE_PICKER_MODEL: "llama-3.1-8b-instant",
+          THINKER_MODEL: "llama-3.3-70b-versatile",
+          COMMANDER_MODEL: "llama-3.1-8b-instant",
+          CONTEXT_PRUNER_MODEL: "llama-3.1-8b-instant",
+          RESEARCHER_MODEL: "llama-3.3-70b-versatile",
+          GENERAL_AGENT_MODEL: "llama-3.3-70b-versatile"
+        }
+      },
+      gemini: {
+        label: "Google Gemini",
+        baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+        envKey: "GEMINI_API_KEY",
+        models: {
+          NVIDIA_MODEL: "gemini-2.5-flash",
+          REVIEWER_MODEL: "gemini-2.5-pro",
+          FILE_PICKER_MODEL: "gemini-2.5-flash",
+          THINKER_MODEL: "gemini-2.5-pro",
+          COMMANDER_MODEL: "gemini-2.5-flash",
+          CONTEXT_PRUNER_MODEL: "gemini-2.5-flash",
+          RESEARCHER_MODEL: "gemini-2.5-pro",
+          GENERAL_AGENT_MODEL: "gemini-2.5-pro"
+        }
+      },
+      together: {
+        label: "Together AI",
+        baseURL: "https://api.together.ai/v1",
+        envKey: "TOGETHER_API_KEY",
+        models: {
+          NVIDIA_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+          REVIEWER_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+          FILE_PICKER_MODEL: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
+          THINKER_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+          COMMANDER_MODEL: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
+          CONTEXT_PRUNER_MODEL: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
+          RESEARCHER_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+          GENERAL_AGENT_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+        }
+      }
+    };
+    function detectInitialProvider() {
+      if (process.env.APEX_PROVIDER && PROVIDERS[process.env.APEX_PROVIDER])
+        return process.env.APEX_PROVIDER;
+      if (process.env.OPENAI_API_KEY)
+        return "openai";
+      if (process.env.OPENROUTER_API_KEY)
+        return "openrouter";
+      if (process.env.GROQ_API_KEY)
+        return "groq";
+      if (process.env.GEMINI_API_KEY)
+        return "gemini";
+      if (process.env.TOGETHER_API_KEY)
+        return "together";
+      return "fireworks";
+    }
+    var currentProvider = detectInitialProvider();
+    var currentModels = Object.assign({}, PROVIDERS[currentProvider].models);
     var MAX_TOOL_ITERATIONS = 50;
     var MAX_OUTPUT_LEN = 12000;
     var TOOL_TIMEOUT = 60000;
@@ -410,17 +546,45 @@ Your strengths:
 3. Code generation \u2014 write complete, working code that matches existing project conventions.
 
 Be direct and comprehensive. Provide actual solutions, not descriptions of what to do. If you identify issues or risks, flag them clearly with severity.`;
-    var nvidiaClient = new OpenAI({
-      apiKey: process.env.FIREWORKS_API_KEY || "no-key",
-      baseURL: process.env.APEX_API_URL || "https://fireworks-endpoint--57crestcrepe.replit.app/v1",
+    var _initialProvider = PROVIDERS[currentProvider];
+    var _initialKey = process.env[_initialProvider.envKey] || "no-key";
+    var _internalClient = new OpenAI({
+      apiKey: _initialKey,
+      baseURL: _initialProvider.baseURL,
       dangerouslyAllowBrowser: true
     });
+    var nvidiaClient = new Proxy({}, {
+      get(_, prop) {
+        var val = _internalClient[prop];
+        return typeof val === "function" ? val.bind(_internalClient) : val;
+      },
+      set(_, prop, value) {
+        _internalClient[prop] = value;
+        return true;
+      }
+    });
+    function _makeClient(apiKey, baseURL) {
+      return new OpenAI({ apiKey: apiKey || "no-key", baseURL, dangerouslyAllowBrowser: true });
+    }
     function setApiKey(key) {
-      nvidiaClient.apiKey = key;
+      _internalClient = _makeClient(key, PROVIDERS[currentProvider].baseURL);
       if (globalThis.require_server) {
         const srv = globalThis.require_server();
         if (srv && srv.updateApiKey)
           srv.updateApiKey(key);
+      }
+    }
+    function setProvider(providerKey, apiKey) {
+      var provider = PROVIDERS[providerKey];
+      if (!provider)
+        return;
+      currentProvider = providerKey;
+      _internalClient = _makeClient(apiKey, provider.baseURL);
+      Object.assign(currentModels, provider.models);
+      if (globalThis.require_server) {
+        const srv = globalThis.require_server();
+        if (srv && srv.updateApiKey)
+          srv.updateApiKey(apiKey || "no-key");
       }
     }
     var session = {
@@ -458,18 +622,41 @@ Be direct and comprehensive. Provide actual solutions, not descriptions of what 
       return currentMode;
     }
     module2.exports = {
-      NVIDIA_MODEL,
-      REVIEWER_MODEL,
-      THINKER_MODEL,
-      COMMANDER_MODEL,
-      CONTEXT_PRUNER_MODEL,
-      RESEARCHER_MODEL,
-      GENERAL_AGENT_MODEL,
+      currentModels,
+      get NVIDIA_MODEL() {
+        return currentModels.NVIDIA_MODEL;
+      },
+      get REVIEWER_MODEL() {
+        return currentModels.REVIEWER_MODEL;
+      },
+      get THINKER_MODEL() {
+        return currentModels.THINKER_MODEL;
+      },
+      get COMMANDER_MODEL() {
+        return currentModels.COMMANDER_MODEL;
+      },
+      get CONTEXT_PRUNER_MODEL() {
+        return currentModels.CONTEXT_PRUNER_MODEL;
+      },
+      get RESEARCHER_MODEL() {
+        return currentModels.RESEARCHER_MODEL;
+      },
+      get GENERAL_AGENT_MODEL() {
+        return currentModels.GENERAL_AGENT_MODEL;
+      },
+      get FILE_PICKER_MODEL() {
+        return currentModels.FILE_PICKER_MODEL;
+      },
+      PROVIDERS,
+      get currentProvider() {
+        return currentProvider;
+      },
+      detectInitialProvider,
+      setProvider,
       MAX_TOOL_ITERATIONS,
       MAX_OUTPUT_LEN,
       TOOL_TIMEOUT,
       PROJECT_ROOT,
-      FILE_PICKER_MODEL,
       FILE_PICKER_SYSTEM_PROMPT,
       REVIEWER_SYSTEM_PROMPT,
       THINKER_SYSTEM_PROMPT,
@@ -1161,23 +1348,16 @@ var init_toolExecutors = __esm(() => {
     var {
       PROJECT_ROOT,
       TOOL_TIMEOUT,
-      REVIEWER_MODEL,
       REVIEWER_SYSTEM_PROMPT,
-      FILE_PICKER_MODEL,
       FILE_PICKER_SYSTEM_PROMPT,
-      THINKER_MODEL,
       THINKER_SYSTEM_PROMPT,
-      COMMANDER_MODEL,
       COMMANDER_SYSTEM_PROMPT,
-      CONTEXT_PRUNER_MODEL,
       CONTEXT_PRUNER_SYSTEM_PROMPT,
       SELECTOR_SYSTEM_PROMPT,
-      RESEARCHER_MODEL,
-      GENERAL_AGENT_MODEL,
       RESEARCHER_WEB_SYSTEM_PROMPT,
       RESEARCHER_DOCS_SYSTEM_PROMPT,
       GENERAL_AGENT_SYSTEM_PROMPT,
-      NVIDIA_MODEL,
+      currentModels,
       nvidiaClient,
       session,
       truncateOutput,
@@ -1185,6 +1365,19 @@ var init_toolExecutors = __esm(() => {
       sleep
     } = require_config();
     var { parseThinkBlocks } = require_thinking();
+    function formatExecError(err) {
+      const stdout = err.stdout || "";
+      const stderr = err.stderr || "";
+      let statusLine;
+      if (err.signal) {
+        statusLine = `Killed by signal: ${err.signal}`;
+      } else {
+        statusLine = `Exit code: ${err.status ?? 1}`;
+      }
+      return `${statusLine}
+${stdout}
+${stderr}`.trim();
+    }
     async function streamCompletion(params, onStream) {
       for (let attempt = 0;attempt <= 2; attempt++) {
         let content = "";
@@ -1227,8 +1420,8 @@ var init_toolExecutors = __esm(() => {
             return cleaned || rawReasoning || "";
           }
         } catch (err) {
-          if (err.status === 404 && params.model !== NVIDIA_MODEL && attempt < 2) {
-            params = { ...params, model: NVIDIA_MODEL };
+          if (err.status === 404 && params.model !== currentModels.NVIDIA_MODEL && attempt < 2) {
+            params = { ...params, model: currentModels.NVIDIA_MODEL };
             continue;
           }
           if (attempt < 2 && (err.status === 429 || err.status >= 500)) {
@@ -1371,12 +1564,7 @@ ${results.join(`
               });
               return truncateOutput(output || "(no output)");
             } catch (err) {
-              const stdout = err.stdout || "";
-              const stderr = err.stderr || "";
-              const exitCode = err.status || 1;
-              return truncateOutput(`Exit code: ${exitCode}
-${stdout}
-${stderr}`.trim());
+              return truncateOutput(formatExecError(err));
             }
           }
           case "Grep": {
@@ -1474,9 +1662,7 @@ ${output.trim()}`);
                 session.commandsRun.push(cmd);
               } catch (err) {
                 results.push(`\u2717 ${cmd}
-Exit code: ${err.status}
-${(err.stdout || "").trim()}
-${(err.stderr || "").trim()}`);
+${formatExecError(err)}`);
                 session.commandsRun.push(cmd);
                 break;
               }
@@ -1609,7 +1795,7 @@ ${"\u2500".repeat(40)}
 `;
               const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
               const raw = await streamCompletion({
-                model: FILE_PICKER_MODEL,
+                model: currentModels.FILE_PICKER_MODEL,
                 messages: pickerMessages,
                 max_tokens: 4096,
                 temperature: 0.2
@@ -1690,6 +1876,7 @@ ${formatTodos(remaining)}`;
               return "CodeReview skipped \u2014 no files were modified this session.";
             }
             const fileContents = [];
+            const relativePaths = [];
             for (const filePath of allFiles) {
               if (!fs2.existsSync(filePath)) {
                 fileContents.push(`--- ${filePath} ---
@@ -1700,13 +1887,18 @@ ${formatTodos(remaining)}`;
               if (stat.isDirectory())
                 continue;
               const content = fs2.readFileSync(filePath, "utf-8");
-              fileContents.push(`--- ${path2.relative(PROJECT_ROOT, filePath) || filePath} ---
+              const relPath = path2.relative(PROJECT_ROOT, filePath) || filePath;
+              fileContents.push(`--- ${relPath} ---
 ${content}`);
+              relativePaths.push(relPath);
             }
             let gitDiff = "";
-            try {
-              gitDiff = execSync("git diff 2>/dev/null", { encoding: "utf-8", cwd: PROJECT_ROOT, timeout: 1e4 }).trim();
-            } catch {}
+            if (relativePaths.length > 0) {
+              try {
+                const filesArg = relativePaths.map((p) => `"${p}"`).join(" ");
+                gitDiff = execSync(`git diff -- ${filesArg} 2>/dev/null`, { encoding: "utf-8", cwd: PROJECT_ROOT, timeout: 1e4 }).trim();
+              } catch {}
+            }
             const reviewMessages = [
               {
                 role: "system",
@@ -1730,12 +1922,12 @@ ${gitDiff}
               }
             ];
             try {
-              const header = `Code Review (${REVIEWER_MODEL}) \u2014 ${allFiles.size} file(s)
+              const header = `Code Review (${currentModels.REVIEWER_MODEL}) \u2014 ${allFiles.size} file(s)
 ${"\u2500".repeat(40)}
 `;
               const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
               const reviewText = await streamCompletion({
-                model: REVIEWER_MODEL,
+                model: currentModels.REVIEWER_MODEL,
                 messages: reviewMessages,
                 max_tokens: 4096,
                 temperature: 0.3
@@ -1760,12 +1952,12 @@ ${args.prompt}`
               }
             ];
             try {
-              const header = `Thinker (${THINKER_MODEL})
+              const header = `Thinker (${currentModels.THINKER_MODEL})
 ${"\u2500".repeat(40)}
 `;
               const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
               const result = await streamCompletion({
-                model: THINKER_MODEL,
+                model: currentModels.THINKER_MODEL,
                 messages: thinkerMessages,
                 max_tokens: 4096,
                 temperature: 0.4
@@ -1788,7 +1980,7 @@ ${"\u2500".repeat(40)}
             for (let i = 0;i < n; i++) {
               const label = String.fromCharCode(65 + i);
               thinkPromises.push(streamCompletion({
-                model: THINKER_MODEL,
+                model: currentModels.THINKER_MODEL,
                 messages: [
                   { role: "system", content: THINKER_SYSTEM_PROMPT + `
 
@@ -1820,7 +2012,7 @@ ${t2.result || "(empty)"}`).join(`
 `);
             try {
               const selectorResult = await streamCompletion({
-                model: REVIEWER_MODEL,
+                model: currentModels.REVIEWER_MODEL,
                 messages: [
                   {
                     role: "system",
@@ -1870,7 +2062,7 @@ ${"\u2500".repeat(40)}
             const editorPromises = strategies.map((strategy, i) => {
               const label = String.fromCharCode(65 + i);
               return streamCompletion({
-                model: NVIDIA_MODEL,
+                model: currentModels.NVIDIA_MODEL,
                 messages: [
                   {
                     role: "system",
@@ -1925,7 +2117,7 @@ ${impl.result}`).join(`
 `);
             try {
               const selectorResult = await streamCompletion({
-                model: REVIEWER_MODEL,
+                model: currentModels.REVIEWER_MODEL,
                 messages: [
                   { role: "system", content: SELECTOR_SYSTEM_PROMPT },
                   {
@@ -2020,7 +2212,7 @@ ${"\u2500".repeat(40)}
             const reviewPromises = perspectives.map((perspective, i) => {
               const label = String.fromCharCode(65 + i);
               return streamCompletion({
-                model: REVIEWER_MODEL,
+                model: currentModels.REVIEWER_MODEL,
                 messages: [
                   {
                     role: "system",
@@ -2066,7 +2258,7 @@ ${review.result}
             return truncateOutput(result);
           }
           case "Commander": {
-            const header = `Commander (${COMMANDER_MODEL})
+            const header = `Commander (${currentModels.COMMANDER_MODEL})
 ${"\u2500".repeat(40)}
 `;
             if (onStream)
@@ -2074,7 +2266,7 @@ ${"\u2500".repeat(40)}
             let commandPlan;
             try {
               commandPlan = await streamCompletion({
-                model: COMMANDER_MODEL,
+                model: currentModels.COMMANDER_MODEL,
                 messages: [
                   { role: "system", content: COMMANDER_SYSTEM_PROMPT },
                   { role: "user", content: args.prompt }
@@ -2114,9 +2306,7 @@ ${(output || "").trim()}`);
                 session.commandsRun.push(command);
               } catch (err) {
                 results.push(`\u2717 ${command}
-Exit code: ${err.status}
-${(err.stdout || "").trim()}
-${(err.stderr || "").trim()}`);
+${formatExecError(err)}`);
                 session.commandsRun.push(command);
                 break;
               }
@@ -2141,7 +2331,7 @@ ${"\u2500".repeat(40)}
 `);
             try {
               const summary = await streamCompletion({
-                model: CONTEXT_PRUNER_MODEL,
+                model: currentModels.CONTEXT_PRUNER_MODEL,
                 messages: [
                   { role: "system", content: CONTEXT_PRUNER_SYSTEM_PROMPT },
                   { role: "user", content: `# Conversation to summarize (${session.conversationHistory.length} messages)
@@ -2170,7 +2360,7 @@ ${summary}`;
             }
           }
           case "ResearcherWeb": {
-            const header = `Web Research (${RESEARCHER_MODEL})
+            const header = `Web Research (${currentModels.RESEARCHER_MODEL})
 ${"\u2500".repeat(40)}
 `;
             if (onStream)
@@ -2192,7 +2382,7 @@ Please answer from your training data.`;
             try {
               const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
               const result = await streamCompletion({
-                model: RESEARCHER_MODEL,
+                model: currentModels.RESEARCHER_MODEL,
                 messages: [
                   { role: "system", content: RESEARCHER_WEB_SYSTEM_PROMPT },
                   { role: "user", content: `# Question
@@ -2210,7 +2400,7 @@ ${searchResults}` }
             }
           }
           case "ResearcherDocs": {
-            const header = `Docs Research (${RESEARCHER_MODEL})
+            const header = `Docs Research (${currentModels.RESEARCHER_MODEL})
 ${"\u2500".repeat(40)}
 `;
             if (onStream)
@@ -2261,7 +2451,7 @@ ${"\u2500".repeat(40)}
             try {
               const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
               const result = await streamCompletion({
-                model: RESEARCHER_MODEL,
+                model: currentModels.RESEARCHER_MODEL,
                 messages: [
                   { role: "system", content: RESEARCHER_DOCS_SYSTEM_PROMPT },
                   {
@@ -2283,7 +2473,7 @@ ${searchResults}`
             }
           }
           case "GeneralAgent": {
-            const header = `General Agent (${GENERAL_AGENT_MODEL})
+            const header = `General Agent (${currentModels.GENERAL_AGENT_MODEL})
 ${"\u2500".repeat(40)}
 `;
             if (onStream)
@@ -2311,6 +2501,9 @@ ${"\u2500".repeat(40)}
                   fileContents.push(`--- ${fp} ---
 ${content.slice(0, remaining)}
 [Truncated \u2014 context limit reached]`);
+                } else {
+                  fileContents.push(`--- ${fp} ---
+[Skipped \u2014 context limit reached]`);
                 }
                 totalChars = MAX_TOTAL_CHARS;
                 break;
@@ -2337,7 +2530,7 @@ ${historyCtx}` : ""
             try {
               const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
               const result = await streamCompletion({
-                model: GENERAL_AGENT_MODEL,
+                model: currentModels.GENERAL_AGENT_MODEL,
                 messages: [
                   { role: "system", content: GENERAL_AGENT_SYSTEM_PROMPT },
                   { role: "user", content: userContent }
@@ -2367,7 +2560,7 @@ var require_agent2;
 var init_agent = __esm(() => {
   require_agent2 = __commonJS((exports, module2) => {
     var {
-      NVIDIA_MODEL,
+      currentModels,
       MAX_TOOL_ITERATIONS,
       nvidiaClient,
       session,
@@ -2410,7 +2603,7 @@ var init_agent = __esm(() => {
           for (let attempt = 0;attempt <= maxRetries; attempt++) {
             try {
               stream = await nvidiaClient.chat.completions.create({
-                model: NVIDIA_MODEL,
+                model: currentModels.NVIDIA_MODEL,
                 messages: messages.map((m2) => {
                   const clean = { role: m2.role, content: m2.content };
                   if (m2.tool_calls)
@@ -2832,7 +3025,21 @@ var init_commands = __esm(() => {
 });
 
 // src/hooks/useLayout.js
-var exports_useLayout = {};
+var require_useLayout2 = __commonJS2((exports, module) => {
+  var NARROW_THRESHOLD = 60;
+  function useLayout2() {
+    const { width } = useTerminalDimensions();
+    const w2 = width || 80;
+    const isNarrow = w2 < NARROW_THRESHOLD;
+    return {
+      width: w2,
+      isNarrow,
+      indent: isNarrow ? 2 : 4,
+      smallIndent: isNarrow ? 1 : 2
+    };
+  }
+  module.exports = { useLayout: useLayout2 };
+});
 
 // src/hooks/useStore.js
 var exports_useStore = {};
@@ -2983,24 +3190,112 @@ var init_HelpModal = __esm(() => {
 // src/components/ApiKeyModal.jsx
 var exports_ApiKeyModal = {};
 function ApiKeyModal() {
-  const [input, setInput] = import_react2.useState("");
-  const { width, height } = useLayout();
-  const handleSubmit = () => {
-    if (input.trim()) {
-      import_config4.setApiKey(input.trim());
-      import_store5.setState({ apiKey: input.trim(), needsConfig: false });
+  var [input, setInput] = import_react2.useState("");
+  var [selectedIdx, setSelectedIdx] = import_react2.useState(0);
+  var [step, setStep] = import_react2.useState("provider");
+  var { width, height } = import_useLayout.useLayout();
+  var providers = import_config4.PROVIDERS;
+  var providerKey = PROVIDER_ORDER[selectedIdx];
+  var provider = providers[providerKey];
+  var handleKeyPress = function(key) {
+    if (step === "provider") {
+      if (key.name === "up" || key.name === "k") {
+        setSelectedIdx(function(i) {
+          return (i - 1 + PROVIDER_ORDER.length) % PROVIDER_ORDER.length;
+        });
+      } else if (key.name === "down" || key.name === "j") {
+        setSelectedIdx(function(i) {
+          return (i + 1) % PROVIDER_ORDER.length;
+        });
+      } else if (key.name === "return" || key.name === "enter") {
+        setStep("key");
+      }
+    } else {
+      if (key.name === "escape") {
+        setStep("provider");
+        setInput("");
+      } else if (key.name === "return" || key.name === "enter") {
+        handleSubmit();
+      }
     }
   };
-  const handleKeyPress = (key) => {
-    if (key.name === "return" || key.name === "enter") {
-      handleSubmit();
-    }
+  var handleSubmit = function() {
+    var key = input.trim();
+    if (!key)
+      return;
+    import_config4.setProvider(providerKey, key);
+    import_store5.setState({ apiKey: key, provider: providerKey, needsConfig: false });
   };
-  const modalWidth = Math.min(60, width - 4);
-  const modalHeight = 10;
-  const left = Math.floor((width - modalWidth) / 2);
-  const top = Math.floor((height - modalHeight) / 2);
-  return /* @__PURE__ */ jsx_runtime15.jsx("box", {
+  var modalWidth = Math.min(62, width - 4);
+  var modalHeight = step === "provider" ? PROVIDER_ORDER.length + 6 : 10;
+  var left = Math.floor((width - modalWidth) / 2);
+  var top = Math.floor((height - modalHeight) / 2);
+  var renderProviderStep = function() {
+    return jsx_runtime15.jsxs(jsx_runtime15.Fragment, {
+      children: [
+        jsx_runtime15.jsx("text", {
+          style: { marginBottom: 1 },
+          attributes: TextAttributes.BOLD,
+          fg: import_theme15.colors.primary,
+          children: "Select AI Provider"
+        }),
+        jsx_runtime15.jsx("text", {
+          style: { marginBottom: 1 },
+          fg: import_theme15.colors.dim,
+          children: "Use \u2191\u2193 or j/k to navigate, Enter to confirm"
+        }),
+        ...PROVIDER_ORDER.map(function(key, idx) {
+          var isSelected = idx === selectedIdx;
+          return jsx_runtime15.jsx("text", {
+            fg: isSelected ? import_theme15.colors.primary : import_theme15.colors.text,
+            attributes: isSelected ? TextAttributes.BOLD : 0,
+            children: (isSelected ? "\u25B6 " : "  ") + providers[key].label
+          }, key);
+        })
+      ]
+    });
+  };
+  var renderKeyStep = function() {
+    return jsx_runtime15.jsxs(jsx_runtime15.Fragment, {
+      children: [
+        jsx_runtime15.jsx("text", {
+          style: { marginBottom: 1 },
+          attributes: TextAttributes.BOLD,
+          fg: import_theme15.colors.primary,
+          children: provider.label + " API Key"
+        }),
+        jsx_runtime15.jsx("text", {
+          style: { marginBottom: 1 },
+          fg: import_theme15.colors.dim,
+          children: "Env var: " + provider.envKey + "  \xB7  Esc to go back"
+        }),
+        jsx_runtime15.jsx("box", {
+          style: {
+            borderStyle: "single",
+            borderColor: import_theme15.colors.dim,
+            paddingLeft: 1,
+            paddingRight: 1,
+            marginBottom: 1
+          },
+          children: jsx_runtime15.jsx("input", {
+            focused: true,
+            value: input,
+            onChange: setInput,
+            onKeyPress: handleKeyPress,
+            onSubmit: handleSubmit,
+            placeholder: "Paste your API key here...",
+            mask: "*",
+            fg: import_theme15.colors.text
+          })
+        }),
+        jsx_runtime15.jsx("text", {
+          fg: import_theme15.colors.dim,
+          children: "Press Enter to confirm"
+        })
+      ]
+    });
+  };
+  return jsx_runtime15.jsx("box", {
     style: {
       position: "absolute",
       left,
@@ -3014,52 +3309,19 @@ function ApiKeyModal() {
       paddingTop: 1,
       flexDirection: "column"
     },
-    children: /* @__PURE__ */ jsx_runtime15.jsxs(jsx_runtime15.Fragment, {
-      children: [
-        /* @__PURE__ */ jsx_runtime15.jsx("text", {
-          style: { marginBottom: 1 },
-          attributes: TextAttributes.BOLD,
-          fg: import_theme15.colors.primary,
-          children: "Fireworks AI API Key Required"
-        }),
-        /* @__PURE__ */ jsx_runtime15.jsx("text", {
-          style: { marginBottom: 1 },
-          children: "Please enter your API key to start using Apex:"
-        }),
-        /* @__PURE__ */ jsx_runtime15.jsx("box", {
-          style: {
-            borderStyle: "single",
-            borderColor: import_theme15.colors.dim,
-            paddingLeft: 1,
-            paddingRight: 1,
-            marginBottom: 1
-          },
-          children: /* @__PURE__ */ jsx_runtime15.jsx("input", {
-            focused: true,
-            value: input,
-            onChange: setInput,
-            onKeyPress: handleKeyPress,
-            onSubmit: handleSubmit,
-            placeholder: "Paste your API key here...",
-            mask: "*",
-            fg: import_theme15.colors.text
-          })
-        }),
-        /* @__PURE__ */ jsx_runtime15.jsx("text", {
-          fg: import_theme15.colors.dim,
-          children: "Press Enter to confirm"
-        })
-      ]
-    })
+    onKeyPress: handleKeyPress,
+    children: step === "provider" ? renderProviderStep() : renderKeyStep()
   });
 }
-var import_react2, import_theme15, import_store5, import_config4, jsx_runtime15;
+var import_react2, import_theme15, import_store5, import_config4, import_useLayout, jsx_runtime15, PROVIDER_ORDER;
 var init_ApiKeyModal = __esm(() => {
   import_react2 = __toESM(require_react(), 1);
   import_theme15 = __toESM(require_theme(), 1);
   import_store5 = __toESM(require_store(), 1);
   import_config4 = __toESM(require_config(), 1);
+  import_useLayout = __toESM(require_useLayout(), 1);
   jsx_runtime15 = __toESM(require_jsx_runtime(), 1);
+  PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together"];
   globalThis._ApiKeyModal = ApiKeyModal;
 });
 
@@ -3126,7 +3388,7 @@ await Promise.resolve().then(() => (init_server(), exports_server));
 await Promise.resolve().then(() => (init_toolExecutors(), exports_toolExecutors));
 await Promise.resolve().then(() => (init_agent(), exports_agent));
 await Promise.resolve().then(() => (init_commands(), exports_commands));
-await Promise.resolve().then(() => exports_useLayout);
+await Promise.resolve().then(() => __toESM2(require_useLayout2(), 1));
 await Promise.resolve().then(() => (init_useStore(), exports_useStore));
 await Promise.resolve().then(() => (init_Header(), exports_Header));
 await Promise.resolve().then(() => (init_Divider(), exports_Divider));

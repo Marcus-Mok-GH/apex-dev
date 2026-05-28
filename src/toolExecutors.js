@@ -6,23 +6,16 @@ var require_toolExecutors = __commonJS((exports, module2) => {
   var {
     PROJECT_ROOT,
     TOOL_TIMEOUT,
-    REVIEWER_MODEL,
     REVIEWER_SYSTEM_PROMPT,
-    FILE_PICKER_MODEL,
     FILE_PICKER_SYSTEM_PROMPT,
-    THINKER_MODEL,
     THINKER_SYSTEM_PROMPT,
-    COMMANDER_MODEL,
     COMMANDER_SYSTEM_PROMPT,
-    CONTEXT_PRUNER_MODEL,
     CONTEXT_PRUNER_SYSTEM_PROMPT,
     SELECTOR_SYSTEM_PROMPT,
-    RESEARCHER_MODEL,
-    GENERAL_AGENT_MODEL,
     RESEARCHER_WEB_SYSTEM_PROMPT,
     RESEARCHER_DOCS_SYSTEM_PROMPT,
     GENERAL_AGENT_SYSTEM_PROMPT,
-    NVIDIA_MODEL,
+    currentModels,
     nvidiaClient,
     session,
     truncateOutput,
@@ -30,6 +23,20 @@ var require_toolExecutors = __commonJS((exports, module2) => {
     sleep
   } = require_config();
   var { parseThinkBlocks } = require_thinking();
+
+  // Shared error formatter for exec failures
+  function formatExecError(err) {
+    const stdout = err.stdout || "";
+    const stderr = err.stderr || "";
+    let statusLine;
+    if (err.signal) {
+      statusLine = `Killed by signal: ${err.signal}`;
+    } else {
+      statusLine = `Exit code: ${err.status ?? 1}`;
+    }
+    return `${statusLine}\n${stdout}\n${stderr}`.trim();
+  }
+
   async function streamCompletion(params, onStream) {
     for (let attempt = 0;attempt <= 2; attempt++) {
       let content = "";
@@ -72,8 +79,8 @@ var require_toolExecutors = __commonJS((exports, module2) => {
           return cleaned || rawReasoning || "";
         }
       } catch (err) {
-        if (err.status === 404 && params.model !== NVIDIA_MODEL && attempt < 2) {
-          params = { ...params, model: NVIDIA_MODEL };
+        if (err.status === 404 && params.model !== currentModels.NVIDIA_MODEL && attempt < 2) {
+          params = { ...params, model: currentModels.NVIDIA_MODEL };
           continue;
         }
         if (attempt < 2 && (err.status === 429 || err.status >= 500)) {
@@ -105,10 +112,10 @@ var require_toolExecutors = __commonJS((exports, module2) => {
     for (const op of ops) {
       if (op.type === "edit") {
         const r = await executeFn("Edit", { path: op.path, old_str: op.old_str, new_str: op.new_str });
-        results.push(r.startsWith("Error") ? `\u2717 Edit ${op.path}: ${r}` : `\u2713 Edit ${op.path}`);
+        results.push(r.startsWith("Error") ? `✗ Edit ${op.path}: ${r}` : `✓ Edit ${op.path}`);
       } else if (op.type === "create") {
         const r = await executeFn("Write", { path: op.path, content: op.content });
-        results.push(r.startsWith("Error") ? `\u2717 Create ${op.path}: ${r}` : `\u2713 Create ${op.path}`);
+        results.push(r.startsWith("Error") ? `✗ Create ${op.path}: ${r}` : `✓ Create ${op.path}`);
       }
     }
     return results;
@@ -124,17 +131,14 @@ var require_toolExecutors = __commonJS((exports, module2) => {
           if (stat.isDirectory())
             return `Error: ${filePath} is a directory. Use ListDir instead.`;
           const content = fs2.readFileSync(filePath, "utf-8");
-          const lines = content.split(`
-`);
+          const lines = content.split(`\n`);
           const start = Math.max(0, (args.start_line || 1) - 1);
           const end = args.end_line ? Math.min(lines.length, args.end_line) : Math.min(lines.length, start + 500);
           const slice = lines.slice(start, end);
-          const numbered = slice.map((l, i) => `${start + i + 1}: ${l}`).join(`
-`);
+          const numbered = slice.map((l, i) => `${start + i + 1}: ${l}`).join(`\n`);
           session.filesRead.add(filePath);
           if (end < lines.length) {
-            return truncateOutput(numbered) + `
-(showing lines ${start + 1}-${end} of ${lines.length})`;
+            return truncateOutput(numbered) + `\n(showing lines ${start + 1}-${end} of ${lines.length})`;
           }
           return truncateOutput(numbered);
         }
@@ -150,8 +154,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
             session.editHistory.push({ path: filePath, before, after: args.content, timestamp: Date.now() });
           }
           session.filesModified.add(filePath);
-          const lines = args.content.split(`
-`).length;
+          const lines = args.content.split(`\n`).length;
           return `${existed ? "Overwritten" : "Created"}: ${filePath} (${lines} lines)`;
         }
         case "Edit": {
@@ -168,16 +171,11 @@ var require_toolExecutors = __commonJS((exports, module2) => {
           fs2.writeFileSync(filePath, updated, "utf-8");
           session.editHistory.push({ path: filePath, before: content, after: updated, timestamp: Date.now() });
           session.filesModified.add(filePath);
-          const oldLines = args.old_str.split(`
-`);
-          const newLines = args.new_str.split(`
-`);
-          let diff = `Edited: ${filePath}
-`;
-          oldLines.forEach((l) => diff += `- ${l}
-`);
-          newLines.forEach((l) => diff += `+ ${l}
-`);
+          const oldLines = args.old_str.split(`\n`);
+          const newLines = args.new_str.split(`\n`);
+          let diff = `Edited: ${filePath}\n`;
+          oldLines.forEach((l) => diff += `- ${l}\n`);
+          newLines.forEach((l) => diff += `+ ${l}\n`);
           return diff;
         }
         case "Patch": {
@@ -199,9 +197,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
           fs2.writeFileSync(filePath, content, "utf-8");
           session.editHistory.push({ path: filePath, before, after: content, timestamp: Date.now() });
           session.filesModified.add(filePath);
-          return `Patched: ${filePath}
-${results.join(`
-`)}`;
+          return `Patched: ${filePath}\n${results.join(`\n`)}`;
         }
         case "Bash": {
           const cwd = args.cwd ? resolvePath(args.cwd) : PROJECT_ROOT;
@@ -216,12 +212,7 @@ ${results.join(`
             });
             return truncateOutput(output || "(no output)");
           } catch (err) {
-            const stdout = err.stdout || "";
-            const stderr = err.stderr || "";
-            const exitCode = err.status || 1;
-            return truncateOutput(`Exit code: ${exitCode}
-${stdout}
-${stderr}`.trim());
+            return truncateOutput(formatExecError(err));
           }
         }
         case "Grep": {
@@ -250,10 +241,8 @@ ${stderr}`.trim());
             const output = execSync(cmd, { encoding: "utf-8", timeout: 1e4 });
             if (!output.trim())
               return "No files found matching pattern.";
-            const files = output.trim().split(`
-`).map((f) => path2.relative(cwd, f)).sort();
-            return files.join(`
-`);
+            const files = output.trim().split(`\n`).map((f) => path2.relative(cwd, f)).sort();
+            return files.join(`\n`);
           } catch {
             return "No files found matching pattern.";
           }
@@ -291,8 +280,7 @@ ${stderr}`.trim());
             return `Error: ${dirPath} is not a directory.`;
           const maxDepth = args.recursive ? 3 : 0;
           const lines = listRecursive(dirPath, 0, maxDepth);
-          return truncateOutput(lines.join(`
-`) || "(empty directory)");
+          return truncateOutput(lines.join(`\n`) || "(empty directory)");
         }
         case "UndoEdit": {
           const filePath = resolvePath(args.path);
@@ -314,23 +302,15 @@ ${stderr}`.trim());
                 maxBuffer: 1024 * 1024 * 5,
                 stdio: ["pipe", "pipe", "pipe"]
               });
-              results.push(`\u2713 ${cmd}
-${output.trim()}`);
+              results.push(`✓ ${cmd}\n${output.trim()}`);
               session.commandsRun.push(cmd);
             } catch (err) {
-              results.push(`\u2717 ${cmd}
-Exit code: ${err.status}
-${(err.stdout || "").trim()}
-${(err.stderr || "").trim()}`);
+              results.push(`✗ ${cmd}\n${formatExecError(err)}`);
               session.commandsRun.push(cmd);
               break;
             }
           }
-          return truncateOutput(`Task: ${args.description}
-${"\u2500".repeat(40)}
-${results.join(`
-
-`)}`);
+          return truncateOutput(`Task: ${args.description}\n${"─".repeat(40)}\n${results.join(`\n\n`)}`);
         }
         case "WebSearch": {
           const apiKey = process.env.EXA_API_KEY;
@@ -368,27 +348,18 @@ ${results.join(`
                     return;
                   }
                   const formatted = json.results.map((r, i) => {
-                    let entry = `${i + 1}. **${r.title || "Untitled"}**
-   ${r.url}`;
+                    let entry = `${i + 1}. **${r.title || "Untitled"}**\n   ${r.url}`;
                     if (r.publishedDate)
-                      entry += `
-   Published: ${r.publishedDate.split("T")[0]}`;
+                      entry += `\n   Published: ${r.publishedDate.split("T")[0]}`;
                     if (r.author)
-                      entry += `
-   Author: ${r.author}`;
+                      entry += `\n   Author: ${r.author}`;
                     if (r.text)
-                      entry += `
-   ${r.text.trim().slice(0, 500)}`;
+                      entry += `\n   ${r.text.trim().slice(0, 500)}`;
                     else if (r.highlights && r.highlights.length)
-                      entry += `
-   ${r.highlights[0].trim().slice(0, 300)}`;
+                      entry += `\n   ${r.highlights[0].trim().slice(0, 300)}`;
                     return entry;
-                  }).join(`
-
-`);
-                  resolve3(truncateOutput(`Web Search Results (${json.results.length}):
-${"\u2500".repeat(40)}
-${formatted}`));
+                  }).join(`\n\n`);
+                  resolve3(truncateOutput(`Web Search Results (${json.results.length}):\n${"─".repeat(40)}\n${formatted}`));
                 } catch (e) {
                   resolve3(`Error: Failed to parse Exa response: ${e.message}`);
                 }
@@ -408,15 +379,12 @@ ${formatted}`));
           let tree = "";
           try {
             tree = execSync(`find "${PROJECT_ROOT}" -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/.cache/*" -not -path "*/.local/*" -not -path "*/.upm/*" -not -path "*/.config/*" 2>/dev/null | head -500`, { encoding: "utf-8", timeout: 15000 }).trim();
-            tree = tree.split(`
-`).map((f) => path2.relative(PROJECT_ROOT, f) || ".").join(`
-`);
+            tree = tree.split(`\n`).map((f) => path2.relative(PROJECT_ROOT, f) || ".").join(`\n`);
           } catch {
             tree = "(failed to scan directory tree)";
           }
           const sourceExts = /\.(js|ts|jsx|tsx|py|rb|go|rs|java|c|cpp|h|hpp|css|scss|html|svelte|vue|json|yaml|yml|toml|md|sql|sh|bash|env|cfg|ini|xml)$/i;
-          const allFiles = tree.split(`
-`).filter((f) => sourceExts.test(f));
+          const allFiles = tree.split(`\n`).filter((f) => sourceExts.test(f));
           const previews = [];
           for (const relFile of allFiles.slice(0, 200)) {
             const absFile = path2.resolve(PROJECT_ROOT, relFile);
@@ -425,43 +393,29 @@ ${formatted}`));
               if (!stat || stat.isDirectory() || stat.size > 512 * 1024)
                 continue;
               const content = fs2.readFileSync(absFile, "utf-8");
-              const first8 = content.split(`
-`).slice(0, 8).join(`
-`);
-              previews.push(`--- ${relFile} ---
-${first8}`);
+              const first8 = content.split(`\n`).slice(0, 8).join(`\n`);
+              previews.push(`--- ${relFile} ---\n${first8}`);
             } catch {}
           }
           const pickerMessages = [
             { role: "system", content: FILE_PICKER_SYSTEM_PROMPT },
             {
               role: "user",
-              content: `# Prompt
-${args.prompt}
-
-# Directory Tree
-${tree}
-
-# File Previews (first 8 lines each)
-${previews.join(`
-
-`)}`
+              content: `# Prompt\n${args.prompt}\n\n# Directory Tree\n${tree}\n\n# File Previews (first 8 lines each)\n${previews.join(`\n\n`)}`
             }
           ];
           try {
-            const header = `FilePickerMax Results
-${"\u2500".repeat(40)}
-`;
+            const header = `FilePickerMax Results\n${"─".repeat(40)}\n`;
             const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
             const raw = await streamCompletion({
-              model: FILE_PICKER_MODEL,
+              model: currentModels.FILE_PICKER_MODEL,
               messages: pickerMessages,
               max_tokens: 4096,
               temperature: 0.2
             }, streamCb) || "[]";
             return truncateOutput(header + raw);
           } catch (apiErr) {
-            return `Error: FilePickerMax failed \u2014 ${apiErr.message}`;
+            return `Error: FilePickerMax failed — ${apiErr.message}`;
           }
         }
         case "TodoList": {
@@ -477,8 +431,7 @@ ${"\u2500".repeat(40)}
           const formatTodos = (todos2) => {
             if (todos2.length === 0)
               return "Todo list is empty.";
-            return todos2.map((t2, i) => `${i + 1}. [${t2.done ? "x" : " "}] ${t2.text}${t2.done ? " \u2713" : ""}`).join(`
-`);
+            return todos2.map((t2, i) => `${i + 1}. [${t2.done ? "x" : " "}] ${t2.text}${t2.done ? " ✓" : ""}`).join(`\n`);
           };
           const todos = loadTodos();
           switch (args.action) {
@@ -487,9 +440,7 @@ ${"\u2500".repeat(40)}
                 return 'Error: "text" is required for add action.';
               todos.push({ text: args.text, done: false, created: Date.now() });
               saveTodos(todos);
-              return `Added item ${todos.length}: ${args.text}
-
-${formatTodos(todos)}`;
+              return `Added item ${todos.length}: ${args.text}\n\n${formatTodos(todos)}`;
             }
             case "list":
               return formatTodos(todos);
@@ -499,9 +450,7 @@ ${formatTodos(todos)}`;
                 return `Error: Invalid index. Use 1-${todos.length}.`;
               todos[idx].done = true;
               saveTodos(todos);
-              return `Completed: ${todos[idx].text}
-
-${formatTodos(todos)}`;
+              return `Completed: ${todos[idx].text}\n\n${formatTodos(todos)}`;
             }
             case "remove": {
               const idx = (args.index || 0) - 1;
@@ -509,17 +458,13 @@ ${formatTodos(todos)}`;
                 return `Error: Invalid index. Use 1-${todos.length}.`;
               const removed = todos.splice(idx, 1)[0];
               saveTodos(todos);
-              return `Removed: ${removed.text}
-
-${formatTodos(todos)}`;
+              return `Removed: ${removed.text}\n\n${formatTodos(todos)}`;
             }
             case "clear": {
               const before = todos.length;
               const remaining = todos.filter((t2) => !t2.done);
               saveTodos(remaining);
-              return `Cleared ${before - remaining.length} completed item(s).
-
-${formatTodos(remaining)}`;
+              return `Cleared ${before - remaining.length} completed item(s).\n\n${formatTodos(remaining)}`;
             }
             default:
               return `Error: Unknown action "${args.action}". Use add, list, done, remove, or clear.`;
@@ -532,26 +477,30 @@ ${formatTodos(remaining)}`;
               allFiles.add(resolvePath(f));
           }
           if (allFiles.size === 0) {
-            return "CodeReview skipped \u2014 no files were modified this session.";
+            return "CodeReview skipped — no files were modified this session.";
           }
           const fileContents = [];
+          const relativePaths = [];
           for (const filePath of allFiles) {
             if (!fs2.existsSync(filePath)) {
-              fileContents.push(`--- ${filePath} ---
-[File not found]`);
+              fileContents.push(`--- ${filePath} ---\n[File not found]`);
               continue;
             }
             const stat = fs2.statSync(filePath);
             if (stat.isDirectory())
               continue;
             const content = fs2.readFileSync(filePath, "utf-8");
-            fileContents.push(`--- ${path2.relative(PROJECT_ROOT, filePath) || filePath} ---
-${content}`);
+            const relPath = path2.relative(PROJECT_ROOT, filePath) || filePath;
+            fileContents.push(`--- ${relPath} ---\n${content}`);
+            relativePaths.push(relPath);
           }
           let gitDiff = "";
-          try {
-            gitDiff = execSync("git diff 2>/dev/null", { encoding: "utf-8", cwd: PROJECT_ROOT, timeout: 1e4 }).trim();
-          } catch {}
+          if (relativePaths.length > 0) {
+            try {
+              const filesArg = relativePaths.map(p => `"${p}"`).join(" ");
+              gitDiff = execSync(`git diff -- ${filesArg} 2>/dev/null`, { encoding: "utf-8", cwd: PROJECT_ROOT, timeout: 1e4 }).trim();
+            } catch {}
+          }
           const reviewMessages = [
             {
               role: "system",
@@ -559,92 +508,62 @@ ${content}`);
             },
             {
               role: "user",
-              content: `# What was changed
-${args.prompt}
-
-# Modified files (${allFiles.size})
-
-${fileContents.join(`
-
-`)}${gitDiff ? `
-
-# Git diff
-\`\`\`diff
-${gitDiff}
-\`\`\`` : ""}`
+              content: `# What was changed\n${args.prompt}\n\n# Modified files (${allFiles.size})\n\n${fileContents.join(`\n\n`)}${gitDiff ? `\n\n# Git diff\n\`\`\`diff\n${gitDiff}\n\`\`\`` : ""}`
             }
           ];
           try {
-            const header = `Code Review (${REVIEWER_MODEL}) \u2014 ${allFiles.size} file(s)
-${"\u2500".repeat(40)}
-`;
+            const header = `Code Review (${currentModels.REVIEWER_MODEL}) — ${allFiles.size} file(s)\n${"─".repeat(40)}\n`;
             const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
             const reviewText = await streamCompletion({
-              model: REVIEWER_MODEL,
+              model: currentModels.REVIEWER_MODEL,
               messages: reviewMessages,
               max_tokens: 4096,
               temperature: 0.3
             }, streamCb) || "(No response from reviewer)";
             return truncateOutput(header + reviewText);
           } catch (apiErr) {
-            return `Error: Code review failed \u2014 ${apiErr.message}`;
+            return `Error: Code review failed — ${apiErr.message}`;
           }
         }
         case "Thinker": {
-          const historyContext = session.conversationHistory.slice(-10).map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 500)}`).join(`
-`);
+          const historyContext = session.conversationHistory.slice(-10).map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 500)}`).join(`\n`);
           const thinkerMessages = [
             { role: "system", content: THINKER_SYSTEM_PROMPT },
             {
               role: "user",
-              content: `# Recent conversation context
-${historyContext}
-
-# Task to reason about
-${args.prompt}`
+              content: `# Recent conversation context\n${historyContext}\n\n# Task to reason about\n${args.prompt}`
             }
           ];
           try {
-            const header = `Thinker (${THINKER_MODEL})
-${"\u2500".repeat(40)}
-`;
+            const header = `Thinker (${currentModels.THINKER_MODEL})\n${"─".repeat(40)}\n`;
             const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
             const result = await streamCompletion({
-              model: THINKER_MODEL,
+              model: currentModels.THINKER_MODEL,
               messages: thinkerMessages,
               max_tokens: 4096,
               temperature: 0.4
             }, streamCb) || "(No response from thinker)";
             return truncateOutput(header + result);
           } catch (apiErr) {
-            return `Error: Thinker failed \u2014 ${apiErr.message}`;
+            return `Error: Thinker failed — ${apiErr.message}`;
           }
         }
         case "ThinkerBestOfN": {
           const n = Math.min(5, Math.max(2, args.n || 3));
-          const historyCtx = session.conversationHistory.slice(-10).map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 500)}`).join(`
-`);
-          const header = `Best-of-${n} Thinker (MAX mode)
-${"\u2500".repeat(40)}
-`;
+          const historyCtx = session.conversationHistory.slice(-10).map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 500)}`).join(`\n`);
+          const header = `Best-of-${n} Thinker (MAX mode)\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + `Spawning ${n} parallel thinking agents...`);
           const thinkPromises = [];
           for (let i = 0;i < n; i++) {
             const label = String.fromCharCode(65 + i);
             thinkPromises.push(streamCompletion({
-              model: THINKER_MODEL,
+              model: currentModels.THINKER_MODEL,
               messages: [
-                { role: "system", content: THINKER_SYSTEM_PROMPT + `
-
-You are Thinker ${label}. Approach this from a unique angle. Be creative and thorough.` },
+                { role: "system", content: THINKER_SYSTEM_PROMPT + `\n\nYou are Thinker ${label}. Approach this from a unique angle. Be creative and thorough.` },
                 {
                   role: "user",
-                  content: `# Context
-${historyCtx}
-
-# Task
-${args.prompt}`
+                  content: `# Context\n${historyCtx}\n\n# Task\n${args.prompt}`
                 }
               ],
               max_tokens: 3072,
@@ -655,27 +574,20 @@ ${args.prompt}`
           try {
             thoughts = await Promise.all(thinkPromises);
           } catch (apiErr) {
-            return `Error: ThinkerBestOfN failed \u2014 ${apiErr.message}`;
+            return `Error: ThinkerBestOfN failed — ${apiErr.message}`;
           }
           if (onStream)
             onStream(header + `All ${n} thinkers completed. Selecting best response...`);
-          const thoughtsFormatted = thoughts.map((t2) => `## Thought ${t2.label}
-${t2.result || "(empty)"}`).join(`
-
-`);
+          const thoughtsFormatted = thoughts.map((t2) => `## Thought ${t2.label}\n${t2.result || "(empty)"}`).join(`\n\n`);
           try {
             const selectorResult = await streamCompletion({
-              model: REVIEWER_MODEL,
+              model: currentModels.REVIEWER_MODEL,
               messages: [
                 {
                   role: "system",
-                  content: `You are a thought selector. You will receive ${n} different reasoning responses to the same question. Pick the best one based on depth, correctness, clarity, and actionability. Output JSON only:
-{ "chosen": "A", "reason": "why this is best" }`
+                  content: `You are a thought selector. You will receive ${n} different reasoning responses to the same question. Pick the best one based on depth, correctness, clarity, and actionability. Output JSON only:\n{ "chosen": "A", "reason": "why this is best" }`
                 },
-                { role: "user", content: `# Original question
-${args.prompt}
-
-${thoughtsFormatted}` }
+                { role: "user", content: `# Original question\n${args.prompt}\n\n${thoughtsFormatted}` }
               ],
               max_tokens: 1024,
               temperature: 0.1
@@ -688,68 +600,33 @@ ${thoughtsFormatted}` }
               reason = parsed.reason || "";
             } catch {}
             const winningThought = thoughts.find((t2) => t2.label === chosen) || thoughts[0];
-            const result = `${header}Selected: Thought ${chosen}${reason ? ` \u2014 ${reason}` : ""}
-
-${winningThought.result}`;
+            const result = `${header}Selected: Thought ${chosen}${reason ? ` — ${reason}` : ""}\n\n${winningThought.result}`;
             if (onStream)
               onStream(truncateOutput(result));
             return truncateOutput(result);
           } catch (apiErr) {
-            const result = `${header}Selector failed, using Thought A:
-
-${thoughts[0].result}`;
+            const result = `${header}Selector failed, using Thought A:\n\n${thoughts[0].result}`;
             return truncateOutput(result);
           }
         }
         case "EditorMultiPrompt": {
           const strategies = args.strategies || ["straightforward implementation", "alternative approach"];
-          const filesCtx = (args.files || []).map((f) => `--- ${f.path} ---
-${f.content}`).join(`
-
-`);
-          const header = `Multi-Prompt Editor (${strategies.length} strategies)
-${"\u2500".repeat(40)}
-`;
+          const filesCtx = (args.files || []).map((f) => `--- ${f.path} ---\n${f.content}`).join(`\n\n`);
+          const header = `Multi-Prompt Editor (${strategies.length} strategies)\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + `Spawning ${strategies.length} parallel editor agents...`);
           const editorPromises = strategies.map((strategy, i) => {
             const label = String.fromCharCode(65 + i);
             return streamCompletion({
-              model: NVIDIA_MODEL,
+              model: currentModels.NVIDIA_MODEL,
               messages: [
                 {
                   role: "system",
-                  content: `You are Code Editor ${label}. You implement code changes using a specific strategy. Output your implementation as a series of file edits.
-
-For each file change, output:
---- EDIT: path/to/file ---
-OLD:
-\`\`\`
-exact old code
-\`\`\`
-NEW:
-\`\`\`
-new replacement code
-\`\`\`
-
-For new files, output:
---- CREATE: path/to/file ---
-\`\`\`
-full file content
-\`\`\`
-
-Be precise. Match existing code style.`
+                  content: `You are Code Editor ${label}. You implement code changes using a specific strategy. Output your implementation as a series of file edits.\n\nFor each file change, output:\n--- EDIT: path/to/file ---\nOLD:\n\`\`\`\nexact old code\n\`\`\`\nNEW:\n\`\`\`\nnew replacement code\n\`\`\`\n\nFor new files, output:\n--- CREATE: path/to/file ---\n\`\`\`\nfull file content\n\`\`\`\n\nBe precise. Match existing code style.`
                 },
                 {
                   role: "user",
-                  content: `# Task
-${args.prompt}
-
-# Strategy
-${strategy}
-
-# Current files
-${filesCtx}`
+                  content: `# Task\n${args.prompt}\n\n# Strategy\n${strategy}\n\n# Current files\n${filesCtx}`
                 }
               ],
               max_tokens: 4096,
@@ -760,25 +637,19 @@ ${filesCtx}`
           try {
             implementations = await Promise.all(editorPromises);
           } catch (apiErr) {
-            return `Error: EditorMultiPrompt failed \u2014 ${apiErr.message}`;
+            return `Error: EditorMultiPrompt failed — ${apiErr.message}`;
           }
           if (onStream)
             onStream(header + `All editors completed. Selecting best implementation...`);
-          const implFormatted = implementations.map((impl) => `## Implementation ${impl.label} \u2014 Strategy: "${impl.strategy}"
-${impl.result}`).join(`
-
-`);
+          const implFormatted = implementations.map((impl) => `## Implementation ${impl.label} — Strategy: "${impl.strategy}"\n${impl.result}`).join(`\n\n`);
           try {
             const selectorResult = await streamCompletion({
-              model: REVIEWER_MODEL,
+              model: currentModels.REVIEWER_MODEL,
               messages: [
                 { role: "system", content: SELECTOR_SYSTEM_PROMPT },
                 {
                   role: "user",
-                  content: `# Original task
-${args.prompt}
-
-${implFormatted}`
+                  content: `# Original task\n${args.prompt}\n\n${implFormatted}`
                 }
               ],
               max_tokens: 1024,
@@ -796,27 +667,17 @@ ${implFormatted}`
             const winning = implementations.find((impl) => impl.label === chosen) || implementations[0];
             let result = `${header}Selected: Implementation ${chosen} ("${winning.strategy}")`;
             if (reason)
-              result += `
-Reason: ${reason}`;
+              result += `\nReason: ${reason}`;
             if (improvements)
-              result += `
-Improvements to consider: ${improvements}`;
+              result += `\nImprovements to consider: ${improvements}`;
             const ops = parseEditorOps(winning.result);
             if (ops.length > 0) {
               if (onStream)
-                onStream(truncateOutput(result + `
-
-Applying ${ops.length} change(s)...`));
+                onStream(truncateOutput(result + `\n\nApplying ${ops.length} change(s)...`));
               const applyResults = await applyEditorOps(ops, executeTool);
-              result += `
-
---- Applied Changes ---
-${applyResults.join(`
-`)}`;
+              result += `\n\n--- Applied Changes ---\n${applyResults.join(`\n`)}`;
             } else {
-              result += `
-
-${winning.result}`;
+              result += `\n\n${winning.result}`;
             }
             if (onStream)
               onStream(truncateOutput(result));
@@ -825,13 +686,9 @@ ${winning.result}`;
             const fallbackOps = parseEditorOps(implementations[0].result);
             if (fallbackOps.length > 0) {
               const applyResults = await applyEditorOps(fallbackOps, executeTool);
-              return truncateOutput(`${header}Selector failed, applied Implementation A:
-${applyResults.join(`
-`)}`);
+              return truncateOutput(`${header}Selector failed, applied Implementation A:\n${applyResults.join(`\n`)}`);
             }
-            return truncateOutput(`${header}Selector failed, using Implementation A:
-
-${implementations[0].result}`);
+            return truncateOutput(`${header}Selector failed, using Implementation A:\n\n${implementations[0].result}`);
           }
         }
         case "CodeReviewMulti": {
@@ -842,7 +699,7 @@ ${implementations[0].result}`);
           ];
           const modFiles = new Set([...session.filesModified]);
           if (modFiles.size === 0)
-            return "CodeReviewMulti skipped \u2014 no files were modified.";
+            return "CodeReviewMulti skipped — no files were modified.";
           const modFileContents = [];
           for (const fp of modFiles) {
             if (!fs2.existsSync(fp))
@@ -850,43 +707,27 @@ ${implementations[0].result}`);
             const stat = fs2.statSync(fp);
             if (stat.isDirectory())
               continue;
-            modFileContents.push(`--- ${path2.relative(PROJECT_ROOT, fp)} ---
-${fs2.readFileSync(fp, "utf-8")}`);
+            modFileContents.push(`--- ${path2.relative(PROJECT_ROOT, fp)} ---\n${fs2.readFileSync(fp, "utf-8")}`);
           }
           let diffText = "";
           try {
             diffText = execSync("git diff 2>/dev/null", { encoding: "utf-8", cwd: PROJECT_ROOT, timeout: 1e4 }).trim();
           } catch {}
-          const header = `Multi-Perspective Code Review (${perspectives.length} reviewers)
-${"\u2500".repeat(40)}
-`;
+          const header = `Multi-Perspective Code Review (${perspectives.length} reviewers)\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + `Spawning ${perspectives.length} parallel reviewers...`);
           const reviewPromises = perspectives.map((perspective, i) => {
             const label = String.fromCharCode(65 + i);
             return streamCompletion({
-              model: REVIEWER_MODEL,
+              model: currentModels.REVIEWER_MODEL,
               messages: [
                 {
                   role: "system",
-                  content: REVIEWER_SYSTEM_PROMPT + `
-
-Focus specifically on: ${perspective}. You are Reviewer ${label}.`
+                  content: REVIEWER_SYSTEM_PROMPT + `\n\nFocus specifically on: ${perspective}. You are Reviewer ${label}.`
                 },
                 {
                   role: "user",
-                  content: `# Changes
-${args.prompt}
-
-# Files (${modFiles.size})
-${modFileContents.join(`
-
-`)}${diffText ? `
-
-# Git diff
-\`\`\`diff
-${diffText}
-\`\`\`` : ""}`
+                  content: `# Changes\n${args.prompt}\n\n# Files (${modFiles.size})\n${modFileContents.join(`\n\n`)}${diffText ? `\n\n# Git diff\n\`\`\`diff\n${diffText}\n\`\`\`` : ""}`
                 }
               ],
               max_tokens: 3072,
@@ -897,29 +738,24 @@ ${diffText}
           try {
             reviews = await Promise.all(reviewPromises);
           } catch (apiErr) {
-            return `Error: CodeReviewMulti failed \u2014 ${apiErr.message}`;
+            return `Error: CodeReviewMulti failed — ${apiErr.message}`;
           }
           let result = header;
           for (const review of reviews) {
-            result += `
-## Reviewer ${review.label} \u2014 ${review.perspective}
-${review.result}
-`;
+            result += `\n## Reviewer ${review.label} — ${review.perspective}\n${review.result}\n`;
           }
           if (onStream)
             onStream(truncateOutput(result));
           return truncateOutput(result);
         }
         case "Commander": {
-          const header = `Commander (${COMMANDER_MODEL})
-${"\u2500".repeat(40)}
-`;
+          const header = `Commander (${currentModels.COMMANDER_MODEL})\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + "Planning commands...");
           let commandPlan;
           try {
             commandPlan = await streamCompletion({
-              model: COMMANDER_MODEL,
+              model: currentModels.COMMANDER_MODEL,
               messages: [
                 { role: "system", content: COMMANDER_SYSTEM_PROMPT },
                 { role: "user", content: args.prompt }
@@ -928,7 +764,7 @@ ${"\u2500".repeat(40)}
               temperature: 0.2
             }, null);
           } catch (apiErr) {
-            return `Error: Commander failed \u2014 ${apiErr.message}`;
+            return `Error: Commander failed — ${apiErr.message}`;
           }
           let commands;
           try {
@@ -936,8 +772,7 @@ ${"\u2500".repeat(40)}
             if (!Array.isArray(commands))
               commands = [commands];
           } catch {
-            return truncateOutput(`${header}Failed to parse command plan:
-${commandPlan}`);
+            return truncateOutput(`${header}Failed to parse command plan:\n${commandPlan}`);
           }
           const results = [];
           for (const cmd of commands) {
@@ -953,45 +788,33 @@ ${commandPlan}`);
                 maxBuffer: 1024 * 1024 * 5,
                 stdio: ["pipe", "pipe", "pipe"]
               });
-              results.push(`\u2713 ${command}${description ? `
-  (${description})` : ""}
-${(output || "").trim()}`);
+              results.push(`✓ ${command}${description ? `\n  (${description})` : ""}\n${(output || "").trim()}`);
               session.commandsRun.push(command);
             } catch (err) {
-              results.push(`\u2717 ${command}
-Exit code: ${err.status}
-${(err.stdout || "").trim()}
-${(err.stderr || "").trim()}`);
+              results.push(`✗ ${command}\n${formatExecError(err)}`);
               session.commandsRun.push(command);
               break;
             }
           }
-          const result = `${header}${results.join(`
-
-`)}`;
+          const result = `${header}${results.join(`\n\n`)}`;
           if (onStream)
             onStream(truncateOutput(result));
           return truncateOutput(result);
         }
         case "ContextPruner": {
           if (session.conversationHistory.length < 6) {
-            return "Context pruning skipped \u2014 conversation is still short.";
+            return "Context pruning skipped — conversation is still short.";
           }
-          const header = `Context Pruner
-${"\u2500".repeat(40)}
-`;
+          const header = `Context Pruner\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + "Summarizing conversation...");
-          const historyText = session.conversationHistory.map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 1000)}`).join(`
-`);
+          const historyText = session.conversationHistory.map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 1000)}`).join(`\n`);
           try {
             const summary = await streamCompletion({
-              model: CONTEXT_PRUNER_MODEL,
+              model: currentModels.CONTEXT_PRUNER_MODEL,
               messages: [
                 { role: "system", content: CONTEXT_PRUNER_SYSTEM_PROMPT },
-                { role: "user", content: `# Conversation to summarize (${session.conversationHistory.length} messages)
-
-${historyText}` }
+                { role: "user", content: `# Conversation to summarize (${session.conversationHistory.length} messages)\n\n${historyText}` }
               ],
               max_tokens: 2048,
               temperature: 0.2
@@ -1000,24 +823,19 @@ ${historyText}` }
             session.conversationHistory = [
               {
                 role: "system",
-                content: `[Context Summary \u2014 ${oldLen} messages condensed]
-${summary}`
+                content: `[Context Summary — ${oldLen} messages condensed]\n${summary}`
               }
             ];
-            const result = `${header}Condensed ${oldLen} messages into summary.
-
-${summary}`;
+            const result = `${header}Condensed ${oldLen} messages into summary.\n\n${summary}`;
             if (onStream)
               onStream(truncateOutput(result));
             return truncateOutput(result);
           } catch (apiErr) {
-            return `Error: Context pruning failed \u2014 ${apiErr.message}`;
+            return `Error: Context pruning failed — ${apiErr.message}`;
           }
         }
         case "ResearcherWeb": {
-          const header = `Web Research (${RESEARCHER_MODEL})
-${"\u2500".repeat(40)}
-`;
+          const header = `Web Research (${currentModels.RESEARCHER_MODEL})\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + "Searching the web...");
           let searchResults = "";
@@ -1027,37 +845,29 @@ ${"\u2500".repeat(40)}
           try {
             searchResults = await executeTool("WebSearch", searchArgs);
           } catch {
-            searchResults = "(Web search unavailable \u2014 answering from knowledge)";
+            searchResults = "(Web search unavailable — answering from knowledge)";
           }
           if (searchResults.startsWith("Error")) {
-            searchResults = `(Web search failed: ${searchResults.slice(0, 200)})
-
-Please answer from your training data.`;
+            searchResults = `(Web search failed: ${searchResults.slice(0, 200)})\n\nPlease answer from your training data.`;
           }
           try {
             const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
             const result = await streamCompletion({
-              model: RESEARCHER_MODEL,
+              model: currentModels.RESEARCHER_MODEL,
               messages: [
                 { role: "system", content: RESEARCHER_WEB_SYSTEM_PROMPT },
-                { role: "user", content: `# Question
-${args.prompt}
-
-# Web Search Results
-${searchResults}` }
+                { role: "user", content: `# Question\n${args.prompt}\n\n# Web Search Results\n${searchResults}` }
               ],
               max_tokens: 4096,
               temperature: 0.3
             }, streamCb) || "(No response from researcher)";
             return truncateOutput(header + result);
           } catch (apiErr) {
-            return `Error: ResearcherWeb failed \u2014 ${apiErr.message}`;
+            return `Error: ResearcherWeb failed — ${apiErr.message}`;
           }
         }
         case "ResearcherDocs": {
-          const header = `Docs Research (${RESEARCHER_MODEL})
-${"\u2500".repeat(40)}
-`;
+          const header = `Docs Research (${currentModels.RESEARCHER_MODEL})\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + "Searching documentation...");
           const docDomains = [
@@ -1097,26 +907,21 @@ ${"\u2500".repeat(40)}
                 num_results: 5
               });
             } catch {
-              searchResults = "(Documentation search unavailable \u2014 answering from knowledge)";
+              searchResults = "(Documentation search unavailable — answering from knowledge)";
             }
           }
           if (!searchResults || searchResults.startsWith("Error")) {
-            searchResults = "(No documentation results found \u2014 answering from knowledge)";
+            searchResults = "(No documentation results found — answering from knowledge)";
           }
           try {
             const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
             const result = await streamCompletion({
-              model: RESEARCHER_MODEL,
+              model: currentModels.RESEARCHER_MODEL,
               messages: [
                 { role: "system", content: RESEARCHER_DOCS_SYSTEM_PROMPT },
                 {
                   role: "user",
-                  content: `# Question
-${args.prompt}${args.library ? `
-Library: ${args.library}` : ""}
-
-# Documentation Search Results
-${searchResults}`
+                  content: `# Question\n${args.prompt}${args.library ? `\nLibrary: ${args.library}` : ""}\n\n# Documentation Search Results\n${searchResults}`
                 }
               ],
               max_tokens: 4096,
@@ -1124,13 +929,11 @@ ${searchResults}`
             }, streamCb) || "(No response from researcher)";
             return truncateOutput(header + result);
           } catch (apiErr) {
-            return `Error: ResearcherDocs failed \u2014 ${apiErr.message}`;
+            return `Error: ResearcherDocs failed — ${apiErr.message}`;
           }
         }
         case "GeneralAgent": {
-          const header = `General Agent (${GENERAL_AGENT_MODEL})
-${"\u2500".repeat(40)}
-`;
+          const header = `General Agent (${currentModels.GENERAL_AGENT_MODEL})\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + "Reading files and analyzing...");
           const MAX_TOTAL_CHARS = 50000;
@@ -1140,49 +943,37 @@ ${"\u2500".repeat(40)}
             const absPath = resolvePath(fp);
             const stat = fs2.statSync(absPath, { throwIfNoEntry: false });
             if (!stat || stat.isDirectory()) {
-              fileContents.push(`--- ${fp} ---
-[Not found or is a directory]`);
+              fileContents.push(`--- ${fp} ---\n[Not found or is a directory]`);
               continue;
             }
             if (stat.size > 256 * 1024) {
-              fileContents.push(`--- ${fp} ---
-[File too large: ${(stat.size / 1024).toFixed(0)}KB \u2014 skipped]`);
+              fileContents.push(`--- ${fp} ---\n[File too large: ${(stat.size / 1024).toFixed(0)}KB — skipped]`);
               continue;
             }
             const content = fs2.readFileSync(absPath, "utf-8");
             if (totalChars + content.length > MAX_TOTAL_CHARS) {
               const remaining = MAX_TOTAL_CHARS - totalChars;
               if (remaining > 500) {
-                fileContents.push(`--- ${fp} ---
-${content.slice(0, remaining)}
-[Truncated \u2014 context limit reached]`);
+                fileContents.push(`--- ${fp} ---\n${content.slice(0, remaining)}\n[Truncated — context limit reached]`);
+              } else {
+                fileContents.push(`--- ${fp} ---\n[Skipped — context limit reached]`);
               }
               totalChars = MAX_TOTAL_CHARS;
               break;
             }
-            fileContents.push(`--- ${fp} ---
-${content}`);
+            fileContents.push(`--- ${fp} ---\n${content}`);
             totalChars += content.length;
           }
-          const historyCtx = session.conversationHistory.slice(-8).map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 400)}`).join(`
-`);
+          const historyCtx = session.conversationHistory.slice(-8).map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 400)}`).join(`\n`);
           const userContent = [
-            `# Task
-${args.prompt}`,
-            fileContents.length > 0 ? `
-# Files (${fileContents.length})
-${fileContents.join(`
-
-`)}` : "",
-            historyCtx ? `
-# Recent conversation
-${historyCtx}` : ""
-          ].filter(Boolean).join(`
-`);
+            `# Task\n${args.prompt}`,
+            fileContents.length > 0 ? `\n# Files (${fileContents.length})\n${fileContents.join(`\n\n`)}` : "",
+            historyCtx ? `\n# Recent conversation\n${historyCtx}` : ""
+          ].filter(Boolean).join(`\n`);
           try {
             const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
             const result = await streamCompletion({
-              model: GENERAL_AGENT_MODEL,
+              model: currentModels.GENERAL_AGENT_MODEL,
               messages: [
                 { role: "system", content: GENERAL_AGENT_SYSTEM_PROMPT },
                 { role: "user", content: userContent }
@@ -1192,7 +983,7 @@ ${historyCtx}` : ""
             }, streamCb) || "(No response from agent)";
             return truncateOutput(header + result);
           } catch (apiErr) {
-            return `Error: GeneralAgent failed \u2014 ${apiErr.message}`;
+            return `Error: GeneralAgent failed — ${apiErr.message}`;
           }
         }
         default:
@@ -1204,4 +995,3 @@ ${historyCtx}` : ""
   }
   module2.exports = { executeTool };
 });
-

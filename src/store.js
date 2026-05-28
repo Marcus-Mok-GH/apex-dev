@@ -1,4 +1,12 @@
 var require_store = __commonJS((exports, module2) => {
+  // Import config for provider detection
+  var config = require_config();
+
+  // Detect provider using shared logic
+  var _detectedProvider = config.detectInitialProvider();
+  var _providerEnvKey = config.PROVIDERS[_detectedProvider].envKey;
+  var _apiKey = process.env[_providerEnvKey] || "";
+
   var state = {
     messages: [],
     streamingContent: "",
@@ -6,8 +14,9 @@ var require_store = __commonJS((exports, module2) => {
     isProcessing: false,
     showHelp: false,
     showSummary: false,
-    apiKey: process.env.FIREWORKS_API_KEY || "",
-    needsConfig: !process.env.FIREWORKS_API_KEY
+    apiKey: _apiKey,
+    provider: _detectedProvider,
+    needsConfig: !Boolean(_apiKey)
   };
   var nextId = 1;
   var listeners = new Set;
@@ -100,4 +109,3 @@ var require_store = __commonJS((exports, module2) => {
     getRenderer
   };
 });
-
