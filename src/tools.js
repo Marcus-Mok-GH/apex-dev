@@ -194,11 +194,11 @@ var require_tools = __commonJS((exports, module2) => {
       type: "function",
       function: {
         name: "FilePickerMax",
-        description: 'Spawn a file-picker sub-agent that deeply explores the codebase to find files relevant to a prompt. It scans the full directory tree and previews every source file, then uses the most capable model to identify and rank the relevant files. Use this when you need to locate files related to a concept, feature, bug, or pattern. NEVER send generic prompts like "give me an overview of the codebase" \u2014 always specify the exact type of files you want.',
+        description: 'Spawn a file-picker sub-agent that deeply explores the codebase to find files relevant to a prompt. It scans the full directory tree and previews every source file, then uses the most capable model to identify and rank the relevant files. Use this when you need to locate files related to a concept, feature, bug, or pattern. NEVER send generic prompts like "give me an overview of the codebase" — always specify the exact type of files you want.',
         parameters: {
           type: "object",
           properties: {
-            prompt: { type: "string", description: 'Specify the exact type of files you need. NEVER ask for a generic overview. Be specific \u2014 e.g. "show me the main entry point and routing files", "files that handle user authentication", "all React components related to the dashboard", "where database migrations are defined".' }
+            prompt: { type: "string", description: 'Specify the exact type of files you need. NEVER ask for a generic overview. Be specific — e.g. "show me the main entry point and routing files", "files that handle user authentication", "all React components related to the dashboard", "where database migrations are defined".' }
           },
           required: ["prompt"]
         }
@@ -281,6 +281,25 @@ var require_tools = __commonJS((exports, module2) => {
             }
           },
           required: ["prompt", "strategies", "files"]
+        }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "CodeReview",
+        description: "Spawn a code reviewer that analyzes all files modified this session for bugs, security issues, edge cases, and code quality. Call this after making code changes.",
+        parameters: {
+          type: "object",
+          properties: {
+            prompt: { type: "string", description: "Description of what was changed and why, to give the reviewer context." },
+            files: {
+              type: "array",
+              description: "Optional additional file paths to include in the review.",
+              items: { type: "string" }
+            }
+          },
+          required: ["prompt"]
         }
       }
     },
