@@ -20,7 +20,8 @@ var require_toolExecutors = __commonJS((exports, module2) => {
     session,
     truncateOutput,
     resolvePath,
-    sleep
+    sleep,
+    sanitizeForModel
   } = require_config();
   var { parseThinkBlocks } = require_thinking();
 
@@ -38,6 +39,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
   }
 
   async function streamCompletion(params, onStream) {
+    params = sanitizeForModel(params);
     for (let attempt = 0;attempt <= 2; attempt++) {
       let content = "";
       let reasoning = "";
@@ -512,7 +514,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
             }
           ];
           try {
-            const header = `Code Review (${currentModels.REVIEWER_MODEL}) — ${allFiles.size} file(s)\n${"─".repeat(40)}\n`;
+            const header = `Code Review — ${allFiles.size} file(s)\n${"─".repeat(40)}\n`;
             const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
             const reviewText = await streamCompletion({
               model: currentModels.REVIEWER_MODEL,
@@ -535,7 +537,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
             }
           ];
           try {
-            const header = `Thinker (${currentModels.THINKER_MODEL})\n${"─".repeat(40)}\n`;
+            const header = `Thinker\n${"─".repeat(40)}\n`;
             const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
             const result = await streamCompletion({
               model: currentModels.THINKER_MODEL,
@@ -749,7 +751,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
           return truncateOutput(result);
         }
         case "Commander": {
-          const header = `Commander (${currentModels.COMMANDER_MODEL})\n${"─".repeat(40)}\n`;
+          const header = `Commander\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + "Planning commands...");
           let commandPlan;
@@ -835,7 +837,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
           }
         }
         case "ResearcherWeb": {
-          const header = `Web Research (${currentModels.RESEARCHER_MODEL})\n${"─".repeat(40)}\n`;
+          const header = `Web Research\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + "Searching the web...");
           let searchResults = "";
@@ -867,7 +869,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
           }
         }
         case "ResearcherDocs": {
-          const header = `Docs Research (${currentModels.RESEARCHER_MODEL})\n${"─".repeat(40)}\n`;
+          const header = `Docs Research\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + "Searching documentation...");
           const docDomains = [
@@ -933,7 +935,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
           }
         }
         case "GeneralAgent": {
-          const header = `General Agent (${currentModels.GENERAL_AGENT_MODEL})\n${"─".repeat(40)}\n`;
+          const header = `General Agent\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + "Reading files and analyzing...");
           const MAX_TOTAL_CHARS = 50000;

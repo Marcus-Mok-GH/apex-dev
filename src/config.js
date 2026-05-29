@@ -5,17 +5,25 @@ var require_config = __commonJS((exports, module2) => {
   var PROVIDERS = {
     fireworks: {
       label: "Fireworks AI",
-      baseURL: process.env.APEX_API_URL || "https://fireworks-endpoint--57crestcrepe.replit.app/v1",
+      baseURL: process.env.APEX_API_URL || "https://api.fireworks.ai/inference/v1",
       envKey: "FIREWORKS_API_KEY",
       models: {
-        NVIDIA_MODEL:        "z-ai/glm4.7",
-        REVIEWER_MODEL:      "nvidia/llama-3.3-nemotron-super-49b-v1.5",
-        FILE_PICKER_MODEL:   "qwen/qwen3-coder-480b-a35b-instruct",
-        THINKER_MODEL:       "z-ai/glm4.7",
-        COMMANDER_MODEL:     "nvidia/llama-3.3-nemotron-super-49b-v1.5",
-        CONTEXT_PRUNER_MODEL:"nvidia/llama-3.3-nemotron-super-49b-v1.5",
-        RESEARCHER_MODEL:    "nvidia/llama-3.3-nemotron-super-49b-v1.5",
-        GENERAL_AGENT_MODEL: "z-ai/glm4.7",
+        // Main agent — most capable, 1M-ctx, strong tool use
+        NVIDIA_MODEL:        "deepseek-ai/deepseek-v4-pro",
+        // Code review & multi-impl selector — code-specialized 480B model
+        REVIEWER_MODEL:      "fireworks/qwen3-coder-480b-a35b-instruct",
+        // File picker — ultra-cheap flash model ($0.14/M), simple JSON output
+        FILE_PICKER_MODEL:   "deepseek-ai/deepseek-v4-flash",
+        // Deep reasoning/planning — R1 chain-of-thought model
+        THINKER_MODEL:       "fireworks/deepseek-r1",
+        // Command planning — fast flash model, simple JSON output
+        COMMANDER_MODEL:     "deepseek-ai/deepseek-v4-flash",
+        // Context summarization — fast flash model
+        CONTEXT_PRUNER_MODEL:"deepseek-ai/deepseek-v4-flash",
+        // Web/docs research synthesis — strong general model
+        RESEARCHER_MODEL:    "fireworks/deepseek-v3p2",
+        // General analysis with file context — large analytical model
+        GENERAL_AGENT_MODEL: "fireworks/qwen3-235b-a22b",
       },
     },
     openai: {
@@ -23,14 +31,22 @@ var require_config = __commonJS((exports, module2) => {
       baseURL: "https://api.openai.com/v1",
       envKey: "OPENAI_API_KEY",
       models: {
-        NVIDIA_MODEL:        "gpt-4o",
-        REVIEWER_MODEL:      "gpt-4o",
-        FILE_PICKER_MODEL:   "gpt-4o-mini",
-        THINKER_MODEL:       "gpt-4o",
-        COMMANDER_MODEL:     "gpt-4o-mini",
-        CONTEXT_PRUNER_MODEL:"gpt-4o-mini",
-        RESEARCHER_MODEL:    "gpt-4o",
-        GENERAL_AGENT_MODEL: "gpt-4o",
+        // Main agent — GPT-5.5, flagship model
+        NVIDIA_MODEL:        "gpt-5.5",
+        // Code review & selector — GPT-5.4 for strong code analysis
+        REVIEWER_MODEL:      "gpt-5.4",
+        // File picker — lightweight 5.3 for simple JSON output
+        FILE_PICKER_MODEL:   "gpt-5.3",
+        // Deep reasoning — o3 is OpenAI's best reasoning model (temp stripped automatically)
+        THINKER_MODEL:       "o3",
+        // Command planning — lightweight 5.3, fast and cheap
+        COMMANDER_MODEL:     "gpt-5.3",
+        // Context summarization — lightweight 5.3, fast and cheap
+        CONTEXT_PRUNER_MODEL:"gpt-5.3",
+        // Research synthesis — GPT-5.4 for quality synthesis
+        RESEARCHER_MODEL:    "gpt-5.4",
+        // General analysis — GPT-5.4
+        GENERAL_AGENT_MODEL: "gpt-5.4",
       },
     },
     openrouter: {
@@ -38,14 +54,22 @@ var require_config = __commonJS((exports, module2) => {
       baseURL: "https://openrouter.ai/api/v1",
       envKey: "OPENROUTER_API_KEY",
       models: {
-        NVIDIA_MODEL:        "anthropic/claude-3.5-sonnet",
-        REVIEWER_MODEL:      "anthropic/claude-3.5-sonnet",
-        FILE_PICKER_MODEL:   "google/gemini-flash-1.5",
-        THINKER_MODEL:       "anthropic/claude-3.5-sonnet",
-        COMMANDER_MODEL:     "google/gemini-flash-1.5",
-        CONTEXT_PRUNER_MODEL:"google/gemini-flash-1.5",
-        RESEARCHER_MODEL:    "anthropic/claude-3.5-sonnet",
-        GENERAL_AGENT_MODEL: "anthropic/claude-3.5-sonnet",
+        // Main agent — latest Claude Opus, best overall capability
+        NVIDIA_MODEL:        "anthropic/claude-opus-4.8",
+        // Code review & selector — Sonnet: capable, lower cost than Opus
+        REVIEWER_MODEL:      "anthropic/claude-sonnet-4.6",
+        // File picker — Haiku: fastest and cheapest, reliable JSON output
+        FILE_PICKER_MODEL:   "anthropic/claude-haiku-4.5",
+        // Deep reasoning — Opus for best multi-step analysis
+        THINKER_MODEL:       "anthropic/claude-opus-4.8",
+        // Command planning — Haiku: fast and cheap
+        COMMANDER_MODEL:     "anthropic/claude-haiku-4.5",
+        // Context summarization — Haiku: fast and cheap
+        CONTEXT_PRUNER_MODEL:"anthropic/claude-haiku-4.5",
+        // Research synthesis — Sonnet: good balance of quality and cost
+        RESEARCHER_MODEL:    "anthropic/claude-sonnet-4.6",
+        // General analysis — Sonnet: strong, cost-efficient
+        GENERAL_AGENT_MODEL: "anthropic/claude-sonnet-4.6",
       },
     },
     groq: {
@@ -53,14 +77,22 @@ var require_config = __commonJS((exports, module2) => {
       baseURL: "https://api.groq.com/openai/v1",
       envKey: "GROQ_API_KEY",
       models: {
+        // Main agent — stable 70B production model, very fast on Groq hardware
         NVIDIA_MODEL:        "llama-3.3-70b-versatile",
-        REVIEWER_MODEL:      "llama-3.3-70b-versatile",
+        // Code review & selector — Llama 4 Scout, newest and most capable
+        REVIEWER_MODEL:      "meta-llama/llama-4-scout-17b-16e-instruct",
+        // File picker — 8B instant: 750+ tok/s, cheapest option
         FILE_PICKER_MODEL:   "llama-3.1-8b-instant",
-        THINKER_MODEL:       "llama-3.3-70b-versatile",
+        // Deep reasoning — Llama 4 Scout for best available reasoning on Groq
+        THINKER_MODEL:       "meta-llama/llama-4-scout-17b-16e-instruct",
+        // Command planning — 8B instant: ultra-fast JSON output
         COMMANDER_MODEL:     "llama-3.1-8b-instant",
+        // Context summarization — 8B instant: ultra-fast
         CONTEXT_PRUNER_MODEL:"llama-3.1-8b-instant",
+        // Research synthesis — stable 70B versatile
         RESEARCHER_MODEL:    "llama-3.3-70b-versatile",
-        GENERAL_AGENT_MODEL: "llama-3.3-70b-versatile",
+        // General analysis — Llama 4 Scout: newest capabilities
+        GENERAL_AGENT_MODEL: "meta-llama/llama-4-scout-17b-16e-instruct",
       },
     },
     gemini: {
@@ -68,13 +100,21 @@ var require_config = __commonJS((exports, module2) => {
       baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
       envKey: "GEMINI_API_KEY",
       models: {
-        NVIDIA_MODEL:        "gemini-2.5-flash",
+        // Main agent — 2.5 Pro: most capable stable model, 1M context
+        NVIDIA_MODEL:        "gemini-2.5-pro",
+        // Code review & selector — Pro for deep code analysis
         REVIEWER_MODEL:      "gemini-2.5-pro",
-        FILE_PICKER_MODEL:   "gemini-2.5-flash",
+        // File picker — Flash Lite: lowest latency and cost in 2.5 family
+        FILE_PICKER_MODEL:   "gemini-2.5-flash-lite",
+        // Deep reasoning — Pro with built-in thinking capability
         THINKER_MODEL:       "gemini-2.5-pro",
-        COMMANDER_MODEL:     "gemini-2.5-flash",
-        CONTEXT_PRUNER_MODEL:"gemini-2.5-flash",
-        RESEARCHER_MODEL:    "gemini-2.5-pro",
+        // Command planning — Flash Lite: fast and cheap
+        COMMANDER_MODEL:     "gemini-2.5-flash-lite",
+        // Context summarization — Flash Lite: fast and cheap
+        CONTEXT_PRUNER_MODEL:"gemini-2.5-flash-lite",
+        // Research synthesis — Flash: balanced speed and quality
+        RESEARCHER_MODEL:    "gemini-2.5-flash",
+        // General analysis — Pro for deep multi-file reasoning
         GENERAL_AGENT_MODEL: "gemini-2.5-pro",
       },
     },
@@ -83,20 +123,55 @@ var require_config = __commonJS((exports, module2) => {
       baseURL: "https://api.together.ai/v1",
       envKey: "TOGETHER_API_KEY",
       models: {
-        NVIDIA_MODEL:        "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-        REVIEWER_MODEL:      "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-        FILE_PICKER_MODEL:   "meta-llama/Llama-3.2-3B-Instruct-Turbo",
-        THINKER_MODEL:       "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-        COMMANDER_MODEL:     "meta-llama/Llama-3.2-3B-Instruct-Turbo",
-        CONTEXT_PRUNER_MODEL:"meta-llama/Llama-3.2-3B-Instruct-Turbo",
-        RESEARCHER_MODEL:    "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-        GENERAL_AGENT_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        // Main agent — DeepSeek V4 Pro: most capable, 512K context
+        NVIDIA_MODEL:        "deepseek-ai/DeepSeek-V4-Pro",
+        // Code review & selector — Qwen 3.5 397B: large model, strong at analysis
+        REVIEWER_MODEL:      "Qwen/Qwen3.5-397B-A17B",
+        // File picker — Qwen 3.5 9B: cheapest option ($0.10/M), simple JSON
+        FILE_PICKER_MODEL:   "Qwen/Qwen3.5-9B",
+        // Deep reasoning — DeepSeek V4 Pro: best reasoning on Together
+        THINKER_MODEL:       "deepseek-ai/DeepSeek-V4-Pro",
+        // Command planning — Qwen 3.5 9B: fast and cheap
+        COMMANDER_MODEL:     "Qwen/Qwen3.5-9B",
+        // Context summarization — Qwen 3.5 9B: fast and cheap
+        CONTEXT_PRUNER_MODEL:"Qwen/Qwen3.5-9B",
+        // Research synthesis — Qwen 3.6 Plus: capable, good for synthesis
+        RESEARCHER_MODEL:    "Qwen/Qwen3.6-Plus",
+        // General analysis — Qwen 3.5 397B: large, thorough analysis
+        GENERAL_AGENT_MODEL: "Qwen/Qwen3.5-397B-A17B",
+      },
+    },
+    anthropic: {
+      label: "Anthropic",
+      baseURL: "https://api.anthropic.com/v1",
+      envKey: "ANTHROPIC_API_KEY",
+      // Anthropic uses x-api-key header; apiKey is passed via defaultHeaders
+      authHeader: "x-api-key",
+      extraHeaders: { "anthropic-version": "2023-06-01" },
+      models: {
+        // Main agent — Claude Opus 4.8: most capable, best tool use and long context
+        NVIDIA_MODEL:        "claude-opus-4-8",
+        // Code review & selector — Sonnet 4.6: strong at code analysis, lower cost
+        REVIEWER_MODEL:      "claude-sonnet-4-6",
+        // File picker — Sonnet 4.6: reliable JSON output
+        FILE_PICKER_MODEL:   "claude-sonnet-4-6",
+        // Deep reasoning — Opus 4.8 for best multi-step planning and analysis
+        THINKER_MODEL:       "claude-opus-4-8",
+        // Command planning — Sonnet 4.6: fast, good at structured output
+        COMMANDER_MODEL:     "claude-sonnet-4-6",
+        // Context summarization — Sonnet 4.6
+        CONTEXT_PRUNER_MODEL:"claude-sonnet-4-6",
+        // Research synthesis — Sonnet 4.6: quality balance for synthesis tasks
+        RESEARCHER_MODEL:    "claude-sonnet-4-6",
+        // General analysis — Sonnet 4.6: strong and cost-efficient
+        GENERAL_AGENT_MODEL: "claude-sonnet-4-6",
       },
     },
   };
   // ── Detect initial provider from env ─────────────────────────────────────
   function detectInitialProvider() {
     if (process.env.APEX_PROVIDER && PROVIDERS[process.env.APEX_PROVIDER]) return process.env.APEX_PROVIDER;
+    if (process.env.ANTHROPIC_API_KEY)  return "anthropic";
     if (process.env.OPENAI_API_KEY)    return "openai";
     if (process.env.OPENROUTER_API_KEY) return "openrouter";
     if (process.env.GROQ_API_KEY)      return "groq";
@@ -242,11 +317,7 @@ Be direct and comprehensive. Provide actual solutions, not descriptions of what 
   // with a new instance on provider change. The Proxy below forwards every
   // property access to whatever _internalClient currently holds, so all
   // modules that destructured `nvidiaClient` keep working transparently.
-  var _internalClient = new OpenAI({
-    apiKey: _initialKey,
-    baseURL: _initialProvider.baseURL,
-    dangerouslyAllowBrowser: true
-  });
+  var _internalClient = _makeClient(_initialKey, _initialProvider.baseURL, _initialProvider);
   var nvidiaClient = new Proxy({}, {
     get(_, prop) {
       var val = _internalClient[prop];
@@ -258,12 +329,26 @@ Be direct and comprehensive. Provide actual solutions, not descriptions of what 
     }
   });
 
-  function _makeClient(apiKey, baseURL) {
-    return new OpenAI({ apiKey: apiKey || "no-key", baseURL, dangerouslyAllowBrowser: true });
+  function _makeClient(apiKey, baseURL, provider) {
+    const key = apiKey || "no-key";
+    // Anthropic (and any provider with authHeader) uses a custom auth header
+    // instead of the standard "Authorization: Bearer <key>" scheme.
+    if (provider && provider.authHeader) {
+      return new OpenAI({
+        apiKey: "no-key",           // suppress SDK's own Authorization header
+        baseURL,
+        dangerouslyAllowBrowser: true,
+        defaultHeaders: {
+          [provider.authHeader]: key,
+          ...(provider.extraHeaders || {})
+        }
+      });
+    }
+    return new OpenAI({ apiKey: key, baseURL, dangerouslyAllowBrowser: true });
   }
 
   function setApiKey(key) {
-    _internalClient = _makeClient(key, PROVIDERS[currentProvider].baseURL);
+    _internalClient = _makeClient(key, PROVIDERS[currentProvider].baseURL, PROVIDERS[currentProvider]);
     if (globalThis.require_server) {
       const srv = globalThis.require_server();
       if (srv && srv.updateApiKey) srv.updateApiKey(key);
@@ -275,7 +360,7 @@ Be direct and comprehensive. Provide actual solutions, not descriptions of what 
     if (!provider) return;
     currentProvider = providerKey;
     // Swap to a fresh client — SDK v6 properties are immutable after construction
-    _internalClient = _makeClient(apiKey, provider.baseURL);
+    _internalClient = _makeClient(apiKey, provider.baseURL, provider);
     // Mutate currentModels in-place so all destructured refs stay live
     Object.assign(currentModels, provider.models);
     if (globalThis.require_server) {
@@ -317,6 +402,16 @@ Be direct and comprehensive. Provide actual solutions, not descriptions of what 
   function getMode() {
     return currentMode;
   }
+  // Strip parameters that OpenAI o-series reasoning models (o1, o3, o4-mini, etc.)
+  // do not accept. These models use a fixed temperature and ignore top_p.
+  function sanitizeForModel(params) {
+    const model = params.model || "";
+    if (/^o[0-9]/.test(model)) {
+      const { temperature, top_p, ...rest } = params;
+      return rest;
+    }
+    return params;
+  }
   module2.exports = {
     // Live model object — all consumers should use currentModels.XXX
     currentModels,
@@ -355,6 +450,7 @@ Be direct and comprehensive. Provide actual solutions, not descriptions of what 
     resolvePath,
     timestamp,
     sleep,
-    getMode
+    getMode,
+    sanitizeForModel
   };
 });
