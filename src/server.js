@@ -7,11 +7,11 @@ var require_server = __commonJS((exports, module2) => {
     if (serverInstance)
       return serverInstance;
     const apiKey = process.env.NVIDIA_API_KEY || "";
-    const upstream = new OpenAI({ apiKey, baseURL: NVIDIA_BASE_URL });
-    globalThis._upstream = upstream;
+    globalThis._upstream = new OpenAI({ apiKey, baseURL: NVIDIA_BASE_URL });
     serverInstance = Bun.serve({
       port: PORT,
       async fetch(req) {
+        const upstream = globalThis._upstream;
         const url = new URL(req.url);
         if (url.pathname === "/health") {
           return new Response(JSON.stringify({ status: "ok" }), {
@@ -29,18 +29,12 @@ var require_server = __commonJS((exports, module2) => {
                 async start(controller) {
                   try {
                     for await (const chunk of stream) {
-                      controller.enqueue(encoder2.encode(`data: ${JSON.stringify(chunk)}
-
-`));
+                      controller.enqueue(encoder2.encode(`data: ${JSON.stringify(chunk)}\n\n`));
                     }
-                    controller.enqueue(encoder2.encode(`data: [DONE]
-
-`));
+                    controller.enqueue(encoder2.encode(`data: [DONE]\n\n`));
                     controller.close();
                   } catch (err) {
-                    controller.enqueue(encoder2.encode(`data: ${JSON.stringify({ error: err.message })}
-
-`));
+                    controller.enqueue(encoder2.encode(`data: ${JSON.stringify({ error: err.message })}\n\n`));
                     controller.close();
                   }
                 }
@@ -90,10 +84,7 @@ var require_server = __commonJS((exports, module2) => {
     return PORT;
   }
   function updateApiKey(key) {
-    if (globalThis._upstream) {
-      globalThis._upstream.apiKey = key;
-    }
+    globalThis._upstream = new OpenAI({ apiKey: key || "", baseURL: NVIDIA_BASE_URL });
   }
   module2.exports = { startServer, getServerURL, getPort, updateApiKey };
 });
-

@@ -4,7 +4,8 @@ var require_agent = __commonJS((exports, module2) => {
     MAX_TOOL_ITERATIONS,
     nvidiaClient,
     session,
-    sleep
+    sleep,
+    sanitizeForModel
   } = require_config();
   var { buildSystemPrompt } = require_prompt();
   var { toolDefs } = require_tools();
@@ -42,7 +43,7 @@ var require_agent = __commonJS((exports, module2) => {
         const maxRetries = 3;
         for (let attempt = 0;attempt <= maxRetries; attempt++) {
           try {
-            stream = await nvidiaClient.chat.completions.create({
+            stream = await nvidiaClient.chat.completions.create(sanitizeForModel({
               model: currentModels.NVIDIA_MODEL,
               messages: messages.map((m2) => {
                 const clean = { role: m2.role, content: m2.content };
@@ -64,10 +65,10 @@ var require_agent = __commonJS((exports, module2) => {
               tools: toolDefs,
               tool_choice: "auto",
               stream: true
-            });
+            }));
             break;
           } catch (apiErr) {
-            if (attempt < maxRetries && apiErr.status >= 400 && apiErr.status < 500) {
+            if (attempt < maxRetries && (apiErr.status === 429 || apiErr.status >= 500)) {
               await sleep(1000 * Math.pow(2, attempt));
               continue;
             }
