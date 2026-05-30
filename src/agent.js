@@ -67,7 +67,7 @@ var require_agent = __commonJS((exports, module2) => {
             });
             break;
           } catch (apiErr) {
-            if (attempt < maxRetries && apiErr.status >= 400 && apiErr.status < 500) {
+            if (attempt < maxRetries && (!apiErr.status || apiErr.status >= 500)) {
               await sleep(1000 * Math.pow(2, attempt));
               continue;
             }

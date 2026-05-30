@@ -1,4 +1,6 @@
 const OpenAI = require("openai");
+const fs = require("fs");
+const path = require("path");
 
 // ── Provider registry ────────────────────────────────────────────────────
 const PROVIDERS = {
@@ -608,6 +610,18 @@ const codeEditorModelVariants = {
 
 // ── Internal client holder ────────────────────────────────────────────────
 const _initialProvider = PROVIDERS[currentProvider];
+
+// Load stored key from config file before initializing the OpenAI client
+try {
+  const configPath = path.join(require("os").homedir(), ".apex-dev", "config.json");
+  if (fs.existsSync(configPath)) {
+    const savedConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    if (savedConfig[currentProvider] && !process.env[_initialProvider.envKey]) {
+      process.env[_initialProvider.envKey] = savedConfig[currentProvider];
+    }
+  }
+} catch (e) {}
+
 const _initialKey = process.env[_initialProvider.envKey] || "no-key";
 
 let _internalClient = new OpenAI({

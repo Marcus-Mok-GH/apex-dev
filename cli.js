@@ -295,6 +295,7 @@ async function ensureApiKeys() {
     console.error(`\n\u2713 ${configured.length} provider(s) configured`);
   } else {
     console.error("\n\u26A0 No API keys configured. Launching interactive provider selection.");
+    process.env.APEX_DEV_NEEDS_CONFIG = "true";
   }
 }
 
