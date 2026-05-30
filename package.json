@@ -10,7 +10,7 @@
     "dist/"
   ],
   "scripts": {
-    "build": "NODE_ENV=production bun build apex.mjs --target=bun --outfile=dist/index.js --packages=external && sed -i '1s/.*/#!\\/usr\\/bin\\/env node/' dist/index.js",
+    "build": "NODE_ENV=production bun build entry.mjs --target=bun --outfile=dist/index.js --packages=external",
     "prepack": "npm run build",
     "start": "bun apex.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
