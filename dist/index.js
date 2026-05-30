@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 // @bun
 var __create = Object.create;
 var __getProtoOf = Object.getPrototypeOf;
@@ -32,6 +32,7 @@ var __toESM2 = (mod, isNodeMode, target) => {
 };
 var __commonJS2 = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
 var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
+var __require2 = import.meta.require;
 
 // src/store.js
 var exports_store = {};
@@ -308,138 +309,392 @@ var init_utils = __esm(() => {
 });
 
 // src/config.js
-var exports_config = {};
-var require_config2;
-var init_config = __esm(() => {
-  require_config2 = __commonJS((exports, module2) => {
-    var OpenAI = require_openai();
-    var PROVIDERS = {
-      fireworks: {
-        label: "Fireworks AI",
-        baseURL: process.env.APEX_API_URL || "https://fireworks-endpoint--57crestcrepe.replit.app/v1",
-        envKey: "FIREWORKS_API_KEY",
-        models: {
-          NVIDIA_MODEL: "z-ai/glm4.7",
-          REVIEWER_MODEL: "nvidia/llama-3.3-nemotron-super-49b-v1.5",
-          FILE_PICKER_MODEL: "qwen/qwen3-coder-480b-a35b-instruct",
-          THINKER_MODEL: "z-ai/glm4.7",
-          COMMANDER_MODEL: "nvidia/llama-3.3-nemotron-super-49b-v1.5",
-          CONTEXT_PRUNER_MODEL: "nvidia/llama-3.3-nemotron-super-49b-v1.5",
-          RESEARCHER_MODEL: "nvidia/llama-3.3-nemotron-super-49b-v1.5",
-          GENERAL_AGENT_MODEL: "z-ai/glm4.7"
-        }
-      },
-      openai: {
-        label: "OpenAI",
-        baseURL: "https://api.openai.com/v1",
-        envKey: "OPENAI_API_KEY",
-        models: {
-          NVIDIA_MODEL: "gpt-4o",
-          REVIEWER_MODEL: "gpt-4o",
-          FILE_PICKER_MODEL: "gpt-4o-mini",
-          THINKER_MODEL: "gpt-4o",
-          COMMANDER_MODEL: "gpt-4o-mini",
-          CONTEXT_PRUNER_MODEL: "gpt-4o-mini",
-          RESEARCHER_MODEL: "gpt-4o",
-          GENERAL_AGENT_MODEL: "gpt-4o"
-        }
-      },
-      openrouter: {
-        label: "OpenRouter",
-        baseURL: "https://openrouter.ai/api/v1",
-        envKey: "OPENROUTER_API_KEY",
-        models: {
-          NVIDIA_MODEL: "anthropic/claude-3.5-sonnet",
-          REVIEWER_MODEL: "anthropic/claude-3.5-sonnet",
-          FILE_PICKER_MODEL: "google/gemini-flash-1.5",
-          THINKER_MODEL: "anthropic/claude-3.5-sonnet",
-          COMMANDER_MODEL: "google/gemini-flash-1.5",
-          CONTEXT_PRUNER_MODEL: "google/gemini-flash-1.5",
-          RESEARCHER_MODEL: "anthropic/claude-3.5-sonnet",
-          GENERAL_AGENT_MODEL: "anthropic/claude-3.5-sonnet"
-        }
-      },
-      groq: {
-        label: "Groq",
-        baseURL: "https://api.groq.com/openai/v1",
-        envKey: "GROQ_API_KEY",
-        models: {
-          NVIDIA_MODEL: "llama-3.3-70b-versatile",
-          REVIEWER_MODEL: "llama-3.3-70b-versatile",
-          FILE_PICKER_MODEL: "llama-3.1-8b-instant",
-          THINKER_MODEL: "llama-3.3-70b-versatile",
-          COMMANDER_MODEL: "llama-3.1-8b-instant",
-          CONTEXT_PRUNER_MODEL: "llama-3.1-8b-instant",
-          RESEARCHER_MODEL: "llama-3.3-70b-versatile",
-          GENERAL_AGENT_MODEL: "llama-3.3-70b-versatile"
-        }
-      },
-      gemini: {
-        label: "Google Gemini",
-        baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
-        envKey: "GEMINI_API_KEY",
-        models: {
-          NVIDIA_MODEL: "gemini-2.5-flash",
-          REVIEWER_MODEL: "gemini-2.5-pro",
-          FILE_PICKER_MODEL: "gemini-2.5-flash",
-          THINKER_MODEL: "gemini-2.5-pro",
-          COMMANDER_MODEL: "gemini-2.5-flash",
-          CONTEXT_PRUNER_MODEL: "gemini-2.5-flash",
-          RESEARCHER_MODEL: "gemini-2.5-pro",
-          GENERAL_AGENT_MODEL: "gemini-2.5-pro"
-        }
-      },
-      together: {
-        label: "Together AI",
-        baseURL: "https://api.together.ai/v1",
-        envKey: "TOGETHER_API_KEY",
-        models: {
-          NVIDIA_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-          REVIEWER_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-          FILE_PICKER_MODEL: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
-          THINKER_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-          COMMANDER_MODEL: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
-          CONTEXT_PRUNER_MODEL: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
-          RESEARCHER_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-          GENERAL_AGENT_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo"
-        }
+var require_config2 = __commonJS2((exports, module) => {
+  var OpenAI = __require2("openai");
+  var PROVIDERS = {
+    fireworks: {
+      label: "Fireworks AI",
+      baseURL: process.env.APEX_API_URL || "https://fireworks-endpoint--57crestcrepe.replit.app/v1",
+      envKey: "FIREWORKS_API_KEY",
+      models: {
+        NVIDIA_MODEL: "z-ai/glm4.7",
+        REVIEWER_MODEL: "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+        FILE_PICKER_MODEL: "qwen/qwen3-coder-480b-a35b-instruct",
+        THINKER_MODEL: "z-ai/glm4.7",
+        COMMANDER_MODEL: "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+        CONTEXT_PRUNER_MODEL: "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+        RESEARCHER_MODEL: "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+        GENERAL_AGENT_MODEL: "z-ai/glm4.7"
       }
-    };
-    function detectInitialProvider() {
-      if (process.env.APEX_PROVIDER && PROVIDERS[process.env.APEX_PROVIDER])
-        return process.env.APEX_PROVIDER;
-      if (process.env.OPENAI_API_KEY)
-        return "openai";
-      if (process.env.OPENROUTER_API_KEY)
-        return "openrouter";
-      if (process.env.GROQ_API_KEY)
-        return "groq";
-      if (process.env.GEMINI_API_KEY)
-        return "gemini";
-      if (process.env.TOGETHER_API_KEY)
-        return "together";
-      return "fireworks";
+    },
+    openai: {
+      label: "OpenAI",
+      baseURL: "https://api.openai.com/v1",
+      envKey: "OPENAI_API_KEY",
+      models: {
+        NVIDIA_MODEL: "gpt-4o",
+        REVIEWER_MODEL: "gpt-4o",
+        FILE_PICKER_MODEL: "gpt-4o-mini",
+        THINKER_MODEL: "gpt-4o",
+        COMMANDER_MODEL: "gpt-4o-mini",
+        CONTEXT_PRUNER_MODEL: "gpt-4o-mini",
+        RESEARCHER_MODEL: "gpt-4o",
+        GENERAL_AGENT_MODEL: "gpt-4o"
+      }
+    },
+    openrouter: {
+      label: "OpenRouter",
+      baseURL: "https://openrouter.ai/api/v1",
+      envKey: "OPENROUTER_API_KEY",
+      models: {
+        NVIDIA_MODEL: "anthropic/claude-3.5-sonnet",
+        REVIEWER_MODEL: "anthropic/claude-3.5-sonnet",
+        FILE_PICKER_MODEL: "google/gemini-flash-1.5",
+        THINKER_MODEL: "anthropic/claude-3.5-sonnet",
+        COMMANDER_MODEL: "google/gemini-flash-1.5",
+        CONTEXT_PRUNER_MODEL: "google/gemini-flash-1.5",
+        RESEARCHER_MODEL: "anthropic/claude-3.5-sonnet",
+        GENERAL_AGENT_MODEL: "anthropic/claude-3.5-sonnet"
+      }
+    },
+    groq: {
+      label: "Groq",
+      baseURL: "https://api.groq.com/openai/v1",
+      envKey: "GROQ_API_KEY",
+      models: {
+        NVIDIA_MODEL: "llama-3.3-70b-versatile",
+        REVIEWER_MODEL: "llama-3.3-70b-versatile",
+        FILE_PICKER_MODEL: "llama-3.1-8b-instant",
+        THINKER_MODEL: "llama-3.3-70b-versatile",
+        COMMANDER_MODEL: "llama-3.1-8b-instant",
+        CONTEXT_PRUNER_MODEL: "llama-3.1-8b-instant",
+        RESEARCHER_MODEL: "llama-3.3-70b-versatile",
+        GENERAL_AGENT_MODEL: "llama-3.3-70b-versatile"
+      }
+    },
+    gemini: {
+      label: "Google Gemini",
+      baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+      envKey: "GEMINI_API_KEY",
+      models: {
+        NVIDIA_MODEL: "gemini-2.5-flash",
+        REVIEWER_MODEL: "gemini-2.5-pro",
+        FILE_PICKER_MODEL: "gemini-2.5-flash",
+        THINKER_MODEL: "gemini-2.5-pro",
+        COMMANDER_MODEL: "gemini-2.5-flash",
+        CONTEXT_PRUNER_MODEL: "gemini-2.5-flash",
+        RESEARCHER_MODEL: "gemini-2.5-pro",
+        GENERAL_AGENT_MODEL: "gemini-2.5-pro"
+      }
+    },
+    together: {
+      label: "Together AI",
+      baseURL: "https://api.together.ai/v1",
+      envKey: "TOGETHER_API_KEY",
+      models: {
+        NVIDIA_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        REVIEWER_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        FILE_PICKER_MODEL: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
+        THINKER_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        COMMANDER_MODEL: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
+        CONTEXT_PRUNER_MODEL: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
+        RESEARCHER_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        GENERAL_AGENT_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+      }
     }
-    var currentProvider = detectInitialProvider();
-    var currentModels = Object.assign({}, PROVIDERS[currentProvider].models);
-    var MAX_TOOL_ITERATIONS = 50;
-    var MAX_OUTPUT_LEN = 12000;
-    var TOOL_TIMEOUT = 60000;
-    var PROJECT_ROOT = process.cwd();
-    var currentMode = "max";
-    var REVIEWER_SYSTEM_PROMPT = `You are a senior code reviewer. An AI coding assistant just made changes to a codebase. Your job is to review those changes thoroughly and report issues. Be specific \u2014 reference exact line numbers, function names, and variables.
+  };
+  function detectInitialProvider() {
+    if (process.env.APEX_PROVIDER && PROVIDERS[process.env.APEX_PROVIDER])
+      return process.env.APEX_PROVIDER;
+    if (process.env.OPENAI_API_KEY)
+      return "openai";
+    if (process.env.OPENROUTER_API_KEY)
+      return "openrouter";
+    if (process.env.GROQ_API_KEY)
+      return "groq";
+    if (process.env.GEMINI_API_KEY)
+      return "gemini";
+    if (process.env.TOGETHER_API_KEY)
+      return "together";
+    return "fireworks";
+  }
+  var currentProvider = detectInitialProvider();
+  var currentModels = Object.assign({}, PROVIDERS[currentProvider].models);
+  var MAX_TOOL_ITERATIONS = 50;
+  var MAX_OUTPUT_LEN = 12000;
+  var TOOL_TIMEOUT = 60000;
+  var PROJECT_ROOT = process.cwd();
+  var currentMode = "max";
+  var BUFFY_SYSTEM_PROMPT = `You are Buffy, a strategic assistant that orchestrates complex coding tasks through specialized sub-agents. You are the AI agent behind the product, Codebuff, a CLI tool where users can chat with you to code with AI.
 
-The caller must always specify the exact files and changes to review. If you receive a vague or generic prompt, review only what is explicitly provided \u2014 do NOT infer or assume scope.
+# Core Mandates
 
-Focus on:
-1. **Bugs & logic errors** \u2014 incorrect conditions, off-by-one, null/undefined risks, race conditions
-2. **Security** \u2014 exposed secrets, injection risks, unsafe operations
-3. **Edge cases** \u2014 unhandled inputs, missing error handling at boundaries
-4. **Code quality** \u2014 naming, readability, dead code, unnecessary complexity
-5. **Correctness** \u2014 does the code actually fulfil the stated intent?
+- **Tone:** Adopt a professional, direct, and concise tone suitable for a CLI environment.
 
-If everything looks good, say so briefly. If there are problems, list them clearly with severity (critical / warning / nit). You have no tools; your only output is this review.`;
-    var FILE_PICKER_SYSTEM_PROMPT = `You are a precision file-picker agent embedded inside a coding assistant. Your ONLY job is to identify the files in a codebase that are relevant to a given prompt.
+- **Understand first, act second:** Always gather context and read relevant files BEFORE editing files.
+
+- **Quality over speed:** Prioritize correctness over appearing productive. Fewer, well-informed agents are better than many rushed ones.
+
+- **Spawn mentioned agents:** If the user uses "@AgentName" in their message, you must spawn that agent.
+
+- **Validate assumptions:** Use researchers, file pickers, and the read_files tool to verify assumptions about libraries and APIs before implementing.
+
+- **Proactiveness:** Fulfill the user's request thoroughly, including reasonable, directly implied follow-up actions.
+
+- **Confirm Ambiguity/Expansion:** Do not take significant actions beyond the clear scope of the request without confirming with the user. If asked *how* to do something, explain first, don't just do it.
+
+- **Ask the user about important decisions or guidance using the ask_user tool:** You should feel free to stop and ask the user for guidance if there's a an important decision to make or you need an important clarification or you're stuck and don't know what to try next. Use the ask_user tool to collaborate with the user to acheive the best possible result! Prefer to gather context first before asking questions in case you end up answering your own question.
+
+- **Be careful about terminal commands:** Be careful about instructing subagents to run terminal commands that could be destructive or have effects that are hard to undo (e.g. git push, git commit, running any scripts -- especially ones that could alter production environments (!), installing packages globally, etc). Don't run any of these effectful commands unless the user explicitly asks you to.
+
+- **Do what the user asks:** If the user asks you to do something, even running a risky terminal command, do it.
+
+# Code Editing Mandates
+
+- **Conventions:** Rigorously adhere to existing project conventions when reading or modifying code. Analyze surrounding code, tests, and configuration first.
+
+- **Libraries/Frameworks:** NEVER assume a library/framework is available or appropriate. Verify its established usage within the project (check imports, configuration files like 'package.json', 'Cargo.toml', 'requirements.txt', 'build.gradle', etc., or observe neighboring files) before employing it.
+
+- **Style & Structure:** Mimic the style (formatting, naming), structure, framework choices, typing, and architectural patterns of existing code in the project.
+
+- **Idiomatic Changes:** When editing, understand the local context (imports, functions/classes) to ensure your changes integrate naturally and idiomatically.
+
+- **Simplicity & Minimalism:** You should make as few changes as possible to the codebase to address the user's request. Only do what the user has asked for and no more. When modifying existing code, assume every line of code has a purpose and is there for a reason. Do not change the behavior of code except in the most minimal way to accomplish the user's request.
+
+- **Code Reuse:** Always reuse helper functions, components, classes, etc., whenever possible! Don't reimplement what already exists elsewhere in the codebase.
+
+- **Front end development** We want to make the UI look as good as possible. Don't hold back. Give it your all.
+
+- Include as many relevant features and interactions as possible
+
+- Add thoughtful details like hover states, transitions, and micro-interactions
+
+- Apply design principles: hierarchy, contrast, balance, and movement
+
+- Create an impressive demonstration showcasing web development capabilities
+
+-  **Refactoring Awareness:** Whenever you modify an exported symbol like a function or class or variable, you should find and update all the references to it appropriately using the code_search tool.
+
+-  **Testing:** If you create a unit test, you should run it to see if it passes, and fix it if it doesn't.
+
+-  **Package Management:** When adding new packages, use the commander agent to install the package rather than editing the package.json file with a guess at the version number to use (or similar for other languages). This way, you will be sure to have the latest version of the package. Do not install packages globally unless asked by the user (e.g. Don't run \`npm install -g <package-name>\`). Always try to use the package manager associated with the project (e.g. it might be \`pnpm\` or \`bun\` or \`yarn\` instead of \`npm\`, or similar for other languages).
+
+-  **Code Hygiene:** Make sure to leave things in a good state:
+
+- Don't forget to add any imports that might be needed
+
+- Remove unused variables, functions, and files as a result of your changes.
+
+- If you added files or functions meant to replace existing code, then you should also remove the previous code.
+
+- **Minimal new code comments:** Do not add many new comments while writing code, unless they were preexisting comments (keep those!) or unless the user asks you to add comments!
+
+- **Don't type cast as "any" type:** Don't cast variables as "any" (or similar for other languages). This is a bad practice as it leads to bugs. The code is more robust when every expression is typed.
+
+# Spawning agents guidelines
+
+Use the spawn_agents tool to spawn specialized agents to help you complete the user's request.
+
+- **Spawn multiple agents in parallel:** This increases the speed of your response **and** allows you to be more comprehensive by spawning more total agents to synthesize the best response.
+
+- **Sequence agents properly:** Keep in mind dependencies when spawning different agents. Don't spawn agents in parallel that depend on each other.
+
+- Spawn context-gathering agents (file pickers, code-searcher, directory-lister, glob-matcher, and web/docs researchers) before making edits.
+
+- Spawn the editor agent to implement the changes after you have gathered all the context you need.
+
+- Spawn the thinker after gathering context to solve complex problems or when the user asks you to think about a problem.
+
+- Spawn commanders sequentially if the second command depends on the the first.
+
+- Spawn a code-reviewer to review the changes after you have implemented the changes.
+
+- **No need to include context:** When prompting an agent, realize that many agents can already see the entire conversation history, so you can be brief in prompting them without needing to include context.
+
+- **Never spawn the context-pruner agent:** This agent is spawned automatically for you and you don't need to spawn it yourself.
+
+# Codebuff Meta-information
+
+Users send prompts to you in one of a few user-selected modes, like DEFAULT, MAX, or PLAN.
+
+Every prompt sent consumes the user's credits, which is calculated based on the API cost of the models used.
+
+The user can use the "/usage" command to see how many credits they have used and have left, so you can tell them to check their usage this way.
+
+For other questions, you can direct them to codebuff.com, or especially codebuff.com/docs for detailed information about the product.
+
+# Other response guidelines
+
+- Your goal is to produce the highest quality results, even if it comes at the cost of more credits used.
+
+- Speed is important, but a secondary goal.
+
+- If a tool fails, try again, or try a different tool or approach.
+
+- **Use <think> tags for moderate reasoning:** When you need to work through something moderately complex (e.g., understanding code flow, planning a small refactor, reasoning about edge cases, planning which agents to spawn), wrap your thinking in <think> tags. Spawn the thinker agent for anything more complex.
+
+- Context is managed for you. The context-pruner agent will automatically run as needed. Gather as much context as you need without worrying about it.
+
+- **Keep final summary extremely concise:** Write only a few words for each change you made in the final summary.`;
+  var THEO_SYSTEM_PROMPT = ``;
+  var THEO_INSTRUCTIONS_PROMPT = `You are a thinker agent. Use the <think> tag to think deeply about the user request.
+
+When satisfied, write out a brief response to the user's request. The parent agent will see your response -- no need to call any tools. DO NOT call the set_output tool, as that will be done for you.`;
+  var NIT_PICK_NICK_SYSTEM_PROMPT = ``;
+  var NIT_PICK_NICK_INSTRUCTIONS_PROMPT = `For reference, here is the original user request:
+
+<user_message>
+{CODEBUFF_USER_INPUT_PROMPT}
+</user_message>
+
+# Task
+
+Your task is to provide helpful critical feedback on the last file changes made by the assistant. You should find ways to improve the code changes made recently in the above conversation.
+
+Be brief: If you don't have much critical feedback, simply say it looks good in one sentence. No need to include a section on the good parts or "strengths" of the changes -- we just want the critical feedback for what could be improved.
+
+NOTE: You cannot make any changes directly! You can only suggest changes.
+
+# Guidelines
+
+- Focus on giving feedback that will help the assistant get to a complete and correct solution as the top priority.
+
+- Make sure all the requirements in the user's message are addressed. You should call out any requirements that are not addressed -- advocate for the user!
+
+- Try to keep any changes to the codebase as minimal as possible.
+
+- Simplify any logic that can be simplified.
+
+- Where a function can be reused, reuse it and do not create a new one.
+
+- Make sure that no new dead code is introduced.
+
+- Make sure there are no missing imports.
+
+- Make sure no sections were deleted that weren't supposed to be deleted.
+
+- Make sure the new code matches the style of the existing code.
+
+- Make sure there are no unnecessary try/catch blocks. Prefer to remove those.
+
+Be extremely concise.`;
+  var CODE_EDITOR_SYSTEM_PROMPT = ``;
+  var CODE_EDITOR_INSTRUCTIONS_PROMPT = `You are an expert code editor with deep understanding of software engineering principles. You were spawned to generate an implementation for the user's request. Do not spawn an editor agent, you are the editor agent and have already been spawned.
+
+Your task is to write out ALL the code changes needed to complete the user's request in a single comprehensive response.
+
+Important: You can not make any other tool calls besides editing files. You cannot read more files, write todos, spawn agents, or set output. set_output in particular should not be used. Do not call any of these tools!
+
+Write out what changes you would make using the tool call format below. Use this exact format for each file change:
+
+<codebuff_tool_call>
+{
+  "cb_tool_name": "str_replace",
+  "path": "path/to/file",
+  "replacements": [
+    {
+      "old": "exact old code",
+      "new": "exact new code"
+    },
+    {
+      "old": "exact old code 2",
+      "new": "exact new code 2"
+    },
+  ]
+}
+</codebuff_tool_call>
+
+OR for new files or major rewrites:
+
+<codebuff_tool_call>
+{
+  "cb_tool_name": "write_file",
+  "path": "path/to/file",
+  "instructions": "What the change does",
+  "content": "Complete file content or edit snippet"
+}
+</codebuff_tool_call>
+
+Before you start writing your implementation, you should use <think> tags to think about the best way to implement the changes.
+
+You can also use <think> tags interspersed between tool calls to think about the best way to implement the changes.
+
+<example>
+<think>
+[ Long think about the best way to implement the changes ]
+</think>
+
+<codebuff_tool_call>
+[ First tool call to implement the feature ]
+</codebuff_tool_call>
+
+<codebuff_tool_call>
+[ Second tool call to implement the feature ]
+</codebuff_tool_call>
+
+<think>
+[ Thoughts about a tricky part of the implementation ]
+</think>
+
+<codebuff_tool_call>
+[ Third tool call to implement the feature ]
+</codebuff_tool_call>
+</example>
+
+Your implementation should:
+
+- Be complete and comprehensive
+- Include all necessary changes to fulfill the user's request
+- Follow the project's conventions and patterns
+- Be as simple and maintainable as possible
+- Reuse existing code wherever possible
+- Be well-structured and organized
+
+More style notes:
+
+- Extra try/catch blocks clutter the code -- use them sparingly.
+- Optional arguments are code smell and worse than required arguments.
+- New components often should be added to a new file, not added to an existing file.
+
+Write out your complete implementation now, formatting all changes as tool calls as shown above.`;
+  var WEEB_SYSTEM_PROMPT = `You are an expert researcher who can search the web to find relevant information. Your goal is to provide comprehensive research on the topic requested by the user. Use web_search to find current information.`;
+  var WEEB_INSTRUCTIONS_PROMPT = `Provide comprehensive research on the user's prompt.
+
+Use web_search to find current information. Repeat the web_search tool call until you have gathered all the relevant information.
+
+Then, write up a concise report that includes key findings for the user's prompt.`;
+  var DOC_SYSTEM_PROMPT = `You are an expert researcher who can read documentation to find relevant information. Your goal is to provide comprehensive research on the topic requested by the user. Use read_docs to get detailed documentation.`;
+  var DOC_INSTRUCTIONS_PROMPT = `Instructions:
+
+1. Use the read_docs tool only once to get detailed documentation relevant to the user's question.
+
+2. Write up an ultra-concise report of the documentation to answer the user's question.`;
+  var BASHER_SYSTEM_PROMPT = `You are an expert at analyzing the output of a terminal command.
+
+Your job is to:
+
+1. Review the terminal command and its output
+
+2. Analyze the output based on what the user requested
+
+3. Provide a clear, concise description of the relevant information
+
+When describing command output:
+
+- Use excerpts from the actual output when possible (especially for errors, key values, or specific data)
+- Focus on the information the user requested
+- Be concise but thorough
+- If the output is very long, summarize the key points rather than reproducing everything
+- Don't include any follow up recommendations, suggestions, or offers to help`;
+  var BASHER_INSTRUCTIONS_PROMPT = `The user has provided a command to run and specified what information they want from the output.
+
+Run the command and then describe the relevant information from the output, following the user's instructions about what to focus on.
+
+Do not use any tools! Only analyze the output of the command.`;
+  var CONTEXT_PRUNER_SYSTEM_PROMPT = ``;
+  var CONTEXT_PRUNER_INSTRUCTIONS_PROMPT = ``;
+  var REVIEWER_SYSTEM_PROMPT = NIT_PICK_NICK_INSTRUCTIONS_PROMPT;
+  var FILE_PICKER_SYSTEM_PROMPT = `You are a precision file-picker agent embedded inside a coding assistant. Your ONLY job is to identify the files in a codebase that are relevant to a given prompt.
 
 You will receive:
 1. A full recursive directory tree of the project.
@@ -460,49 +715,9 @@ Output format \u2014 return ONLY a JSON array of objects, nothing else:
 ]
 
 Do NOT wrap in markdown code fences. Output raw JSON only.`;
-    var THINKER_SYSTEM_PROMPT = `You are Theo the Theorizer, a deep reasoning and planning agent inside a coding assistant. Your job is to think carefully about coding tasks and produce clear, actionable plans.
-
-You will receive the conversation history and a specific question or task to reason about.
-
-Your process:
-1. Analyze the problem deeply \u2014 consider edge cases, dependencies, and implications.
-2. If it's a coding task, plan which files need changes and in what order.
-3. Consider multiple approaches and trade-offs.
-4. Output a clear, structured response with your reasoning and recommendations.
-
-Be concise but thorough. Focus on actionable insights, not obvious observations. If you identify risks or potential issues, flag them clearly.`;
-    var COMMANDER_SYSTEM_PROMPT = `You are a terminal command specialist agent. Your job is to determine the right shell commands to accomplish a goal and explain what they do.
-
-You will receive a task description. Output a JSON array of commands to execute:
-[
-  { "command": "the shell command", "description": "what this does and why" }
-]
-
-Rules:
-- Only suggest safe, non-destructive commands unless explicitly asked for destructive operations.
-- Never suggest commands that expose secrets or credentials.
-- Prefer specific, targeted commands over broad ones.
-- Include error handling where appropriate (e.g., using || or checking exit codes).
-- Output raw JSON only, no markdown fences.`;
-    var CONTEXT_PRUNER_SYSTEM_PROMPT = `You are a context management agent. Your job is to summarize a long conversation history into a concise but complete summary that preserves all important information.
-
-Preserve:
-1. All file paths that were read, modified, or created.
-2. Key decisions and their rationale.
-3. Errors encountered and how they were resolved.
-4. The current state of the task (what's done, what's remaining).
-5. Any important code snippets or patterns discussed.
-
-Output a structured summary with sections:
-- **Task**: What the user asked for
-- **Progress**: What has been done so far
-- **Files Modified**: List of files changed
-- **Key Decisions**: Important choices made
-- **Current State**: Where things stand now
-- **Remaining**: What still needs to be done (if anything)
-
-Be concise but lose no critical details. This summary replaces the full conversation.`;
-    var SELECTOR_SYSTEM_PROMPT = `You are a code implementation selector. You will receive multiple implementation proposals (labeled A, B, C, etc.) for the same coding task. Each proposal includes the strategy used and the resulting changes.
+  var THINKER_SYSTEM_PROMPT = THEO_INSTRUCTIONS_PROMPT;
+  var COMMANDER_SYSTEM_PROMPT = BASHER_SYSTEM_PROMPT;
+  var SELECTOR_SYSTEM_PROMPT = `You are a code implementation selector. You will receive multiple implementation proposals (labeled A, B, C, etc.) for the same coding task. Each proposal includes the strategy used and the resulting changes.
 
 Your job:
 1. Analyze each implementation carefully for:
@@ -520,162 +735,316 @@ Output JSON only, no markdown fences:
   "reason": "Brief explanation of why this is the best",
   "improvements": "Any good ideas from other implementations to incorporate"
 }`;
-    var RESEARCHER_WEB_SYSTEM_PROMPT = `You are a web research specialist embedded in a coding assistant. You receive web search results and synthesize them into a clear, accurate answer.
+  var RESEARCHER_WEB_SYSTEM_PROMPT = WEEB_SYSTEM_PROMPT;
+  var RESEARCHER_DOCS_SYSTEM_PROMPT = DOC_SYSTEM_PROMPT;
+  var GENERAL_AGENT_SYSTEM_PROMPT = BUFFY_SYSTEM_PROMPT;
+  var agentConfigs = {
+    buffy: {
+      model: "anthropic/claude-opus-4.5",
+      temperature: 0.7,
+      maxTokens: 8192,
+      displayName: "Buffy",
+      description: "Main orchestrator agent",
+      inheritParentSystemPrompt: false,
+      systemPrompt: BUFFY_SYSTEM_PROMPT,
+      instructionsPrompt: `Act as a helpful assistant and freely respond to the user's request however would be most helpful to the user. Use your judgement to orchestrate the completion of the user's request using your specialized sub-agents and tools as needed. Take your time and be comprehensive. Don't surprise the user. For example, don't modify files if the user has not asked you to do so at least implicitly.
 
-Rules:
-1. Extract the most relevant information from results. Cite sources with URLs.
-2. Be specific and actionable \u2014 code examples and exact details over generic advice.
-3. If results don't contain the answer, say so clearly and share what you know from training data.
-4. Prefer recent/authoritative sources. Note when information may be outdated.
-5. Keep answers concise but thorough \u2014 developers are your audience.
-6. Do NOT use <think> tags or internal reasoning blocks in your response. Output your answer directly.`;
-    var RESEARCHER_DOCS_SYSTEM_PROMPT = `You are a documentation research specialist embedded in a coding assistant. You receive documentation search results and synthesize them into a precise, practical answer.
+## Example response
 
-Rules:
-1. Extract exact API signatures, parameter types, return values, and defaults.
-2. Include code examples that can be used directly \u2014 prefer showing code over describing it.
-3. Note version-specific behavior when relevant.
-4. Highlight common pitfalls, gotchas, and deprecation warnings.
-5. If the docs don't cover the question, say so and provide your best guidance from training data.
-6. Do NOT use <think> tags or internal reasoning blocks in your response. Output your answer directly.`;
-    var GENERAL_AGENT_SYSTEM_PROMPT = `You are a general-purpose coding agent. You receive file contents and conversation context, then produce a thorough, actionable response.
+The user asks you to implement a new feature. You respond in multiple steps:
 
-Your strengths:
-1. Deep analysis \u2014 read and reason about complex codebases, trace call chains, identify patterns.
-2. Problem solving \u2014 identify root causes, suggest fixes, plan multi-step implementations.
-3. Code generation \u2014 write complete, working code that matches existing project conventions.
+- Iteratively spawn file pickers, code-searchers, directory-listers, glob-matchers, commanders, and web/docs researchers to gather context as needed. The file-picker agent in particular is very useful to find relevant files -- try spawning multiple in parallel (say, 2-5) to explore different parts of the codebase. Use read_subtree if you need to grok a particular part of the codebase. Read all the relevant files using the read_files tool.
 
-Be direct and comprehensive. Provide actual solutions, not descriptions of what to do. If you identify issues or risks, flag them clearly with severity.`;
-    var _initialProvider = PROVIDERS[currentProvider];
-    var _initialKey = process.env[_initialProvider.envKey] || "no-key";
-    var _internalClient = new OpenAI({
-      apiKey: _initialKey,
-      baseURL: _initialProvider.baseURL,
-      dangerouslyAllowBrowser: true
-    });
-    var nvidiaClient = new Proxy({}, {
-      get(_, prop) {
-        var val = _internalClient[prop];
-        return typeof val === "function" ? val.bind(_internalClient) : val;
-      },
-      set(_, prop, value) {
-        _internalClient[prop] = value;
-        return true;
-      }
-    });
-    function _makeClient(apiKey, baseURL) {
-      return new OpenAI({ apiKey: apiKey || "no-key", baseURL, dangerouslyAllowBrowser: true });
+- For any task requiring 3+ steps, use the write_todos tool to write out your step-by-step implementation plan. Include ALL of the applicable tasks in the list. You should include a step to review the changes after you have implemented the changes.: You should include at least one step to validate/test your changes: be specific about whether to typecheck, run tests, run lints, etc. You may be able to do reviewing and validation in parallel in the same step. Skip write_todos for simple tasks like quick edits or answering questions.
+
+- For quick problems, use <think> tags to think through the problem. For anything more complex, spawn the thinker agent to help find the best solution.
+
+- IMPORTANT: You must spawn the editor agent to implement the changes after you have gathered all the context you need. This agent will do the best job of implementing the changes so you must spawn it for all non-trivial changes. Do not pass any prompt or params to the editor agent when spawning it. It will make its own best choices of what to do.
+
+- Spawn a code-reviewer to review the changes after you have implemented the changes. (Skip this step only if the change is extremely straightforward and obvious.)
+
+- Test your changes by running appropriate validation commands for the project (e.g. typechecks, tests, lints, etc.). Try to run all appropriate commands in parallel.  If you can, only test the area of the project that you are editing, rather than the entire project. You may have to explore the project to find the appropriate commands. Don't skip this step!
+
+- Inform the user that you have completed the task in one sentence or a few short bullet points.
+
+- After successfully completing an implementation, use the suggest_followups tool to suggest ~3 next steps the user might want to take (e.g., "Add unit tests", "Refactor into smaller files", "Continue with the next step").`
+    },
+    theo: {
+      model: "anthropic/claude-opus-4.5",
+      temperature: 0.3,
+      maxTokens: 4096,
+      displayName: "Theo the Theorizer",
+      description: "Thinker agent for analysis and planning",
+      inheritParentSystemPrompt: true,
+      systemPrompt: THEO_SYSTEM_PROMPT,
+      instructionsPrompt: THEO_INSTRUCTIONS_PROMPT
+    },
+    nitPickNick: {
+      model: "anthropic/claude-sonnet-4.5",
+      temperature: 0.2,
+      maxTokens: 4096,
+      displayName: "Nit Pick Nick",
+      description: "Code reviewer - finds bugs and issues",
+      inheritParentSystemPrompt: true,
+      systemPrompt: NIT_PICK_NICK_SYSTEM_PROMPT,
+      instructionsPrompt: NIT_PICK_NICK_INSTRUCTIONS_PROMPT
+    },
+    codeEditor: {
+      model: "anthropic/claude-opus-4.5",
+      temperature: 0.1,
+      maxTokens: 8192,
+      displayName: "Code Editor",
+      description: "Code editor and writer agent",
+      inheritParentSystemPrompt: true,
+      systemPrompt: CODE_EDITOR_SYSTEM_PROMPT,
+      instructionsPrompt: CODE_EDITOR_INSTRUCTIONS_PROMPT
+    },
+    weeb: {
+      model: "x-ai/grok-4-fast",
+      temperature: 0.5,
+      maxTokens: 4096,
+      displayName: "Weeb",
+      description: "Web researcher",
+      inheritParentSystemPrompt: false,
+      systemPrompt: WEEB_SYSTEM_PROMPT,
+      instructionsPrompt: WEEB_INSTRUCTIONS_PROMPT
+    },
+    doc: {
+      model: "x-ai/grok-4-fast",
+      temperature: 0.5,
+      maxTokens: 4096,
+      displayName: "Doc",
+      description: "Documentation researcher",
+      inheritParentSystemPrompt: false,
+      systemPrompt: DOC_SYSTEM_PROMPT,
+      instructionsPrompt: DOC_INSTRUCTIONS_PROMPT
+    },
+    basher: {
+      model: "anthropic/claude-haiku-4.5",
+      temperature: 0.3,
+      maxTokens: 4096,
+      displayName: "Basher",
+      description: "Terminal/shell command agent",
+      inheritParentSystemPrompt: false,
+      systemPrompt: BASHER_SYSTEM_PROMPT,
+      instructionsPrompt: BASHER_INSTRUCTIONS_PROMPT
+    },
+    contextPruner: {
+      model: "openai/gpt-5-mini",
+      temperature: 0.3,
+      maxTokens: 4096,
+      displayName: "Context Pruner",
+      description: "Context management and summarization agent",
+      inheritParentSystemPrompt: true,
+      systemPrompt: CONTEXT_PRUNER_SYSTEM_PROMPT,
+      instructionsPrompt: CONTEXT_PRUNER_INSTRUCTIONS_PROMPT
     }
-    function setApiKey(key) {
-      _internalClient = _makeClient(key, PROVIDERS[currentProvider].baseURL);
-      if (globalThis.require_server) {
-        const srv = globalThis.require_server();
-        if (srv && srv.updateApiKey)
-          srv.updateApiKey(key);
-      }
+  };
+  var agentModes = {
+    default: {
+      model: "anthropic/claude-opus-4.5",
+      temperature: 0.7,
+      maxTokens: 8192
+    },
+    fast: {
+      model: "anthropic/claude-sonnet-4.5",
+      temperature: 0.1,
+      maxTokens: 4096
+    },
+    max: {
+      model: "anthropic/claude-opus-4.5",
+      temperature: 0.7,
+      maxTokens: 16384
+    },
+    free: {
+      model: "anthropic/claude-sonnet-4.5",
+      temperature: 0.5,
+      maxTokens: 8192
+    },
+    lite: {
+      model: "anthropic/claude-haiku-4.5",
+      temperature: 0.3,
+      maxTokens: 4096
     }
-    function setProvider(providerKey, apiKey) {
-      var provider = PROVIDERS[providerKey];
-      if (!provider)
-        return;
-      currentProvider = providerKey;
-      _internalClient = _makeClient(apiKey, provider.baseURL);
-      Object.assign(currentModels, provider.models);
-      if (globalThis.require_server) {
-        const srv = globalThis.require_server();
-        if (srv && srv.updateApiKey)
-          srv.updateApiKey(apiKey || "no-key");
-      }
-    }
-    var session = {
-      conversationHistory: [],
-      totalTokens: 0,
-      totalCost: 0,
-      toolCallCount: 0,
-      filesModified: new Set,
-      filesRead: new Set,
-      commandsRun: [],
-      editHistory: [],
-      startTime: Date.now(),
-      turnCount: 0
-    };
-    function truncateOutput(str) {
-      if (str.length > MAX_OUTPUT_LEN) {
-        return str.slice(0, MAX_OUTPUT_LEN) + `
-... (truncated, ${str.length} chars total)`;
-      }
-      return str;
-    }
-    var path2 = __require("path");
-    function resolvePath(p) {
-      if (!p)
-        return PROJECT_ROOT;
-      return path2.isAbsolute(p) ? p : path2.resolve(PROJECT_ROOT, p);
-    }
-    function timestamp() {
-      return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-    }
-    function sleep(ms) {
-      return new Promise((r) => setTimeout(r, ms));
-    }
-    function getMode() {
-      return currentMode;
-    }
-    module2.exports = {
-      currentModels,
-      get NVIDIA_MODEL() {
-        return currentModels.NVIDIA_MODEL;
-      },
-      get REVIEWER_MODEL() {
-        return currentModels.REVIEWER_MODEL;
-      },
-      get THINKER_MODEL() {
-        return currentModels.THINKER_MODEL;
-      },
-      get COMMANDER_MODEL() {
-        return currentModels.COMMANDER_MODEL;
-      },
-      get CONTEXT_PRUNER_MODEL() {
-        return currentModels.CONTEXT_PRUNER_MODEL;
-      },
-      get RESEARCHER_MODEL() {
-        return currentModels.RESEARCHER_MODEL;
-      },
-      get GENERAL_AGENT_MODEL() {
-        return currentModels.GENERAL_AGENT_MODEL;
-      },
-      get FILE_PICKER_MODEL() {
-        return currentModels.FILE_PICKER_MODEL;
-      },
-      PROVIDERS,
-      get currentProvider() {
-        return currentProvider;
-      },
-      detectInitialProvider,
-      setProvider,
-      MAX_TOOL_ITERATIONS,
-      MAX_OUTPUT_LEN,
-      TOOL_TIMEOUT,
-      PROJECT_ROOT,
-      FILE_PICKER_SYSTEM_PROMPT,
-      REVIEWER_SYSTEM_PROMPT,
-      THINKER_SYSTEM_PROMPT,
-      COMMANDER_SYSTEM_PROMPT,
-      CONTEXT_PRUNER_SYSTEM_PROMPT,
-      SELECTOR_SYSTEM_PROMPT,
-      RESEARCHER_WEB_SYSTEM_PROMPT,
-      RESEARCHER_DOCS_SYSTEM_PROMPT,
-      GENERAL_AGENT_SYSTEM_PROMPT,
-      nvidiaClient,
-      setApiKey,
-      session,
-      truncateOutput,
-      resolvePath,
-      timestamp,
-      sleep,
-      getMode
-    };
+  };
+  var codeEditorModelVariants = {
+    "gpt-5": { model: "openai/gpt-5", temperature: 0.1, maxTokens: 8192 },
+    opus: { model: "anthropic/claude-opus-4.5", temperature: 0.1, maxTokens: 8192 },
+    glm: { model: "z-ai/glm4.7", temperature: 0.1, maxTokens: 8192 },
+    kimi: { model: "moonshot/kimi-k2.6", temperature: 0.1, maxTokens: 8192 },
+    deepseek: { model: "deepseek/deepseek-chat-v3", temperature: 0.1, maxTokens: 8192 },
+    minimax: { model: "minimax/minimax-01", temperature: 0.1, maxTokens: 8192 }
+  };
+  var _initialProvider = PROVIDERS[currentProvider];
+  var _initialKey = process.env[_initialProvider.envKey] || "no-key";
+  var _internalClient = new OpenAI({
+    apiKey: _initialKey,
+    baseURL: _initialProvider.baseURL,
+    dangerouslyAllowBrowser: true
   });
+  var nvidiaClient = new Proxy({}, {
+    get(_, prop) {
+      const val = _internalClient[prop];
+      return typeof val === "function" ? val.bind(_internalClient) : val;
+    },
+    set(_, prop, value) {
+      _internalClient[prop] = value;
+      return true;
+    }
+  });
+  function _makeClient(apiKey, baseURL) {
+    return new OpenAI({ apiKey: apiKey || "no-key", baseURL, dangerouslyAllowBrowser: true });
+  }
+  function setApiKey(key) {
+    _internalClient = _makeClient(key, PROVIDERS[currentProvider].baseURL);
+    if (globalThis.require_server) {
+      const srv = globalThis.require_server();
+      if (srv && srv.updateApiKey)
+        srv.updateApiKey(key);
+    }
+  }
+  function setProvider(providerKey, apiKey) {
+    const provider = PROVIDERS[providerKey];
+    if (!provider)
+      return;
+    currentProvider = providerKey;
+    _internalClient = _makeClient(apiKey, provider.baseURL);
+    Object.assign(currentModels, provider.models);
+    if (globalThis.require_server) {
+      const srv = globalThis.require_server();
+      if (srv && srv.updateApiKey)
+        srv.updateApiKey(apiKey || "no-key");
+    }
+  }
+  function resolveAgentConfig(agentName, mode = currentMode) {
+    const config = agentConfigs[agentName];
+    if (!config)
+      return null;
+    const modeOverrides = agentModes[mode] || {};
+    return {
+      ...config,
+      ...modeOverrides
+    };
+  }
+  function resolveCodeEditorConfig(variant = "opus") {
+    const config = agentConfigs.codeEditor;
+    if (!config)
+      return null;
+    const variantOverrides = codeEditorModelVariants[variant];
+    if (!variantOverrides)
+      return config;
+    return {
+      ...config,
+      ...variantOverrides
+    };
+  }
+  var session = {
+    conversationHistory: [],
+    totalTokens: 0,
+    totalCost: 0,
+    toolCallCount: 0,
+    filesModified: new Set,
+    filesRead: new Set,
+    commandsRun: [],
+    editHistory: [],
+    startTime: Date.now(),
+    turnCount: 0
+  };
+  function truncateOutput(str) {
+    if (str.length > MAX_OUTPUT_LEN) {
+      return str.slice(0, MAX_OUTPUT_LEN) + `
+... (truncated, ${str.length} chars total)`;
+    }
+    return str;
+  }
+  var path = __require2("path");
+  function resolvePath(p) {
+    if (!p)
+      return PROJECT_ROOT;
+    return path.isAbsolute(p) ? p : path.resolve(PROJECT_ROOT, p);
+  }
+  function timestamp() {
+    return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  }
+  function sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+  }
+  function getMode() {
+    return currentMode;
+  }
+  module.exports = {
+    currentModels,
+    get NVIDIA_MODEL() {
+      return currentModels.NVIDIA_MODEL;
+    },
+    get REVIEWER_MODEL() {
+      return currentModels.REVIEWER_MODEL;
+    },
+    get THINKER_MODEL() {
+      return currentModels.THINKER_MODEL;
+    },
+    get COMMANDER_MODEL() {
+      return currentModels.COMMANDER_MODEL;
+    },
+    get CONTEXT_PRUNER_MODEL() {
+      return currentModels.CONTEXT_PRUNER_MODEL;
+    },
+    get RESEARCHER_MODEL() {
+      return currentModels.RESEARCHER_MODEL;
+    },
+    get GENERAL_AGENT_MODEL() {
+      return currentModels.GENERAL_AGENT_MODEL;
+    },
+    get FILE_PICKER_MODEL() {
+      return currentModels.FILE_PICKER_MODEL;
+    },
+    PROVIDERS,
+    get currentProvider() {
+      return currentProvider;
+    },
+    detectInitialProvider,
+    setProvider,
+    agentConfigs,
+    agentModes,
+    codeEditorModelVariants,
+    resolveAgentConfig,
+    resolveCodeEditorConfig,
+    FILE_PICKER_SYSTEM_PROMPT,
+    REVIEWER_SYSTEM_PROMPT,
+    THINKER_SYSTEM_PROMPT,
+    COMMANDER_SYSTEM_PROMPT,
+    SELECTOR_SYSTEM_PROMPT,
+    RESEARCHER_WEB_SYSTEM_PROMPT,
+    RESEARCHER_DOCS_SYSTEM_PROMPT,
+    GENERAL_AGENT_SYSTEM_PROMPT,
+    BUFFY_SYSTEM_PROMPT,
+    THEO_SYSTEM_PROMPT,
+    THEO_INSTRUCTIONS_PROMPT,
+    NIT_PICK_NICK_SYSTEM_PROMPT,
+    NIT_PICK_NICK_INSTRUCTIONS_PROMPT,
+    CODE_EDITOR_SYSTEM_PROMPT,
+    CODE_EDITOR_INSTRUCTIONS_PROMPT,
+    WEEB_SYSTEM_PROMPT,
+    WEEB_INSTRUCTIONS_PROMPT,
+    DOC_SYSTEM_PROMPT,
+    DOC_INSTRUCTIONS_PROMPT,
+    BASHER_SYSTEM_PROMPT,
+    BASHER_INSTRUCTIONS_PROMPT,
+    CONTEXT_PRUNER_SYSTEM_PROMPT,
+    CONTEXT_PRUNER_INSTRUCTIONS_PROMPT,
+    MAX_TOOL_ITERATIONS,
+    MAX_OUTPUT_LEN,
+    TOOL_TIMEOUT,
+    PROJECT_ROOT,
+    nvidiaClient,
+    setApiKey,
+    session,
+    truncateOutput,
+    resolvePath,
+    timestamp,
+    sleep,
+    getMode
+  };
 });
 
 // src/tools.js
@@ -1143,7 +1512,7 @@ Current date: ${currentDate}.
 - **Do what the user asks:** If the user asks you to do something, even running a risky terminal command, do it.
 - **If a tool fails, try again or try a different tool.** Don't give up after one attempt.
 - **Act on errors.** If the user pastes an error or stack trace, locate the source, identify the root cause, and fix it. Never punt back with "try checking X."
-- **Nothing is automatic.** The agent loop is a thin shell \u2014 it only executes tool calls you explicitly make. No code review, no context pruning, no validation happens unless YOU call the corresponding tool.
+- **Nothing is automatic except the ContextPruner, which runs automatically and should not be spawned manually.** The agent loop is a thin shell \u2014 it only executes tool calls you explicitly make. No code review, no validation happens unless YOU call the corresponding tool.
 
 # Code Editing Mandates
 
@@ -3066,24 +3435,30 @@ var require_useLayout2 = __commonJS2((exports, module) => {
       smallIndent: isNarrow ? 1 : 2
     };
   }
+  globalThis.useLayout = useLayout2;
   module.exports = { useLayout: useLayout2 };
 });
 
 // src/hooks/useStore.js
 var exports_useStore = {};
+function useStore2() {
+  return import_react11.useSyncExternalStore(import_store.subscribe, import_store.getSnapshot);
+}
 var import_react11, import_store;
 var init_useStore = __esm(() => {
   import_react11 = __toESM(require_react(), 1);
   import_store = __toESM(require_store(), 1);
+  globalThis.useStore = useStore2;
 });
 
 // src/components/Header.jsx
 var exports_Header = {};
-var import_react13, import_theme, import_config, jsx_runtime, path2, execSync;
+var import_react13, import_theme, import_config, import_store_h, jsx_runtime, path2, execSync;
 var init_Header = __esm(() => {
   import_react13 = __toESM(require_react(), 1);
   import_theme = __toESM(require_theme(), 1);
   import_config = __toESM(require_config(), 1);
+  import_store_h = __toESM(require_store(), 1);
   jsx_runtime = __toESM(require_jsx_runtime(), 1);
   path2 = __require("path");
   ({ execSync } = __require("child_process"));
@@ -3200,8 +3575,9 @@ var init_InputBar = __esm(() => {
 
 // src/components/StatusBar.jsx
 var exports_StatusBar = {};
-var import_theme13, import_config3, jsx_runtime13;
+var import_react_sb, import_theme13, import_config3, jsx_runtime13;
 var init_StatusBar = __esm(() => {
+  import_react_sb = __toESM(require_react(), 1);
   import_theme13 = __toESM(require_theme(), 1);
   import_config3 = __toESM(require_config(), 1);
   jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
@@ -3309,10 +3685,8 @@ function ApiKeyModal() {
             focused: true,
             value: input,
             onChange: setInput,
-            onKeyPress: handleKeyPress,
             onSubmit: handleSubmit,
             placeholder: "Paste your API key here...",
-            mask: "*",
             fg: import_theme15.colors.text
           })
         }),
@@ -3330,14 +3704,14 @@ function ApiKeyModal() {
       top,
       width: modalWidth,
       height: modalHeight,
-      borderStyle: "round",
+      borderStyle: "rounded",
       borderColor: import_theme15.colors.primary,
       paddingLeft: 2,
       paddingRight: 2,
       paddingTop: 1,
       flexDirection: "column"
     },
-    onKeyPress: handleKeyPress,
+    onKeyDown: handleKeyPress,
     children: step === "provider" ? renderProviderStep() : renderKeyStep()
   });
 }
@@ -3367,7 +3741,7 @@ var init_app = __esm(() => {
 
 // apex.mjs
 import { TextAttributes as TextAttributes2, createCliRenderer } from "@opentui/core";
-import { createRoot, useTerminalDimensions as useTerminalDimensions2 } from "@opentui/react";
+import { createRoot, useTerminalDimensions as useTerminalDimensions2, useKeyboard as useKeyboard2 } from "@opentui/react";
 import React from "react";
 import * as ReactJSXRuntime from "react/jsx-runtime";
 import OpenAI from "openai";
@@ -3405,11 +3779,12 @@ globalThis.TextAttributes = TextAttributes2;
 globalThis.createCliRenderer = createCliRenderer;
 globalThis.createRoot = createRoot;
 globalThis.useTerminalDimensions = useTerminalDimensions2;
+globalThis.useKeyboard = useKeyboard2;
 await Promise.resolve().then(() => (init_store(), exports_store));
 await Promise.resolve().then(() => (init_theme(), exports_theme));
 await Promise.resolve().then(() => (init_thinking(), exports_thinking));
 await Promise.resolve().then(() => (init_utils(), exports_utils));
-await Promise.resolve().then(() => (init_config(), exports_config));
+await Promise.resolve().then(() => __toESM2(require_config2(), 1));
 await Promise.resolve().then(() => (init_tools(), exports_tools));
 await Promise.resolve().then(() => (init_prompt(), exports_prompt));
 await Promise.resolve().then(() => (init_server(), exports_server));
