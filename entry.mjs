@@ -330,7 +330,7 @@ var require_utils3 = __commonJS((exports, module2) => {
 
 
 
-var require_config = __commonJS((exports, module2) => {
+var require_config = __commonJS((exports, module) => {
 const OpenAI = require("openai");
 
 // ── Provider registry ────────────────────────────────────────────────────
@@ -3247,7 +3247,7 @@ var require_commands = __commonJS((exports, module2) => {
 
 
 
-var require_useLayout = __commonJS((exports, module2) => {
+var require_useLayout = __commonJS((exports, module) => {
 var NARROW_THRESHOLD = 60;
 function useLayout() {
   const { width } = useTerminalDimensions();

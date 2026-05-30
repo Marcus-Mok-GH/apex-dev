@@ -149,7 +149,7 @@ function buildEntry() {
         .replace(/\.(js|jsx)$/, "")
         .split("/")
         .pop();
-      output += `var require_${baseName} = __commonJS((exports, module2) => {\n${code}\n});\n\n`;
+      output += `var require_${baseName} = __commonJS((exports, module) => {\n${code}\n});\n\n`;
     } else {
       output += code + "\n\n";
     }
