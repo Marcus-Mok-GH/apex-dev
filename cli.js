@@ -210,10 +210,21 @@ function tryBun() {
 
 function runWithBun() {
   const bunPath = process.env.BUN_PATH || "bun";
-  const scriptPath = path.join(__dirname, "dist", "index.js");
+  const scriptPath = path.join(__dirname, "apex.mjs");
   if (!fs.existsSync(scriptPath)) {
-    console.error("dist/index.js not found for bun fallback.");
-    process.exit(1);
+    // Fallback to dist/index.js for npm-installed usage
+    const distPath = path.join(__dirname, "dist", "index.js");
+    if (!fs.existsSync(distPath)) {
+      console.error("Neither apex.mjs nor dist/index.js found for bun fallback.");
+      process.exit(1);
+    }
+    const child = spawn(bunPath, [distPath, ...process.argv.slice(2)], {
+      stdio: "inherit",
+    });
+    child.on("exit", (code) => {
+      process.exit(code || 0);
+    });
+    return;
   }
   const child = spawn(bunPath, [scriptPath, ...process.argv.slice(2)], {
     stdio: "inherit",
@@ -266,9 +277,8 @@ async function ensureApiKeys() {
     process.exit(0);
   }
 
-  // Normal flow: fill missing keys from config or prompt
+  // Normal flow: fill missing keys from config (non-interactive — TUI handles selection)
   const config = readConfig();
-  let newKeys = false;
 
   for (const provider of PROVIDERS) {
     if (process.env[provider.envKey]) continue;
@@ -276,29 +286,15 @@ async function ensureApiKeys() {
     const stored = config[provider.name];
     if (stored) {
       process.env[provider.envKey] = stored;
-    } else {
-      if (!newKeys) {
-        console.error("");
-        newKeys = true;
-      }
-      const key = await promptKey(provider.label);
-      if (key) {
-        process.env[provider.envKey] = key;
-        config[provider.name] = key;
-      }
     }
-  }
-
-  if (newKeys) {
-    saveConfig(config);
   }
 
   // Summary
   const configured = PROVIDERS.filter((p) => process.env[p.envKey]);
   if (configured.length > 0) {
-    console.error(`\n\u2713 Using ${configured.length} provider(s)`);
+    console.error(`\n\u2713 ${configured.length} provider(s) configured`);
   } else {
-    console.error("\n\u26A0 No API keys configured. Run apex-dev --setup to add keys.");
+    console.error("\n\u26A0 No API keys configured. Launching interactive provider selection.");
   }
 }
 

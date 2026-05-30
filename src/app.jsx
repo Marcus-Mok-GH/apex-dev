@@ -84,7 +84,7 @@ function App() {
         onClose: () => import_store5.setState({ showHelp: false }),
         onCommand: handleHelpCommand
       }) : null,
-      state.needsConfig ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ApiKeyModal, {}) : null
+      state.needsConfig ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ProviderSelector, {}) : null
     ]
   });
 }

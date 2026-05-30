@@ -73,6 +73,7 @@ const srcFiles = [
   "src/components/InputBar.jsx",
   "src/components/StatusBar.jsx",
   "src/components/HelpModal.jsx",
+  "src/components/ProviderSelector.jsx",
   "src/components/ApiKeyModal.jsx",
   "src/app.jsx",
 ];

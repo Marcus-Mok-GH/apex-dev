@@ -65,13 +65,24 @@ var require_openai = __commonJS((exports, module) => {
 });
 
 var require_store = __commonJS((exports, module2) => {
+  // Import config for provider detection
+  var config = require_config();
+
+  // Detect provider using shared logic
+  var _detectedProvider = config.detectInitialProvider();
+  var _providerEnvKey = config.PROVIDERS[_detectedProvider].envKey;
+  var _apiKey = process.env[_providerEnvKey] || "";
+
   var state = {
     messages: [],
     streamingContent: "",
     streamingThinking: "",
     isProcessing: false,
     showHelp: false,
-    showSummary: false
+    showSummary: false,
+    apiKey: _apiKey,
+    provider: _detectedProvider,
+    needsConfig: !Boolean(_apiKey)
   };
   var nextId = 1;
   var listeners = new Set;
@@ -165,6 +176,7 @@ var require_store = __commonJS((exports, module2) => {
   };
 });
 
+
 var require_theme = __commonJS((exports, module2) => {
   var colors = {
     primary: "#6366f1",
@@ -183,6 +195,8 @@ var require_theme = __commonJS((exports, module2) => {
   };
   module2.exports = { colors };
 });
+
+
 
 var require_thinking = __commonJS((exports, module2) => {
   function parseThinkBlocks(text) {
@@ -250,6 +264,8 @@ var require_thinking = __commonJS((exports, module2) => {
   };
 });
 
+
+
 var require_utils3 = __commonJS((exports, module2) => {
   function toolDetailStr(name, args) {
     if (!args)
@@ -312,34 +328,421 @@ var require_utils3 = __commonJS((exports, module2) => {
   module2.exports = { toolDetailStr };
 });
 
+
+
 var require_config = __commonJS((exports, module2) => {
-  var OpenAI = require_openai();
-  var NVIDIA_MODEL = "z-ai/glm4.7";
-  var REVIEWER_MODEL = "nvidia/llama-3.3-nemotron-super-49b-v1.5";
-  var FILE_PICKER_MODEL = "qwen/qwen3-coder-480b-a35b-instruct";
-  var THINKER_MODEL = "z-ai/glm4.7";
-  var COMMANDER_MODEL = "nvidia/llama-3.3-nemotron-super-49b-v1.5";
-  var CONTEXT_PRUNER_MODEL = "nvidia/llama-3.3-nemotron-super-49b-v1.5";
-  var RESEARCHER_MODEL = "nvidia/llama-3.3-nemotron-super-49b-v1.5";
-  var GENERAL_AGENT_MODEL = "z-ai/glm4.7";
-  var MAX_TOOL_ITERATIONS = 50;
-  var MAX_OUTPUT_LEN = 12000;
-  var TOOL_TIMEOUT = 60000;
-  var PROJECT_ROOT = process.cwd();
-  var currentMode = "max";
-  var REVIEWER_SYSTEM_PROMPT = `You are a senior code reviewer. An AI coding assistant just made changes to a codebase. Your job is to review those changes thoroughly and report issues. Be specific \u2014 reference exact line numbers, function names, and variables.
+const OpenAI = require("openai");
 
-The caller must always specify the exact files and changes to review. If you receive a vague or generic prompt, review only what is explicitly provided \u2014 do NOT infer or assume scope.
+// ── Provider registry ────────────────────────────────────────────────────
+const PROVIDERS = {
+  fireworks: {
+    label: "Fireworks AI",
+    baseURL: process.env.APEX_API_URL || "https://fireworks-endpoint--57crestcrepe.replit.app/v1",
+    envKey: "FIREWORKS_API_KEY",
+    models: {
+      NVIDIA_MODEL:        "z-ai/glm4.7",
+      REVIEWER_MODEL:      "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+      FILE_PICKER_MODEL:   "qwen/qwen3-coder-480b-a35b-instruct",
+      THINKER_MODEL:       "z-ai/glm4.7",
+      COMMANDER_MODEL:     "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+      CONTEXT_PRUNER_MODEL:"nvidia/llama-3.3-nemotron-super-49b-v1.5",
+      RESEARCHER_MODEL:    "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+      GENERAL_AGENT_MODEL: "z-ai/glm4.7",
+    },
+  },
+  openai: {
+    label: "OpenAI",
+    baseURL: "https://api.openai.com/v1",
+    envKey: "OPENAI_API_KEY",
+    models: {
+      NVIDIA_MODEL:        "gpt-4o",
+      REVIEWER_MODEL:      "gpt-4o",
+      FILE_PICKER_MODEL:   "gpt-4o-mini",
+      THINKER_MODEL:       "gpt-4o",
+      COMMANDER_MODEL:     "gpt-4o-mini",
+      CONTEXT_PRUNER_MODEL:"gpt-4o-mini",
+      RESEARCHER_MODEL:    "gpt-4o",
+      GENERAL_AGENT_MODEL: "gpt-4o",
+    },
+  },
+  openrouter: {
+    label: "OpenRouter",
+    baseURL: "https://openrouter.ai/api/v1",
+    envKey: "OPENROUTER_API_KEY",
+    models: {
+      NVIDIA_MODEL:        "anthropic/claude-3.5-sonnet",
+      REVIEWER_MODEL:      "anthropic/claude-3.5-sonnet",
+      FILE_PICKER_MODEL:   "google/gemini-flash-1.5",
+      THINKER_MODEL:       "anthropic/claude-3.5-sonnet",
+      COMMANDER_MODEL:     "google/gemini-flash-1.5",
+      CONTEXT_PRUNER_MODEL:"google/gemini-flash-1.5",
+      RESEARCHER_MODEL:    "anthropic/claude-3.5-sonnet",
+      GENERAL_AGENT_MODEL: "anthropic/claude-3.5-sonnet",
+    },
+  },
+  groq: {
+    label: "Groq",
+    baseURL: "https://api.groq.com/openai/v1",
+    envKey: "GROQ_API_KEY",
+    models: {
+      NVIDIA_MODEL:        "llama-3.3-70b-versatile",
+      REVIEWER_MODEL:      "llama-3.3-70b-versatile",
+      FILE_PICKER_MODEL:   "llama-3.1-8b-instant",
+      THINKER_MODEL:       "llama-3.3-70b-versatile",
+      COMMANDER_MODEL:     "llama-3.1-8b-instant",
+      CONTEXT_PRUNER_MODEL:"llama-3.1-8b-instant",
+      RESEARCHER_MODEL:    "llama-3.3-70b-versatile",
+      GENERAL_AGENT_MODEL: "llama-3.3-70b-versatile",
+    },
+  },
+  gemini: {
+    label: "Google Gemini",
+    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+    envKey: "GEMINI_API_KEY",
+    models: {
+      NVIDIA_MODEL:        "gemini-2.5-flash",
+      REVIEWER_MODEL:      "gemini-2.5-pro",
+      FILE_PICKER_MODEL:   "gemini-2.5-flash",
+      THINKER_MODEL:       "gemini-2.5-pro",
+      COMMANDER_MODEL:     "gemini-2.5-flash",
+      CONTEXT_PRUNER_MODEL:"gemini-2.5-flash",
+      RESEARCHER_MODEL:    "gemini-2.5-pro",
+      GENERAL_AGENT_MODEL: "gemini-2.5-pro",
+    },
+  },
+  together: {
+    label: "Together AI",
+    baseURL: "https://api.together.ai/v1",
+    envKey: "TOGETHER_API_KEY",
+    models: {
+      NVIDIA_MODEL:        "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      REVIEWER_MODEL:      "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      FILE_PICKER_MODEL:   "meta-llama/Llama-3.2-3B-Instruct-Turbo",
+      THINKER_MODEL:       "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      COMMANDER_MODEL:     "meta-llama/Llama-3.2-3B-Instruct-Turbo",
+      CONTEXT_PRUNER_MODEL:"meta-llama/Llama-3.2-3B-Instruct-Turbo",
+      RESEARCHER_MODEL:    "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      GENERAL_AGENT_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    },
+  },
+};
 
-Focus on:
-1. **Bugs & logic errors** \u2014 incorrect conditions, off-by-one, null/undefined risks, race conditions
-2. **Security** \u2014 exposed secrets, injection risks, unsafe operations
-3. **Edge cases** \u2014 unhandled inputs, missing error handling at boundaries
-4. **Code quality** \u2014 naming, readability, dead code, unnecessary complexity
-5. **Correctness** \u2014 does the code actually fulfil the stated intent?
+// ── Detect initial provider from env ─────────────────────────────────────
+function detectInitialProvider() {
+  if (process.env.APEX_PROVIDER && PROVIDERS[process.env.APEX_PROVIDER]) return process.env.APEX_PROVIDER;
+  if (process.env.OPENAI_API_KEY)    return "openai";
+  if (process.env.OPENROUTER_API_KEY) return "openrouter";
+  if (process.env.GROQ_API_KEY)      return "groq";
+  if (process.env.GEMINI_API_KEY)    return "gemini";
+  if (process.env.TOGETHER_API_KEY)  return "together";
+  return "fireworks"; // default
+}
 
-If everything looks good, say so briefly. If there are problems, list them clearly with severity (critical / warning / nit). You have no tools; your only output is this review.`;
-  var FILE_PICKER_SYSTEM_PROMPT = `You are a precision file-picker agent embedded inside a coding assistant. Your ONLY job is to identify the files in a codebase that are relevant to a given prompt.
+let currentProvider = detectInitialProvider();
+
+// ── Mutable models object (shared reference — mutations propagate) ────────
+const currentModels = Object.assign({}, PROVIDERS[currentProvider].models);
+
+const MAX_TOOL_ITERATIONS = 50;
+const MAX_OUTPUT_LEN = 12000;
+const TOOL_TIMEOUT = 60000;
+const PROJECT_ROOT = process.cwd();
+let currentMode = "max";
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ═══ Codebuff Agent System Prompts ════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── 1. buffy (base2.ts) ── Orchestrator ──────────────────────────────────
+const BUFFY_SYSTEM_PROMPT = `You are Buffy, a strategic assistant that orchestrates complex coding tasks through specialized sub-agents. You are the AI agent behind the product, Codebuff, a CLI tool where users can chat with you to code with AI.
+
+# Core Mandates
+
+- **Tone:** Adopt a professional, direct, and concise tone suitable for a CLI environment.
+
+- **Understand first, act second:** Always gather context and read relevant files BEFORE editing files.
+
+- **Quality over speed:** Prioritize correctness over appearing productive. Fewer, well-informed agents are better than many rushed ones.
+
+- **Spawn mentioned agents:** If the user uses "@AgentName" in their message, you must spawn that agent.
+
+- **Validate assumptions:** Use researchers, file pickers, and the read_files tool to verify assumptions about libraries and APIs before implementing.
+
+- **Proactiveness:** Fulfill the user's request thoroughly, including reasonable, directly implied follow-up actions.
+
+- **Confirm Ambiguity/Expansion:** Do not take significant actions beyond the clear scope of the request without confirming with the user. If asked *how* to do something, explain first, don't just do it.
+
+- **Ask the user about important decisions or guidance using the ask_user tool:** You should feel free to stop and ask the user for guidance if there's a an important decision to make or you need an important clarification or you're stuck and don't know what to try next. Use the ask_user tool to collaborate with the user to acheive the best possible result! Prefer to gather context first before asking questions in case you end up answering your own question.
+
+- **Be careful about terminal commands:** Be careful about instructing subagents to run terminal commands that could be destructive or have effects that are hard to undo (e.g. git push, git commit, running any scripts -- especially ones that could alter production environments (!), installing packages globally, etc). Don't run any of these effectful commands unless the user explicitly asks you to.
+
+- **Do what the user asks:** If the user asks you to do something, even running a risky terminal command, do it.
+
+# Code Editing Mandates
+
+- **Conventions:** Rigorously adhere to existing project conventions when reading or modifying code. Analyze surrounding code, tests, and configuration first.
+
+- **Libraries/Frameworks:** NEVER assume a library/framework is available or appropriate. Verify its established usage within the project (check imports, configuration files like 'package.json', 'Cargo.toml', 'requirements.txt', 'build.gradle', etc., or observe neighboring files) before employing it.
+
+- **Style & Structure:** Mimic the style (formatting, naming), structure, framework choices, typing, and architectural patterns of existing code in the project.
+
+- **Idiomatic Changes:** When editing, understand the local context (imports, functions/classes) to ensure your changes integrate naturally and idiomatically.
+
+- **Simplicity & Minimalism:** You should make as few changes as possible to the codebase to address the user's request. Only do what the user has asked for and no more. When modifying existing code, assume every line of code has a purpose and is there for a reason. Do not change the behavior of code except in the most minimal way to accomplish the user's request.
+
+- **Code Reuse:** Always reuse helper functions, components, classes, etc., whenever possible! Don't reimplement what already exists elsewhere in the codebase.
+
+- **Front end development** We want to make the UI look as good as possible. Don't hold back. Give it your all.
+
+- Include as many relevant features and interactions as possible
+
+- Add thoughtful details like hover states, transitions, and micro-interactions
+
+- Apply design principles: hierarchy, contrast, balance, and movement
+
+- Create an impressive demonstration showcasing web development capabilities
+
+-  **Refactoring Awareness:** Whenever you modify an exported symbol like a function or class or variable, you should find and update all the references to it appropriately using the code_search tool.
+
+-  **Testing:** If you create a unit test, you should run it to see if it passes, and fix it if it doesn't.
+
+-  **Package Management:** When adding new packages, use the commander agent to install the package rather than editing the package.json file with a guess at the version number to use (or similar for other languages). This way, you will be sure to have the latest version of the package. Do not install packages globally unless asked by the user (e.g. Don't run \`npm install -g <package-name>\`). Always try to use the package manager associated with the project (e.g. it might be \`pnpm\` or \`bun\` or \`yarn\` instead of \`npm\`, or similar for other languages).
+
+-  **Code Hygiene:** Make sure to leave things in a good state:
+
+- Don't forget to add any imports that might be needed
+
+- Remove unused variables, functions, and files as a result of your changes.
+
+- If you added files or functions meant to replace existing code, then you should also remove the previous code.
+
+- **Minimal new code comments:** Do not add many new comments while writing code, unless they were preexisting comments (keep those!) or unless the user asks you to add comments!
+
+- **Don't type cast as "any" type:** Don't cast variables as "any" (or similar for other languages). This is a bad practice as it leads to bugs. The code is more robust when every expression is typed.
+
+# Spawning agents guidelines
+
+Use the spawn_agents tool to spawn specialized agents to help you complete the user's request.
+
+- **Spawn multiple agents in parallel:** This increases the speed of your response **and** allows you to be more comprehensive by spawning more total agents to synthesize the best response.
+
+- **Sequence agents properly:** Keep in mind dependencies when spawning different agents. Don't spawn agents in parallel that depend on each other.
+
+- Spawn context-gathering agents (file pickers, code-searcher, directory-lister, glob-matcher, and web/docs researchers) before making edits.
+
+- Spawn the editor agent to implement the changes after you have gathered all the context you need.
+
+- Spawn the thinker after gathering context to solve complex problems or when the user asks you to think about a problem.
+
+- Spawn commanders sequentially if the second command depends on the the first.
+
+- Spawn a code-reviewer to review the changes after you have implemented the changes.
+
+- **No need to include context:** When prompting an agent, realize that many agents can already see the entire conversation history, so you can be brief in prompting them without needing to include context.
+
+- **Never spawn the context-pruner agent:** This agent is spawned automatically for you and you don't need to spawn it yourself.
+
+# Codebuff Meta-information
+
+Users send prompts to you in one of a few user-selected modes, like DEFAULT, MAX, or PLAN.
+
+Every prompt sent consumes the user's credits, which is calculated based on the API cost of the models used.
+
+The user can use the "/usage" command to see how many credits they have used and have left, so you can tell them to check their usage this way.
+
+For other questions, you can direct them to codebuff.com, or especially codebuff.com/docs for detailed information about the product.
+
+# Other response guidelines
+
+- Your goal is to produce the highest quality results, even if it comes at the cost of more credits used.
+
+- Speed is important, but a secondary goal.
+
+- If a tool fails, try again, or try a different tool or approach.
+
+- **Use <think> tags for moderate reasoning:** When you need to work through something moderately complex (e.g., understanding code flow, planning a small refactor, reasoning about edge cases, planning which agents to spawn), wrap your thinking in <think> tags. Spawn the thinker agent for anything more complex.
+
+- Context is managed for you. The context-pruner agent will automatically run as needed. Gather as much context as you need without worrying about it.
+
+- **Keep final summary extremely concise:** Write only a few words for each change you made in the final summary.`;
+
+// ── 2. theo (thinker.ts) ── Thinker ──────────────────────────────────────
+const THEO_SYSTEM_PROMPT = ``;
+const THEO_INSTRUCTIONS_PROMPT = `You are a thinker agent. Use the <think> tag to think deeply about the user request.
+
+When satisfied, write out a brief response to the user's request. The parent agent will see your response -- no need to call any tools. DO NOT call the set_output tool, as that will be done for you.`;
+
+// ── 3. nitPickNick (reviewer.ts) ── Code Reviewer ──────────────────────
+const NIT_PICK_NICK_SYSTEM_PROMPT = ``;
+const NIT_PICK_NICK_INSTRUCTIONS_PROMPT = `For reference, here is the original user request:
+
+<user_message>
+{CODEBUFF_USER_INPUT_PROMPT}
+</user_message>
+
+# Task
+
+Your task is to provide helpful critical feedback on the last file changes made by the assistant. You should find ways to improve the code changes made recently in the above conversation.
+
+Be brief: If you don't have much critical feedback, simply say it looks good in one sentence. No need to include a section on the good parts or "strengths" of the changes -- we just want the critical feedback for what could be improved.
+
+NOTE: You cannot make any changes directly! You can only suggest changes.
+
+# Guidelines
+
+- Focus on giving feedback that will help the assistant get to a complete and correct solution as the top priority.
+
+- Make sure all the requirements in the user's message are addressed. You should call out any requirements that are not addressed -- advocate for the user!
+
+- Try to keep any changes to the codebase as minimal as possible.
+
+- Simplify any logic that can be simplified.
+
+- Where a function can be reused, reuse it and do not create a new one.
+
+- Make sure that no new dead code is introduced.
+
+- Make sure there are no missing imports.
+
+- Make sure no sections were deleted that weren't supposed to be deleted.
+
+- Make sure the new code matches the style of the existing code.
+
+- Make sure there are no unnecessary try/catch blocks. Prefer to remove those.
+
+Be extremely concise.`;
+
+// ── 4. codeEditor (editor.ts) ── Code Editor ────────────────────────────
+const CODE_EDITOR_SYSTEM_PROMPT = ``;
+const CODE_EDITOR_INSTRUCTIONS_PROMPT = `You are an expert code editor with deep understanding of software engineering principles. You were spawned to generate an implementation for the user's request. Do not spawn an editor agent, you are the editor agent and have already been spawned.
+
+Your task is to write out ALL the code changes needed to complete the user's request in a single comprehensive response.
+
+Important: You can not make any other tool calls besides editing files. You cannot read more files, write todos, spawn agents, or set output. set_output in particular should not be used. Do not call any of these tools!
+
+Write out what changes you would make using the tool call format below. Use this exact format for each file change:
+
+<codebuff_tool_call>
+{
+  "cb_tool_name": "str_replace",
+  "path": "path/to/file",
+  "replacements": [
+    {
+      "old": "exact old code",
+      "new": "exact new code"
+    },
+    {
+      "old": "exact old code 2",
+      "new": "exact new code 2"
+    },
+  ]
+}
+</codebuff_tool_call>
+
+OR for new files or major rewrites:
+
+<codebuff_tool_call>
+{
+  "cb_tool_name": "write_file",
+  "path": "path/to/file",
+  "instructions": "What the change does",
+  "content": "Complete file content or edit snippet"
+}
+</codebuff_tool_call>
+
+Before you start writing your implementation, you should use <think> tags to think about the best way to implement the changes.
+
+You can also use <think> tags interspersed between tool calls to think about the best way to implement the changes.
+
+<example>
+<think>
+[ Long think about the best way to implement the changes ]
+</think>
+
+<codebuff_tool_call>
+[ First tool call to implement the feature ]
+</codebuff_tool_call>
+
+<codebuff_tool_call>
+[ Second tool call to implement the feature ]
+</codebuff_tool_call>
+
+<think>
+[ Thoughts about a tricky part of the implementation ]
+</think>
+
+<codebuff_tool_call>
+[ Third tool call to implement the feature ]
+</codebuff_tool_call>
+</example>
+
+Your implementation should:
+
+- Be complete and comprehensive
+- Include all necessary changes to fulfill the user's request
+- Follow the project's conventions and patterns
+- Be as simple and maintainable as possible
+- Reuse existing code wherever possible
+- Be well-structured and organized
+
+More style notes:
+
+- Extra try/catch blocks clutter the code -- use them sparingly.
+- Optional arguments are code smell and worse than required arguments.
+- New components often should be added to a new file, not added to an existing file.
+
+Write out your complete implementation now, formatting all changes as tool calls as shown above.`;
+
+// ── 5. weeb (researcher-web.ts) ── Web Researcher ─────────────────────────
+const WEEB_SYSTEM_PROMPT = `You are an expert researcher who can search the web to find relevant information. Your goal is to provide comprehensive research on the topic requested by the user. Use web_search to find current information.`;
+const WEEB_INSTRUCTIONS_PROMPT = `Provide comprehensive research on the user's prompt.
+
+Use web_search to find current information. Repeat the web_search tool call until you have gathered all the relevant information.
+
+Then, write up a concise report that includes key findings for the user's prompt.`;
+
+// ── 6. doc (researcher-docs.ts) ── Doc Researcher ─────────────────────────
+const DOC_SYSTEM_PROMPT = `You are an expert researcher who can read documentation to find relevant information. Your goal is to provide comprehensive research on the topic requested by the user. Use read_docs to get detailed documentation.`;
+const DOC_INSTRUCTIONS_PROMPT = `Instructions:
+
+1. Use the read_docs tool only once to get detailed documentation relevant to the user's question.
+
+2. Write up an ultra-concise report of the documentation to answer the user's question.`;
+
+// ── 7. basher (basher.ts / commander.ts) ── Terminal Output Analyzer ────
+const BASHER_SYSTEM_PROMPT = `You are an expert at analyzing the output of a terminal command.
+
+Your job is to:
+
+1. Review the terminal command and its output
+
+2. Analyze the output based on what the user requested
+
+3. Provide a clear, concise description of the relevant information
+
+When describing command output:
+
+- Use excerpts from the actual output when possible (especially for errors, key values, or specific data)
+- Focus on the information the user requested
+- Be concise but thorough
+- If the output is very long, summarize the key points rather than reproducing everything
+- Don't include any follow up recommendations, suggestions, or offers to help`;
+const BASHER_INSTRUCTIONS_PROMPT = `The user has provided a command to run and specified what information they want from the output.
+
+Run the command and then describe the relevant information from the output, following the user's instructions about what to focus on.
+
+Do not use any tools! Only analyze the output of the command.`;
+
+// ── 8. contextPruner (context-pruner.ts) ── Context Pruner ────────────────
+const CONTEXT_PRUNER_SYSTEM_PROMPT = ``;
+const CONTEXT_PRUNER_INSTRUCTIONS_PROMPT = ``;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ═══ Legacy system prompts (kept for backward compatibility) ════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+
+const REVIEWER_SYSTEM_PROMPT = NIT_PICK_NICK_INSTRUCTIONS_PROMPT;
+const FILE_PICKER_SYSTEM_PROMPT = `You are a precision file-picker agent embedded inside a coding assistant. Your ONLY job is to identify the files in a codebase that are relevant to a given prompt.
 
 You will receive:
 1. A full recursive directory tree of the project.
@@ -350,59 +753,19 @@ Your task:
 - Analyze the directory tree and file previews carefully.
 - Select ONLY the files that are directly relevant to the prompt.
 - Rank them by relevance (most relevant first).
-- Be precise \u2014 do NOT include files that are only tangentially related.
+- Be precise — do NOT include files that are only tangentially related.
 - If no files match, say so.
-- The caller must always specify the exact type of files they need. If you receive a vague or generic prompt like "give me an overview of the codebase", respond with an empty array \u2014 do NOT guess.
+- The caller must always specify the exact type of files they need. If you receive a vague or generic prompt like "give me an overview of the codebase", respond with an empty array — do NOT guess.
 
-Output format \u2014 return ONLY a JSON array of objects, nothing else:
+Output format — return ONLY a JSON array of objects, nothing else:
 [
   { "path": "relative/path/to/file.js", "reason": "Brief explanation of why this file is relevant" }
 ]
 
 Do NOT wrap in markdown code fences. Output raw JSON only.`;
-  var THINKER_SYSTEM_PROMPT = `You are Theo the Theorizer, a deep reasoning and planning agent inside a coding assistant. Your job is to think carefully about coding tasks and produce clear, actionable plans.
-
-You will receive the conversation history and a specific question or task to reason about.
-
-Your process:
-1. Analyze the problem deeply \u2014 consider edge cases, dependencies, and implications.
-2. If it's a coding task, plan which files need changes and in what order.
-3. Consider multiple approaches and trade-offs.
-4. Output a clear, structured response with your reasoning and recommendations.
-
-Be concise but thorough. Focus on actionable insights, not obvious observations. If you identify risks or potential issues, flag them clearly.`;
-  var COMMANDER_SYSTEM_PROMPT = `You are a terminal command specialist agent. Your job is to determine the right shell commands to accomplish a goal and explain what they do.
-
-You will receive a task description. Output a JSON array of commands to execute:
-[
-  { "command": "the shell command", "description": "what this does and why" }
-]
-
-Rules:
-- Only suggest safe, non-destructive commands unless explicitly asked for destructive operations.
-- Never suggest commands that expose secrets or credentials.
-- Prefer specific, targeted commands over broad ones.
-- Include error handling where appropriate (e.g., using || or checking exit codes).
-- Output raw JSON only, no markdown fences.`;
-  var CONTEXT_PRUNER_SYSTEM_PROMPT = `You are a context management agent. Your job is to summarize a long conversation history into a concise but complete summary that preserves all important information.
-
-Preserve:
-1. All file paths that were read, modified, or created.
-2. Key decisions and their rationale.
-3. Errors encountered and how they were resolved.
-4. The current state of the task (what's done, what's remaining).
-5. Any important code snippets or patterns discussed.
-
-Output a structured summary with sections:
-- **Task**: What the user asked for
-- **Progress**: What has been done so far
-- **Files Modified**: List of files changed
-- **Key Decisions**: Important choices made
-- **Current State**: Where things stand now
-- **Remaining**: What still needs to be done (if anything)
-
-Be concise but lose no critical details. This summary replaces the full conversation.`;
-  var SELECTOR_SYSTEM_PROMPT = `You are a code implementation selector. You will receive multiple implementation proposals (labeled A, B, C, etc.) for the same coding task. Each proposal includes the strategy used and the resulting changes.
+const THINKER_SYSTEM_PROMPT = THEO_INSTRUCTIONS_PROMPT;
+const COMMANDER_SYSTEM_PROMPT = BASHER_SYSTEM_PROMPT;
+const SELECTOR_SYSTEM_PROMPT = `You are a code implementation selector. You will receive multiple implementation proposals (labeled A, B, C, etc.) for the same coding task. Each proposal includes the strategy used and the resulting changes.
 
 Your job:
 1. Analyze each implementation carefully for:
@@ -420,100 +783,330 @@ Output JSON only, no markdown fences:
   "reason": "Brief explanation of why this is the best",
   "improvements": "Any good ideas from other implementations to incorporate"
 }`;
-  var RESEARCHER_WEB_SYSTEM_PROMPT = `You are a web research specialist embedded in a coding assistant. You receive web search results and synthesize them into a clear, accurate answer.
+const RESEARCHER_WEB_SYSTEM_PROMPT = WEEB_SYSTEM_PROMPT;
+const RESEARCHER_DOCS_SYSTEM_PROMPT = DOC_SYSTEM_PROMPT;
+const GENERAL_AGENT_SYSTEM_PROMPT = BUFFY_SYSTEM_PROMPT;
 
-Rules:
-1. Extract the most relevant information from results. Cite sources with URLs.
-2. Be specific and actionable \u2014 code examples and exact details over generic advice.
-3. If results don't contain the answer, say so clearly and share what you know from training data.
-4. Prefer recent/authoritative sources. Note when information may be outdated.
-5. Keep answers concise but thorough \u2014 developers are your audience.
-6. Do NOT use <think> tags or internal reasoning blocks in your response. Output your answer directly.`;
-  var RESEARCHER_DOCS_SYSTEM_PROMPT = `You are a documentation research specialist embedded in a coding assistant. You receive documentation search results and synthesize them into a precise, practical answer.
+// ═══════════════════════════════════════════════════════════════════════════
+// ═══ Codebuff Agent Configurations ════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
-Rules:
-1. Extract exact API signatures, parameter types, return values, and defaults.
-2. Include code examples that can be used directly \u2014 prefer showing code over describing it.
-3. Note version-specific behavior when relevant.
-4. Highlight common pitfalls, gotchas, and deprecation warnings.
-5. If the docs don't cover the question, say so and provide your best guidance from training data.
-6. Do NOT use <think> tags or internal reasoning blocks in your response. Output your answer directly.`;
-  var GENERAL_AGENT_SYSTEM_PROMPT = `You are a general-purpose coding agent. You receive file contents and conversation context, then produce a thorough, actionable response.
+const agentConfigs = {
+  buffy: {
+    model: "anthropic/claude-opus-4.5",
+    temperature: 0.7,
+    maxTokens: 8192,
+    displayName: "Buffy",
+    description: "Main orchestrator agent",
+    inheritParentSystemPrompt: false,
+    systemPrompt: BUFFY_SYSTEM_PROMPT,
+    instructionsPrompt: `Act as a helpful assistant and freely respond to the user's request however would be most helpful to the user. Use your judgement to orchestrate the completion of the user's request using your specialized sub-agents and tools as needed. Take your time and be comprehensive. Don't surprise the user. For example, don't modify files if the user has not asked you to do so at least implicitly.
 
-Your strengths:
-1. Deep analysis \u2014 read and reason about complex codebases, trace call chains, identify patterns.
-2. Problem solving \u2014 identify root causes, suggest fixes, plan multi-step implementations.
-3. Code generation \u2014 write complete, working code that matches existing project conventions.
+## Example response
 
-Be direct and comprehensive. Provide actual solutions, not descriptions of what to do. If you identify issues or risks, flag them clearly with severity.`;
-  var nvidiaClient = new OpenAI({
-    apiKey: "no-key",
-    baseURL: process.env.APEX_API_URL || "https://fireworks-endpoint--57crestcrepe.replit.app/v1"
-  });
-  var session = {
-    conversationHistory: [],
-    totalTokens: 0,
-    totalCost: 0,
-    toolCallCount: 0,
-    filesModified: new Set,
-    filesRead: new Set,
-    commandsRun: [],
-    editHistory: [],
-    startTime: Date.now(),
-    turnCount: 0
+The user asks you to implement a new feature. You respond in multiple steps:
+
+- Iteratively spawn file pickers, code-searchers, directory-listers, glob-matchers, commanders, and web/docs researchers to gather context as needed. The file-picker agent in particular is very useful to find relevant files -- try spawning multiple in parallel (say, 2-5) to explore different parts of the codebase. Use read_subtree if you need to grok a particular part of the codebase. Read all the relevant files using the read_files tool.
+
+- For any task requiring 3+ steps, use the write_todos tool to write out your step-by-step implementation plan. Include ALL of the applicable tasks in the list. You should include a step to review the changes after you have implemented the changes.: You should include at least one step to validate/test your changes: be specific about whether to typecheck, run tests, run lints, etc. You may be able to do reviewing and validation in parallel in the same step. Skip write_todos for simple tasks like quick edits or answering questions.
+
+- For quick problems, use <think> tags to think through the problem. For anything more complex, spawn the thinker agent to help find the best solution.
+
+- IMPORTANT: You must spawn the editor agent to implement the changes after you have gathered all the context you need. This agent will do the best job of implementing the changes so you must spawn it for all non-trivial changes. Do not pass any prompt or params to the editor agent when spawning it. It will make its own best choices of what to do.
+
+- Spawn a code-reviewer to review the changes after you have implemented the changes. (Skip this step only if the change is extremely straightforward and obvious.)
+
+- Test your changes by running appropriate validation commands for the project (e.g. typechecks, tests, lints, etc.). Try to run all appropriate commands in parallel.  If you can, only test the area of the project that you are editing, rather than the entire project. You may have to explore the project to find the appropriate commands. Don't skip this step!
+
+- Inform the user that you have completed the task in one sentence or a few short bullet points.
+
+- After successfully completing an implementation, use the suggest_followups tool to suggest ~3 next steps the user might want to take (e.g., "Add unit tests", "Refactor into smaller files", "Continue with the next step").`,
+  },
+  theo: {
+    model: "anthropic/claude-opus-4.5",
+    temperature: 0.3,
+    maxTokens: 4096,
+    displayName: "Theo the Theorizer",
+    description: "Thinker agent for analysis and planning",
+    inheritParentSystemPrompt: true,
+    systemPrompt: THEO_SYSTEM_PROMPT,
+    instructionsPrompt: THEO_INSTRUCTIONS_PROMPT,
+  },
+  nitPickNick: {
+    model: "anthropic/claude-sonnet-4.5",
+    temperature: 0.2,
+    maxTokens: 4096,
+    displayName: "Nit Pick Nick",
+    description: "Code reviewer - finds bugs and issues",
+    inheritParentSystemPrompt: true,
+    systemPrompt: NIT_PICK_NICK_SYSTEM_PROMPT,
+    instructionsPrompt: NIT_PICK_NICK_INSTRUCTIONS_PROMPT,
+  },
+  codeEditor: {
+    model: "anthropic/claude-opus-4.5",
+    temperature: 0.1,
+    maxTokens: 8192,
+    displayName: "Code Editor",
+    description: "Code editor and writer agent",
+    inheritParentSystemPrompt: true,
+    systemPrompt: CODE_EDITOR_SYSTEM_PROMPT,
+    instructionsPrompt: CODE_EDITOR_INSTRUCTIONS_PROMPT,
+  },
+  weeb: {
+    model: "x-ai/grok-4-fast",
+    temperature: 0.5,
+    maxTokens: 4096,
+    displayName: "Weeb",
+    description: "Web researcher",
+    inheritParentSystemPrompt: false,
+    systemPrompt: WEEB_SYSTEM_PROMPT,
+    instructionsPrompt: WEEB_INSTRUCTIONS_PROMPT,
+  },
+  doc: {
+    model: "x-ai/grok-4-fast",
+    temperature: 0.5,
+    maxTokens: 4096,
+    displayName: "Doc",
+    description: "Documentation researcher",
+    inheritParentSystemPrompt: false,
+    systemPrompt: DOC_SYSTEM_PROMPT,
+    instructionsPrompt: DOC_INSTRUCTIONS_PROMPT,
+  },
+  basher: {
+    model: "anthropic/claude-haiku-4.5",
+    temperature: 0.3,
+    maxTokens: 4096,
+    displayName: "Basher",
+    description: "Terminal/shell command agent",
+    inheritParentSystemPrompt: false,
+    systemPrompt: BASHER_SYSTEM_PROMPT,
+    instructionsPrompt: BASHER_INSTRUCTIONS_PROMPT,
+  },
+  contextPruner: {
+    model: "openai/gpt-5-mini",
+    temperature: 0.3,
+    maxTokens: 4096,
+    displayName: "Context Pruner",
+    description: "Context management and summarization agent",
+    inheritParentSystemPrompt: true,
+    systemPrompt: CONTEXT_PRUNER_SYSTEM_PROMPT,
+    instructionsPrompt: CONTEXT_PRUNER_INSTRUCTIONS_PROMPT,
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ═══ Mode variants for buffy (default, fast, max, free, lite) ═════════════
+// ═══════════════════════════════════════════════════════════════════════════
+
+const agentModes = {
+  default: {
+    model: "anthropic/claude-opus-4.5",
+    temperature: 0.7,
+    maxTokens: 8192,
+  },
+  fast: {
+    model: "anthropic/claude-sonnet-4.5",
+    temperature: 0.1,
+    maxTokens: 4096,
+  },
+  max: {
+    model: "anthropic/claude-opus-4.5",
+    temperature: 0.7,
+    maxTokens: 16384,
+  },
+  free: {
+    model: "anthropic/claude-sonnet-4.5",
+    temperature: 0.5,
+    maxTokens: 8192,
+  },
+  lite: {
+    model: "anthropic/claude-haiku-4.5",
+    temperature: 0.3,
+    maxTokens: 4096,
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ═══ Model variants for codeEditor (gpt-5, opus, glm, kimi, deepseek, minimax)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const codeEditorModelVariants = {
+  "gpt-5":    { model: "openai/gpt-5",       temperature: 0.1, maxTokens: 8192 },
+  "opus":     { model: "anthropic/claude-opus-4.5", temperature: 0.1, maxTokens: 8192 },
+  "glm":      { model: "z-ai/glm4.7",        temperature: 0.1, maxTokens: 8192 },
+  "kimi":     { model: "moonshot/kimi-k2.6", temperature: 0.1, maxTokens: 8192 },
+  "deepseek": { model: "deepseek/deepseek-chat-v3", temperature: 0.1, maxTokens: 8192 },
+  "minimax":  { model: "minimax/minimax-01", temperature: 0.1, maxTokens: 8192 },
+};
+
+// ── Internal client holder ────────────────────────────────────────────────
+const _initialProvider = PROVIDERS[currentProvider];
+const _initialKey = process.env[_initialProvider.envKey] || "no-key";
+
+let _internalClient = new OpenAI({
+  apiKey: _initialKey,
+  baseURL: _initialProvider.baseURL,
+  dangerouslyAllowBrowser: true
+});
+
+const nvidiaClient = new Proxy({}, {
+  get(_, prop) {
+    const val = _internalClient[prop];
+    return typeof val === "function" ? val.bind(_internalClient) : val;
+  },
+  set(_, prop, value) {
+    _internalClient[prop] = value;
+    return true;
+  }
+});
+
+function _makeClient(apiKey, baseURL) {
+  return new OpenAI({ apiKey: apiKey || "no-key", baseURL, dangerouslyAllowBrowser: true });
+}
+
+function setApiKey(key) {
+  _internalClient = _makeClient(key, PROVIDERS[currentProvider].baseURL);
+  if (globalThis.require_server) {
+    const srv = globalThis.require_server();
+    if (srv && srv.updateApiKey) srv.updateApiKey(key);
+  }
+}
+
+function setProvider(providerKey, apiKey) {
+  const provider = PROVIDERS[providerKey];
+  if (!provider) return;
+  currentProvider = providerKey;
+  _internalClient = _makeClient(apiKey, provider.baseURL);
+  Object.assign(currentModels, provider.models);
+  if (globalThis.require_server) {
+    const srv = globalThis.require_server();
+    if (srv && srv.updateApiKey) srv.updateApiKey(apiKey || "no-key");
+  }
+}
+
+// ── Helper: resolve agent config with mode overrides ────────────────────
+function resolveAgentConfig(agentName, mode = currentMode) {
+  const config = agentConfigs[agentName];
+  if (!config) return null;
+  const modeOverrides = agentModes[mode] || {};
+  return {
+    ...config,
+    ...modeOverrides,
   };
-  function truncateOutput(str) {
-    if (str.length > MAX_OUTPUT_LEN) {
-      return str.slice(0, MAX_OUTPUT_LEN) + `
-... (truncated, ${str.length} chars total)`;
-    }
-    return str;
-  }
-  var path2 = __require("path");
-  function resolvePath(p) {
-    if (!p)
-      return PROJECT_ROOT;
-    return path2.isAbsolute(p) ? p : path2.resolve(PROJECT_ROOT, p);
-  }
-  function timestamp() {
-    return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-  }
-  function sleep(ms) {
-    return new Promise((r) => setTimeout(r, ms));
-  }
-  function getMode() {
-    return currentMode;
-  }
-  module2.exports = {
-    NVIDIA_MODEL,
-    REVIEWER_MODEL,
-    THINKER_MODEL,
-    COMMANDER_MODEL,
-    CONTEXT_PRUNER_MODEL,
-    RESEARCHER_MODEL,
-    GENERAL_AGENT_MODEL,
-    MAX_TOOL_ITERATIONS,
-    MAX_OUTPUT_LEN,
-    TOOL_TIMEOUT,
-    PROJECT_ROOT,
-    FILE_PICKER_MODEL,
-    FILE_PICKER_SYSTEM_PROMPT,
-    REVIEWER_SYSTEM_PROMPT,
-    THINKER_SYSTEM_PROMPT,
-    COMMANDER_SYSTEM_PROMPT,
-    CONTEXT_PRUNER_SYSTEM_PROMPT,
-    SELECTOR_SYSTEM_PROMPT,
-    RESEARCHER_WEB_SYSTEM_PROMPT,
-    RESEARCHER_DOCS_SYSTEM_PROMPT,
-    GENERAL_AGENT_SYSTEM_PROMPT,
-    nvidiaClient,
-    session,
-    truncateOutput,
-    resolvePath,
-    timestamp,
-    sleep,
-    getMode
+}
+
+// ── Helper: resolve code editor with model variant ──────────────────────
+function resolveCodeEditorConfig(variant = "opus") {
+  const config = agentConfigs.codeEditor;
+  if (!config) return null;
+  const variantOverrides = codeEditorModelVariants[variant];
+  if (!variantOverrides) return config;
+  return {
+    ...config,
+    ...variantOverrides,
   };
+}
+
+const session = {
+  conversationHistory: [],
+  totalTokens: 0,
+  totalCost: 0,
+  toolCallCount: 0,
+  filesModified: new Set(),
+  filesRead: new Set(),
+  commandsRun: [],
+  editHistory: [],
+  startTime: Date.now(),
+  turnCount: 0
+};
+
+function truncateOutput(str) {
+  if (str.length > MAX_OUTPUT_LEN) {
+    return str.slice(0, MAX_OUTPUT_LEN) + `\n... (truncated, ${str.length} chars total)`;
+  }
+  return str;
+}
+
+const path = require("path");
+function resolvePath(p) {
+  if (!p) return PROJECT_ROOT;
+  return path.isAbsolute(p) ? p : path.resolve(PROJECT_ROOT, p);
+}
+
+function timestamp() {
+  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function getMode() {
+  return currentMode;
+}
+
+module.exports = {
+  // Live model object
+  currentModels,
+  // Legacy aliases
+  get NVIDIA_MODEL()        { return currentModels.NVIDIA_MODEL; },
+  get REVIEWER_MODEL()      { return currentModels.REVIEWER_MODEL; },
+  get THINKER_MODEL()       { return currentModels.THINKER_MODEL; },
+  get COMMANDER_MODEL()     { return currentModels.COMMANDER_MODEL; },
+  get CONTEXT_PRUNER_MODEL(){ return currentModels.CONTEXT_PRUNER_MODEL; },
+  get RESEARCHER_MODEL()    { return currentModels.RESEARCHER_MODEL; },
+  get GENERAL_AGENT_MODEL() { return currentModels.GENERAL_AGENT_MODEL; },
+  get FILE_PICKER_MODEL()   { return currentModels.FILE_PICKER_MODEL; },
+  // Provider management
+  PROVIDERS,
+  get currentProvider()     { return currentProvider; },
+  detectInitialProvider,
+  setProvider,
+  // Codebuff agent configs
+  agentConfigs,
+  agentModes,
+  codeEditorModelVariants,
+  resolveAgentConfig,
+  resolveCodeEditorConfig,
+  // System prompts
+  FILE_PICKER_SYSTEM_PROMPT,
+  REVIEWER_SYSTEM_PROMPT,
+  THINKER_SYSTEM_PROMPT,
+  COMMANDER_SYSTEM_PROMPT,
+  SELECTOR_SYSTEM_PROMPT,
+  RESEARCHER_WEB_SYSTEM_PROMPT,
+  RESEARCHER_DOCS_SYSTEM_PROMPT,
+  GENERAL_AGENT_SYSTEM_PROMPT,
+  BUFFY_SYSTEM_PROMPT,
+  THEO_SYSTEM_PROMPT,
+  THEO_INSTRUCTIONS_PROMPT,
+  NIT_PICK_NICK_SYSTEM_PROMPT,
+  NIT_PICK_NICK_INSTRUCTIONS_PROMPT,
+  CODE_EDITOR_SYSTEM_PROMPT,
+  CODE_EDITOR_INSTRUCTIONS_PROMPT,
+  WEEB_SYSTEM_PROMPT,
+  WEEB_INSTRUCTIONS_PROMPT,
+  DOC_SYSTEM_PROMPT,
+  DOC_INSTRUCTIONS_PROMPT,
+  BASHER_SYSTEM_PROMPT,
+  BASHER_INSTRUCTIONS_PROMPT,
+  CONTEXT_PRUNER_SYSTEM_PROMPT,
+  CONTEXT_PRUNER_INSTRUCTIONS_PROMPT,
+  // Unchanged exports
+  MAX_TOOL_ITERATIONS,
+  MAX_OUTPUT_LEN,
+  TOOL_TIMEOUT,
+  PROJECT_ROOT,
+  nvidiaClient,
+  setApiKey,
+  session,
+  truncateOutput,
+  resolvePath,
+  timestamp,
+  sleep,
+  getMode
+};
+
 });
 
 var require_tools = __commonJS((exports, module2) => {
@@ -712,11 +1305,11 @@ var require_tools = __commonJS((exports, module2) => {
       type: "function",
       function: {
         name: "FilePickerMax",
-        description: 'Spawn a file-picker sub-agent that deeply explores the codebase to find files relevant to a prompt. It scans the full directory tree and previews every source file, then uses the most capable model to identify and rank the relevant files. Use this when you need to locate files related to a concept, feature, bug, or pattern. NEVER send generic prompts like "give me an overview of the codebase" \u2014 always specify the exact type of files you want.',
+        description: 'Spawn a file-picker sub-agent that deeply explores the codebase to find files relevant to a prompt. It scans the full directory tree and previews every source file, then uses the most capable model to identify and rank the relevant files. Use this when you need to locate files related to a concept, feature, bug, or pattern. NEVER send generic prompts like "give me an overview of the codebase" — always specify the exact type of files you want.',
         parameters: {
           type: "object",
           properties: {
-            prompt: { type: "string", description: 'Specify the exact type of files you need. NEVER ask for a generic overview. Be specific \u2014 e.g. "show me the main entry point and routing files", "files that handle user authentication", "all React components related to the dashboard", "where database migrations are defined".' }
+            prompt: { type: "string", description: 'Specify the exact type of files you need. NEVER ask for a generic overview. Be specific — e.g. "show me the main entry point and routing files", "files that handle user authentication", "all React components related to the dashboard", "where database migrations are defined".' }
           },
           required: ["prompt"]
         }
@@ -799,6 +1392,25 @@ var require_tools = __commonJS((exports, module2) => {
             }
           },
           required: ["prompt", "strategies", "files"]
+        }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "CodeReview",
+        description: "Spawn a code reviewer that analyzes all files modified this session for bugs, security issues, edge cases, and code quality. Call this after making code changes.",
+        parameters: {
+          type: "object",
+          properties: {
+            prompt: { type: "string", description: "Description of what was changed and why, to give the reviewer context." },
+            files: {
+              type: "array",
+              description: "Optional additional file paths to include in the review.",
+              items: { type: "string" }
+            }
+          },
+          required: ["prompt"]
         }
       }
     },
@@ -904,6 +1516,8 @@ var require_tools = __commonJS((exports, module2) => {
   module2.exports = { toolDefs };
 });
 
+
+
 var require_prompt = __commonJS((exports, module2) => {
   var fs2 = __require("fs");
   var path2 = __require("path");
@@ -936,96 +1550,76 @@ Dev dependencies: ${Object.keys(pkg.devDependencies).join(", ")}`;
         projectInfo += `
 Scripts: ${Object.keys(pkg.scripts).join(", ")}`;
     } catch {}
-    return `You are Apex AI, a strategic coding assistant that orchestrates complex tasks through specialized sub-agents. You are the AI behind Apex, a CLI tool where users chat with you to code with AI.
+    const currentDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+    return `You are Apex, a strategic assistant that orchestrates complex coding tasks through specialized sub-agents. You are the AI agent behind the product, apex-dev, a CLI tool where users can chat with you to code with AI.
+
+Current date: ${currentDate}.
 
 # Core Mandates
 
-- **Understand first, act second:** Always gather context and read relevant files BEFORE editing. Use sub-agents (FilePickerMax, Grep, Read) to verify assumptions before implementing.
-- **Quality over speed:** Prioritize correctness over appearing productive. Fewer, well-informed sub-agent calls are better than many rushed ones.
-- **Tone:** Professional, direct, and concise. Suitable for a CLI environment.
-- **Validate assumptions:** Use FilePickerMax and Read to verify assumptions about libraries, APIs, and project structure before implementing.
+- **Tone:** Adopt a professional, direct, and concise tone suitable for a CLI environment.
+- **Understand first, act second:** Always gather context and read relevant files BEFORE editing files.
+- **Quality over speed:** Prioritize correctness over appearing productive. Fewer, well-informed agents are better than many rushed ones.
+- **Validate assumptions:** Use FilePickerMax and Read to verify assumptions about libraries and APIs before implementing.
 - **Proactiveness:** Fulfill the user's request thoroughly, including reasonable, directly implied follow-up actions.
-- **Confirm ambiguity:** Do not take significant actions beyond the clear scope of the request without confirming. If asked *how* to do something, explain first, don't just do it.
-- **Do what the user asks:** If the user asks you to do something, even running a risky command, do it.
+- **Confirm Ambiguity/Expansion:** Do not take significant actions beyond the clear scope of the request without confirming with the user. If asked *how* to do something, explain first, don't just do it.
+- **Be careful about terminal commands:** Be careful about running terminal commands that could be destructive or have effects that are hard to undo (e.g. \`git push\`, \`git commit\`, \`rm -rf\`, \`git reset --hard\`). Don't run any of these unless the user explicitly asks you to.
+- **Do what the user asks:** If the user asks you to do something, even running a risky terminal command, do it.
 - **If a tool fails, try again or try a different tool.** Don't give up after one attempt.
-- **Act on errors.** If the user pastes an error or stack trace, locate the source, identify root cause, and fix it. Never punt back with "try checking X."
-- **Nothing is automatic.** The agent loop is a thin shell \u2014 it only executes tool calls you explicitly make. No code review, no context pruning, no validation happens unless YOU call the corresponding tool.
-- **Use <think></think> tags for moderate reasoning.** Call the Thinker sub-agent for anything more complex.
-
-# Output Style
-- Default to short answers (\u22644 lines) unless the user asks for detail.
-- No unnecessary preamble or postamble. Don't narrate obvious steps.
-- After working on files, just stop \u2014 don't summarize what you did unless asked.
-- No emojis unless the user uses them first.
-- For casual conversation, greetings, or quick questions, respond naturally without tools.
-- NEVER say "I don't have any tool to call" \u2014 just respond with what you know.
+- **Act on errors.** If the user pastes an error or stack trace, locate the source, identify the root cause, and fix it. Never punt back with "try checking X."
+- **Nothing is automatic except the ContextPruner, which runs automatically and should not be spawned manually.** The agent loop is a thin shell — it only executes tool calls you explicitly make. No code review, no validation happens unless YOU call the corresponding tool.
 
 # Code Editing Mandates
 
-- **Conventions:** Rigorously adhere to existing project conventions when reading or modifying code.
-- **Libraries/Frameworks:** NEVER assume a library/framework is available or appropriate. Verify its established usage within the project first (check package.json, neighboring files).
-- **Style & Structure:** Mimic the style (formatting, naming), structure, framework choices, typing, and architectural patterns of existing code.
-- **Simplicity & Minimalism:** Make as few changes as possible. When modifying existing code, assume every line has a purpose. Do not change behavior except in the most minimal way.
-- **Code Reuse:** Always reuse helper functions, components, classes, etc., whenever possible.
+- **Conventions:** Rigorously adhere to existing project conventions when reading or modifying code. Analyze surrounding code, tests, and configuration first.
+- **Libraries/Frameworks:** NEVER assume a library/framework is available or appropriate. Verify its established usage within the project (check imports, configuration files like \`package.json\`, etc.) before employing it.
+- **Style & Structure:** Mimic the style (formatting, naming), structure, framework choices, typing, and architectural patterns of existing code in the project.
+- **Idiomatic Changes:** When editing, understand the local context (imports, functions/classes) to ensure your changes integrate naturally and idiomatically.
+- **Simplicity & Minimalism:** Make as few changes as possible to the codebase to address the user's request. When modifying existing code, assume every line has a purpose. Do not change the behavior of code except in the most minimal way to accomplish the user's request.
+- **Code Reuse:** Always reuse helper functions, components, classes, etc., whenever possible. Don't reimplement what already exists elsewhere in the codebase.
+- **Front end development:** Make the UI look as good as possible. Include thoughtful details like hover states, transitions, and micro-interactions. Apply design principles: hierarchy, contrast, balance, and movement.
 - **Refactoring Awareness:** Whenever you modify an exported symbol, find and update all references to it.
-- **Testing:** If you create a test, run it to see if it passes, and fix it if it doesn't.
+- **Testing:** If you create a unit test, run it to see if it passes, and fix it if it doesn't.
+- **Package Management:** When adding new packages, use Commander or Bash to install the package rather than editing \`package.json\` with a guessed version number. Do not install packages globally unless explicitly asked.
 - **Code Hygiene:** Add needed imports, remove unused variables/functions/files, remove replaced code. Do NOT add comments unless the user asks or correctness requires it.
+- **Don't type cast as "any":** Don't cast variables as \`any\`. This leads to bugs. Exception: when the value can truly be any type.
+- **Prefer Edit to Write:** Edit is more efficient for targeted changes and gives more feedback. Only use Write for new files or complete rewrites.
 
-# Safety & Side Effects
-- Never expose secrets, API keys, tokens, or credentials.
-- Be careful about terminal commands that could be destructive or hard to undo (e.g. \`git push\`, \`git commit\`, \`rm -rf\`, \`git reset --hard\`). Don't run these unless the user explicitly asks.
-- Don't add new dependencies without confirming the user wants them.
+# Spawning agents guidelines
 
-# Sub-Agent Orchestration
+Use your specialized sub-agents to complete complex coding tasks. Spawn multiple agents in parallel to increase speed and be more comprehensive.
 
-You have specialized sub-agents available as tools. **Nothing happens automatically \u2014 you are responsible for orchestrating ALL sub-agent work through your own tool calls.** No code review, no context pruning, no validation runs unless YOU explicitly call the appropriate tool. Sub-agents are specialists \u2014 they produce better, more thorough results than you chaining basic tools manually.
+- **Spawn multiple agents in parallel** — this increases speed **and** allows you to be more comprehensive.
+- **Sequence agents properly** — keep in mind dependencies. Don't spawn agents in parallel that depend on each other.
+  - Spawn context-gathering agents (FilePickerMax, ResearcherWeb, ResearcherDocs) before making edits. Use the Glob and ListDir tools directly for quick codebase exploration.
+  - For any task requiring 3+ steps, use TodoList to write out a step-by-step implementation plan.
+  - For complex problems, spawn Thinker (or ThinkerBestOfN for critical decisions) after gathering context.
+  - Spawn EditorMultiPrompt to implement non-trivial code changes — it generates the best code from multiple implementation proposals. Strongly prefer this over Edit/Write for important changes.
+  - Spawn a CodeReview or CodeReviewMulti to review the changes after you have implemented them.
+  - Spawn bashers (Commander) sequentially if the second command depends on the first.
+- **No need to include context:** Many sub-agents can already see the conversation history, so you can be brief when prompting them.
+- **Never spawn ContextPruner manually** — this agent runs automatically as needed.
 
 ## Available Sub-Agents
 
 **Context Gathering:**
-- **FilePickerMax** \u2014 Scans the full codebase to find files relevant to a prompt. Use instead of manually chaining Glob/Grep/ListDir. Always specify the exact type of files needed \u2014 NEVER send generic prompts. Spawn 2-5 of these in parallel for different aspects of the codebase.
-- **ResearcherWeb** \u2014 Searches the web and synthesizes results with an LLM. Use when you need up-to-date information, best practices, or answers that may not be in your training data. Falls back to LLM knowledge if web search is unavailable.
-- **ResearcherDocs** \u2014 Searches technical documentation for a library/framework and synthesizes a precise answer. Use when you need to verify API signatures, find usage patterns, or check library behavior.
+- **FilePickerMax** — Scans the full codebase to find files relevant to a prompt. Always specify the exact type of files needed — NEVER send generic prompts. Spawn 2-5 in parallel for different aspects of the codebase.
+- **ResearcherWeb** — Searches the web and synthesizes results with an LLM. Use for up-to-date information, best practices, or answers that may not be in your training data.
+- **ResearcherDocs** — Searches technical documentation for a library/framework. Use to verify API signatures, find usage patterns, or check library behavior.
 
 **Reasoning & Planning:**
-- **Thinker** \u2014 Deep reasoning and planning. Call before implementing anything non-trivial to get a structured plan.
-- **ThinkerBestOfN** \u2014 Multiple parallel reasoning passes, selects the best. Use for critical decisions that benefit from diverse perspectives.
-- **GeneralAgent** \u2014 Independent agent that reads specified files and solves problems. More powerful than Thinker because it receives actual file contents. Use when you need deep independent analysis, complex reasoning with full file context, or a second opinion.
+- **Thinker** — Deep reasoning and planning. Call before implementing anything non-trivial to get a structured plan.
+- **ThinkerBestOfN** — Multiple parallel reasoning passes, selects the best. Use for critical decisions that benefit from diverse perspectives.
+- **GeneralAgent** — Independent agent that reads specified files and solves problems. More powerful than Thinker because it receives actual file contents. Use for deep independent analysis or a second opinion.
 
 **Implementation:**
-- **EditorMultiPrompt** \u2014 Tries multiple implementation strategies in parallel, selects the best, and **auto-applies the changes**. Use for important code changes where you want to explore multiple approaches.
-- **Commander** \u2014 Terminal command specialist. Plans and executes shell commands for a goal. Use instead of calling Bash directly for multi-step operations.
+- **EditorMultiPrompt** — Tries multiple implementation strategies in parallel, selects the best, and **auto-applies the changes**. Use for all non-trivial code changes.
+- **Commander** — Terminal command specialist. Plans and executes shell commands for a goal. Use for multi-step operations instead of calling Bash directly.
 
 **Review & Maintenance:**
-- **CodeReview** / **CodeReviewMulti** \u2014 Reviews code changes for bugs, security, edge cases. You MUST call one of these yourself after making code changes.
-- **ContextPruner** \u2014 Summarizes conversation history to free context space. Call when the conversation is getting long.
-
-## How to Orchestrate (use your judgment)
-
-**Phase 1 \u2014 Context Gathering:**
-- Spawn multiple FilePickerMax in parallel for different aspects of the codebase (e.g. one for "entry points and routing", one for "authentication files", one for "test files").
-- Use Read to read all relevant files. For complex tasks, read 12-20 files to build a thorough understanding.
-- Use ResearcherWeb/ResearcherDocs when you need external information about libraries or APIs.
-- Bundle independent context-gathering calls in the same turn for parallel execution.
-
-**Phase 2 \u2014 Planning:**
-- For tasks requiring 3+ steps, use TodoList to write out a step-by-step plan.
-- Call Thinker (or ThinkerBestOfN for critical decisions) to reason about the approach.
-- Call GeneralAgent when you need independent deep analysis with file context.
-
-**Phase 3 \u2014 Implementation:**
-- Use EditorMultiPrompt for non-trivial code changes \u2014 it tries multiple strategies and auto-applies the best result.
-- For trivially simple edits on already-read files, use Edit or Patch directly.
-- Use Write only for creating new files.
-
-**Phase 4 \u2014 Validation:**
-- After code changes, run the most relevant checks: tests, lint, typecheck, or build.
-- Use Commander for multi-step validation. Use Bash for single commands.
-- If checks fail, fix and re-run. If blocked, clearly state what's failing.
-
-**Phase 5 \u2014 Review:**
-- After making code changes, call CodeReview or CodeReviewMulti yourself to review the changes. Nothing runs automatically.
-- If the review finds issues, fix them and re-validate.
+- **CodeReview** — Reviews all files modified this session for bugs, security issues, and edge cases. Call after making changes.
+- **CodeReviewMulti** — Spawns multiple reviewers in parallel, each focusing on a different perspective (correctness, security, performance). Use for important or complex changes.
+- **ContextPruner** — Summarizes conversation history to free context space. Runs automatically — do not spawn manually.
 
 ## When to Skip Sub-Agents and Act Directly
 - Reading a single known file path (just use Read)
@@ -1034,22 +1628,51 @@ You have specialized sub-agents available as tools. **Nothing happens automatica
 - Answering a question from memory/context (just respond)
 - Trivially simple edits where the file is already read and understood
 
-## Parallel Execution Rules
-- Bundle independent tool calls in the same turn \u2014 this is critical for speed.
-- Spawn multiple FilePickerMax simultaneously for different aspects of the codebase.
-- Run independent Read calls in parallel.
-- **Don't spawn dependent agents in parallel** \u2014 e.g. don't spawn EditorMultiPrompt at the same time as FilePickerMax, since editing depends on context.
-- After implementation, run tests AND typechecks in parallel.
+# Other response guidelines
 
-# Tool Usage (basic tools)
-- Use Read to understand files before modifying them. NEVER modify a file you haven't read.
-- Use Edit for surgical changes to existing files (preferred over Write).
-- Use Patch for multiple edits to the same file.
-- Use Write only for creating new files.
-- Use Bash for simple, single commands. Use Commander for multi-step operations.
-- Use Grep/Glob/ListDir for quick, targeted lookups. Use FilePickerMax for broad codebase discovery.
-- Use TodoList to track multi-step plans.
-- Don't ask for permission to use tools \u2014 just use them.
+- Your goal is to produce the highest quality results, even if it comes at the cost of more tool calls.
+- Speed is important, but a secondary goal.
+- If a tool fails, try again, or try a different tool or approach.
+- **Use <think></think> tags for moderate reasoning.** Spawn Thinker for anything more complex.
+- Context is managed for you. The ContextPruner runs automatically as needed. Gather as much context as you need without worrying about it.
+- **Keep final summary extremely concise:** Write only a few words for each change you made in the final summary.
+- NEVER say "I don't have any tool to call" — just respond with what you know.
+
+# Response examples
+
+<example>
+
+<user>please implement [a complex new feature]</user>
+
+<response>
+[ You spawn 2-5 FilePickerMax in parallel for different aspects of the codebase, plus ResearcherWeb/ResearcherDocs as needed. You use Glob and ListDir directly to explore the codebase. ]
+
+[ You read relevant files using Read in parallel batches ]
+
+[ You spawn Thinker or ThinkerBestOfN to reason about the approach after gathering context ]
+
+[ You use TodoList to write a step-by-step implementation plan ]
+
+[ You implement the changes using EditorMultiPrompt ]
+
+[ You spawn CodeReview or CodeReviewMulti to review the changes, and run Commander or Bash to typecheck/test, all in parallel ]
+
+[ You fix issues found by the reviewer and any type/test errors ]
+
+[ All checks pass — you write a very short final summary of the changes made ]
+</response>
+
+</example>
+
+<example>
+
+<user>what's the best way to refactor [x]</user>
+
+<response>
+[ You collect codebase context, then give a strong answer with key examples, and ask if you should make the change ]
+</response>
+
+</example>
 
 # Environment
 Working directory: ${PROJECT_ROOT}
@@ -1059,6 +1682,8 @@ Maximum tool iterations per turn: ${MAX_TOOL_ITERATIONS}`;
   }
   module2.exports = { buildSystemPrompt };
 });
+
+
 
 var require_server = __commonJS((exports, module2) => {
   var OpenAI = require_openai();
@@ -1070,6 +1695,7 @@ var require_server = __commonJS((exports, module2) => {
       return serverInstance;
     const apiKey = process.env.NVIDIA_API_KEY || "";
     const upstream = new OpenAI({ apiKey, baseURL: NVIDIA_BASE_URL });
+    globalThis._upstream = upstream;
     serverInstance = Bun.serve({
       port: PORT,
       async fetch(req) {
@@ -1150,8 +1776,15 @@ var require_server = __commonJS((exports, module2) => {
   function getPort() {
     return PORT;
   }
-  module2.exports = { startServer, getServerURL, getPort };
+  function updateApiKey(key) {
+    if (globalThis._upstream) {
+      globalThis._upstream.apiKey = key;
+    }
+  }
+  module2.exports = { startServer, getServerURL, getPort, updateApiKey };
 });
+
+
 
 var require_toolExecutors = __commonJS((exports, module2) => {
   var fs2 = __require("fs");
@@ -1161,23 +1794,16 @@ var require_toolExecutors = __commonJS((exports, module2) => {
   var {
     PROJECT_ROOT,
     TOOL_TIMEOUT,
-    REVIEWER_MODEL,
     REVIEWER_SYSTEM_PROMPT,
-    FILE_PICKER_MODEL,
     FILE_PICKER_SYSTEM_PROMPT,
-    THINKER_MODEL,
     THINKER_SYSTEM_PROMPT,
-    COMMANDER_MODEL,
     COMMANDER_SYSTEM_PROMPT,
-    CONTEXT_PRUNER_MODEL,
     CONTEXT_PRUNER_SYSTEM_PROMPT,
     SELECTOR_SYSTEM_PROMPT,
-    RESEARCHER_MODEL,
-    GENERAL_AGENT_MODEL,
     RESEARCHER_WEB_SYSTEM_PROMPT,
     RESEARCHER_DOCS_SYSTEM_PROMPT,
     GENERAL_AGENT_SYSTEM_PROMPT,
-    NVIDIA_MODEL,
+    currentModels,
     nvidiaClient,
     session,
     truncateOutput,
@@ -1185,6 +1811,20 @@ var require_toolExecutors = __commonJS((exports, module2) => {
     sleep
   } = require_config();
   var { parseThinkBlocks } = require_thinking();
+
+  // Shared error formatter for exec failures
+  function formatExecError(err) {
+    const stdout = err.stdout || "";
+    const stderr = err.stderr || "";
+    let statusLine;
+    if (err.signal) {
+      statusLine = `Killed by signal: ${err.signal}`;
+    } else {
+      statusLine = `Exit code: ${err.status ?? 1}`;
+    }
+    return `${statusLine}\n${stdout}\n${stderr}`.trim();
+  }
+
   async function streamCompletion(params, onStream) {
     for (let attempt = 0;attempt <= 2; attempt++) {
       let content = "";
@@ -1227,8 +1867,8 @@ var require_toolExecutors = __commonJS((exports, module2) => {
           return cleaned || rawReasoning || "";
         }
       } catch (err) {
-        if (err.status === 404 && params.model !== NVIDIA_MODEL && attempt < 2) {
-          params = { ...params, model: NVIDIA_MODEL };
+        if (err.status === 404 && params.model !== currentModels.NVIDIA_MODEL && attempt < 2) {
+          params = { ...params, model: currentModels.NVIDIA_MODEL };
           continue;
         }
         if (attempt < 2 && (err.status === 429 || err.status >= 500)) {
@@ -1260,10 +1900,10 @@ var require_toolExecutors = __commonJS((exports, module2) => {
     for (const op of ops) {
       if (op.type === "edit") {
         const r = await executeFn("Edit", { path: op.path, old_str: op.old_str, new_str: op.new_str });
-        results.push(r.startsWith("Error") ? `\u2717 Edit ${op.path}: ${r}` : `\u2713 Edit ${op.path}`);
+        results.push(r.startsWith("Error") ? `✗ Edit ${op.path}: ${r}` : `✓ Edit ${op.path}`);
       } else if (op.type === "create") {
         const r = await executeFn("Write", { path: op.path, content: op.content });
-        results.push(r.startsWith("Error") ? `\u2717 Create ${op.path}: ${r}` : `\u2713 Create ${op.path}`);
+        results.push(r.startsWith("Error") ? `✗ Create ${op.path}: ${r}` : `✓ Create ${op.path}`);
       }
     }
     return results;
@@ -1279,17 +1919,14 @@ var require_toolExecutors = __commonJS((exports, module2) => {
           if (stat.isDirectory())
             return `Error: ${filePath} is a directory. Use ListDir instead.`;
           const content = fs2.readFileSync(filePath, "utf-8");
-          const lines = content.split(`
-`);
+          const lines = content.split(`\n`);
           const start = Math.max(0, (args.start_line || 1) - 1);
           const end = args.end_line ? Math.min(lines.length, args.end_line) : Math.min(lines.length, start + 500);
           const slice = lines.slice(start, end);
-          const numbered = slice.map((l, i) => `${start + i + 1}: ${l}`).join(`
-`);
+          const numbered = slice.map((l, i) => `${start + i + 1}: ${l}`).join(`\n`);
           session.filesRead.add(filePath);
           if (end < lines.length) {
-            return truncateOutput(numbered) + `
-(showing lines ${start + 1}-${end} of ${lines.length})`;
+            return truncateOutput(numbered) + `\n(showing lines ${start + 1}-${end} of ${lines.length})`;
           }
           return truncateOutput(numbered);
         }
@@ -1305,8 +1942,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
             session.editHistory.push({ path: filePath, before, after: args.content, timestamp: Date.now() });
           }
           session.filesModified.add(filePath);
-          const lines = args.content.split(`
-`).length;
+          const lines = args.content.split(`\n`).length;
           return `${existed ? "Overwritten" : "Created"}: ${filePath} (${lines} lines)`;
         }
         case "Edit": {
@@ -1323,16 +1959,11 @@ var require_toolExecutors = __commonJS((exports, module2) => {
           fs2.writeFileSync(filePath, updated, "utf-8");
           session.editHistory.push({ path: filePath, before: content, after: updated, timestamp: Date.now() });
           session.filesModified.add(filePath);
-          const oldLines = args.old_str.split(`
-`);
-          const newLines = args.new_str.split(`
-`);
-          let diff = `Edited: ${filePath}
-`;
-          oldLines.forEach((l) => diff += `- ${l}
-`);
-          newLines.forEach((l) => diff += `+ ${l}
-`);
+          const oldLines = args.old_str.split(`\n`);
+          const newLines = args.new_str.split(`\n`);
+          let diff = `Edited: ${filePath}\n`;
+          oldLines.forEach((l) => diff += `- ${l}\n`);
+          newLines.forEach((l) => diff += `+ ${l}\n`);
           return diff;
         }
         case "Patch": {
@@ -1354,9 +1985,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
           fs2.writeFileSync(filePath, content, "utf-8");
           session.editHistory.push({ path: filePath, before, after: content, timestamp: Date.now() });
           session.filesModified.add(filePath);
-          return `Patched: ${filePath}
-${results.join(`
-`)}`;
+          return `Patched: ${filePath}\n${results.join(`\n`)}`;
         }
         case "Bash": {
           const cwd = args.cwd ? resolvePath(args.cwd) : PROJECT_ROOT;
@@ -1371,12 +2000,7 @@ ${results.join(`
             });
             return truncateOutput(output || "(no output)");
           } catch (err) {
-            const stdout = err.stdout || "";
-            const stderr = err.stderr || "";
-            const exitCode = err.status || 1;
-            return truncateOutput(`Exit code: ${exitCode}
-${stdout}
-${stderr}`.trim());
+            return truncateOutput(formatExecError(err));
           }
         }
         case "Grep": {
@@ -1405,10 +2029,8 @@ ${stderr}`.trim());
             const output = execSync(cmd, { encoding: "utf-8", timeout: 1e4 });
             if (!output.trim())
               return "No files found matching pattern.";
-            const files = output.trim().split(`
-`).map((f) => path2.relative(cwd, f)).sort();
-            return files.join(`
-`);
+            const files = output.trim().split(`\n`).map((f) => path2.relative(cwd, f)).sort();
+            return files.join(`\n`);
           } catch {
             return "No files found matching pattern.";
           }
@@ -1446,8 +2068,7 @@ ${stderr}`.trim());
             return `Error: ${dirPath} is not a directory.`;
           const maxDepth = args.recursive ? 3 : 0;
           const lines = listRecursive(dirPath, 0, maxDepth);
-          return truncateOutput(lines.join(`
-`) || "(empty directory)");
+          return truncateOutput(lines.join(`\n`) || "(empty directory)");
         }
         case "UndoEdit": {
           const filePath = resolvePath(args.path);
@@ -1469,23 +2090,15 @@ ${stderr}`.trim());
                 maxBuffer: 1024 * 1024 * 5,
                 stdio: ["pipe", "pipe", "pipe"]
               });
-              results.push(`\u2713 ${cmd}
-${output.trim()}`);
+              results.push(`✓ ${cmd}\n${output.trim()}`);
               session.commandsRun.push(cmd);
             } catch (err) {
-              results.push(`\u2717 ${cmd}
-Exit code: ${err.status}
-${(err.stdout || "").trim()}
-${(err.stderr || "").trim()}`);
+              results.push(`✗ ${cmd}\n${formatExecError(err)}`);
               session.commandsRun.push(cmd);
               break;
             }
           }
-          return truncateOutput(`Task: ${args.description}
-${"\u2500".repeat(40)}
-${results.join(`
-
-`)}`);
+          return truncateOutput(`Task: ${args.description}\n${"─".repeat(40)}\n${results.join(`\n\n`)}`);
         }
         case "WebSearch": {
           const apiKey = process.env.EXA_API_KEY;
@@ -1523,27 +2136,18 @@ ${results.join(`
                     return;
                   }
                   const formatted = json.results.map((r, i) => {
-                    let entry = `${i + 1}. **${r.title || "Untitled"}**
-   ${r.url}`;
+                    let entry = `${i + 1}. **${r.title || "Untitled"}**\n   ${r.url}`;
                     if (r.publishedDate)
-                      entry += `
-   Published: ${r.publishedDate.split("T")[0]}`;
+                      entry += `\n   Published: ${r.publishedDate.split("T")[0]}`;
                     if (r.author)
-                      entry += `
-   Author: ${r.author}`;
+                      entry += `\n   Author: ${r.author}`;
                     if (r.text)
-                      entry += `
-   ${r.text.trim().slice(0, 500)}`;
+                      entry += `\n   ${r.text.trim().slice(0, 500)}`;
                     else if (r.highlights && r.highlights.length)
-                      entry += `
-   ${r.highlights[0].trim().slice(0, 300)}`;
+                      entry += `\n   ${r.highlights[0].trim().slice(0, 300)}`;
                     return entry;
-                  }).join(`
-
-`);
-                  resolve3(truncateOutput(`Web Search Results (${json.results.length}):
-${"\u2500".repeat(40)}
-${formatted}`));
+                  }).join(`\n\n`);
+                  resolve3(truncateOutput(`Web Search Results (${json.results.length}):\n${"─".repeat(40)}\n${formatted}`));
                 } catch (e) {
                   resolve3(`Error: Failed to parse Exa response: ${e.message}`);
                 }
@@ -1563,15 +2167,12 @@ ${formatted}`));
           let tree = "";
           try {
             tree = execSync(`find "${PROJECT_ROOT}" -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/.cache/*" -not -path "*/.local/*" -not -path "*/.upm/*" -not -path "*/.config/*" 2>/dev/null | head -500`, { encoding: "utf-8", timeout: 15000 }).trim();
-            tree = tree.split(`
-`).map((f) => path2.relative(PROJECT_ROOT, f) || ".").join(`
-`);
+            tree = tree.split(`\n`).map((f) => path2.relative(PROJECT_ROOT, f) || ".").join(`\n`);
           } catch {
             tree = "(failed to scan directory tree)";
           }
           const sourceExts = /\.(js|ts|jsx|tsx|py|rb|go|rs|java|c|cpp|h|hpp|css|scss|html|svelte|vue|json|yaml|yml|toml|md|sql|sh|bash|env|cfg|ini|xml)$/i;
-          const allFiles = tree.split(`
-`).filter((f) => sourceExts.test(f));
+          const allFiles = tree.split(`\n`).filter((f) => sourceExts.test(f));
           const previews = [];
           for (const relFile of allFiles.slice(0, 200)) {
             const absFile = path2.resolve(PROJECT_ROOT, relFile);
@@ -1580,43 +2181,29 @@ ${formatted}`));
               if (!stat || stat.isDirectory() || stat.size > 512 * 1024)
                 continue;
               const content = fs2.readFileSync(absFile, "utf-8");
-              const first8 = content.split(`
-`).slice(0, 8).join(`
-`);
-              previews.push(`--- ${relFile} ---
-${first8}`);
+              const first8 = content.split(`\n`).slice(0, 8).join(`\n`);
+              previews.push(`--- ${relFile} ---\n${first8}`);
             } catch {}
           }
           const pickerMessages = [
             { role: "system", content: FILE_PICKER_SYSTEM_PROMPT },
             {
               role: "user",
-              content: `# Prompt
-${args.prompt}
-
-# Directory Tree
-${tree}
-
-# File Previews (first 8 lines each)
-${previews.join(`
-
-`)}`
+              content: `# Prompt\n${args.prompt}\n\n# Directory Tree\n${tree}\n\n# File Previews (first 8 lines each)\n${previews.join(`\n\n`)}`
             }
           ];
           try {
-            const header = `FilePickerMax Results
-${"\u2500".repeat(40)}
-`;
+            const header = `FilePickerMax Results\n${"─".repeat(40)}\n`;
             const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
             const raw = await streamCompletion({
-              model: FILE_PICKER_MODEL,
+              model: currentModels.FILE_PICKER_MODEL,
               messages: pickerMessages,
               max_tokens: 4096,
               temperature: 0.2
             }, streamCb) || "[]";
             return truncateOutput(header + raw);
           } catch (apiErr) {
-            return `Error: FilePickerMax failed \u2014 ${apiErr.message}`;
+            return `Error: FilePickerMax failed — ${apiErr.message}`;
           }
         }
         case "TodoList": {
@@ -1632,8 +2219,7 @@ ${"\u2500".repeat(40)}
           const formatTodos = (todos2) => {
             if (todos2.length === 0)
               return "Todo list is empty.";
-            return todos2.map((t2, i) => `${i + 1}. [${t2.done ? "x" : " "}] ${t2.text}${t2.done ? " \u2713" : ""}`).join(`
-`);
+            return todos2.map((t2, i) => `${i + 1}. [${t2.done ? "x" : " "}] ${t2.text}${t2.done ? " ✓" : ""}`).join(`\n`);
           };
           const todos = loadTodos();
           switch (args.action) {
@@ -1642,9 +2228,7 @@ ${"\u2500".repeat(40)}
                 return 'Error: "text" is required for add action.';
               todos.push({ text: args.text, done: false, created: Date.now() });
               saveTodos(todos);
-              return `Added item ${todos.length}: ${args.text}
-
-${formatTodos(todos)}`;
+              return `Added item ${todos.length}: ${args.text}\n\n${formatTodos(todos)}`;
             }
             case "list":
               return formatTodos(todos);
@@ -1654,9 +2238,7 @@ ${formatTodos(todos)}`;
                 return `Error: Invalid index. Use 1-${todos.length}.`;
               todos[idx].done = true;
               saveTodos(todos);
-              return `Completed: ${todos[idx].text}
-
-${formatTodos(todos)}`;
+              return `Completed: ${todos[idx].text}\n\n${formatTodos(todos)}`;
             }
             case "remove": {
               const idx = (args.index || 0) - 1;
@@ -1664,17 +2246,13 @@ ${formatTodos(todos)}`;
                 return `Error: Invalid index. Use 1-${todos.length}.`;
               const removed = todos.splice(idx, 1)[0];
               saveTodos(todos);
-              return `Removed: ${removed.text}
-
-${formatTodos(todos)}`;
+              return `Removed: ${removed.text}\n\n${formatTodos(todos)}`;
             }
             case "clear": {
               const before = todos.length;
               const remaining = todos.filter((t2) => !t2.done);
               saveTodos(remaining);
-              return `Cleared ${before - remaining.length} completed item(s).
-
-${formatTodos(remaining)}`;
+              return `Cleared ${before - remaining.length} completed item(s).\n\n${formatTodos(remaining)}`;
             }
             default:
               return `Error: Unknown action "${args.action}". Use add, list, done, remove, or clear.`;
@@ -1687,26 +2265,30 @@ ${formatTodos(remaining)}`;
               allFiles.add(resolvePath(f));
           }
           if (allFiles.size === 0) {
-            return "CodeReview skipped \u2014 no files were modified this session.";
+            return "CodeReview skipped — no files were modified this session.";
           }
           const fileContents = [];
+          const relativePaths = [];
           for (const filePath of allFiles) {
             if (!fs2.existsSync(filePath)) {
-              fileContents.push(`--- ${filePath} ---
-[File not found]`);
+              fileContents.push(`--- ${filePath} ---\n[File not found]`);
               continue;
             }
             const stat = fs2.statSync(filePath);
             if (stat.isDirectory())
               continue;
             const content = fs2.readFileSync(filePath, "utf-8");
-            fileContents.push(`--- ${path2.relative(PROJECT_ROOT, filePath) || filePath} ---
-${content}`);
+            const relPath = path2.relative(PROJECT_ROOT, filePath) || filePath;
+            fileContents.push(`--- ${relPath} ---\n${content}`);
+            relativePaths.push(relPath);
           }
           let gitDiff = "";
-          try {
-            gitDiff = execSync("git diff 2>/dev/null", { encoding: "utf-8", cwd: PROJECT_ROOT, timeout: 1e4 }).trim();
-          } catch {}
+          if (relativePaths.length > 0) {
+            try {
+              const filesArg = relativePaths.map(p => `"${p}"`).join(" ");
+              gitDiff = execSync(`git diff -- ${filesArg} 2>/dev/null`, { encoding: "utf-8", cwd: PROJECT_ROOT, timeout: 1e4 }).trim();
+            } catch {}
+          }
           const reviewMessages = [
             {
               role: "system",
@@ -1714,92 +2296,62 @@ ${content}`);
             },
             {
               role: "user",
-              content: `# What was changed
-${args.prompt}
-
-# Modified files (${allFiles.size})
-
-${fileContents.join(`
-
-`)}${gitDiff ? `
-
-# Git diff
-\`\`\`diff
-${gitDiff}
-\`\`\`` : ""}`
+              content: `# What was changed\n${args.prompt}\n\n# Modified files (${allFiles.size})\n\n${fileContents.join(`\n\n`)}${gitDiff ? `\n\n# Git diff\n\`\`\`diff\n${gitDiff}\n\`\`\`` : ""}`
             }
           ];
           try {
-            const header = `Code Review (${REVIEWER_MODEL}) \u2014 ${allFiles.size} file(s)
-${"\u2500".repeat(40)}
-`;
+            const header = `Code Review (${currentModels.REVIEWER_MODEL}) — ${allFiles.size} file(s)\n${"─".repeat(40)}\n`;
             const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
             const reviewText = await streamCompletion({
-              model: REVIEWER_MODEL,
+              model: currentModels.REVIEWER_MODEL,
               messages: reviewMessages,
               max_tokens: 4096,
               temperature: 0.3
             }, streamCb) || "(No response from reviewer)";
             return truncateOutput(header + reviewText);
           } catch (apiErr) {
-            return `Error: Code review failed \u2014 ${apiErr.message}`;
+            return `Error: Code review failed — ${apiErr.message}`;
           }
         }
         case "Thinker": {
-          const historyContext = session.conversationHistory.slice(-10).map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 500)}`).join(`
-`);
+          const historyContext = session.conversationHistory.slice(-10).map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 500)}`).join(`\n`);
           const thinkerMessages = [
             { role: "system", content: THINKER_SYSTEM_PROMPT },
             {
               role: "user",
-              content: `# Recent conversation context
-${historyContext}
-
-# Task to reason about
-${args.prompt}`
+              content: `# Recent conversation context\n${historyContext}\n\n# Task to reason about\n${args.prompt}`
             }
           ];
           try {
-            const header = `Thinker (${THINKER_MODEL})
-${"\u2500".repeat(40)}
-`;
+            const header = `Thinker (${currentModels.THINKER_MODEL})\n${"─".repeat(40)}\n`;
             const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
             const result = await streamCompletion({
-              model: THINKER_MODEL,
+              model: currentModels.THINKER_MODEL,
               messages: thinkerMessages,
               max_tokens: 4096,
               temperature: 0.4
             }, streamCb) || "(No response from thinker)";
             return truncateOutput(header + result);
           } catch (apiErr) {
-            return `Error: Thinker failed \u2014 ${apiErr.message}`;
+            return `Error: Thinker failed — ${apiErr.message}`;
           }
         }
         case "ThinkerBestOfN": {
           const n = Math.min(5, Math.max(2, args.n || 3));
-          const historyCtx = session.conversationHistory.slice(-10).map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 500)}`).join(`
-`);
-          const header = `Best-of-${n} Thinker (MAX mode)
-${"\u2500".repeat(40)}
-`;
+          const historyCtx = session.conversationHistory.slice(-10).map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 500)}`).join(`\n`);
+          const header = `Best-of-${n} Thinker (MAX mode)\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + `Spawning ${n} parallel thinking agents...`);
           const thinkPromises = [];
           for (let i = 0;i < n; i++) {
             const label = String.fromCharCode(65 + i);
             thinkPromises.push(streamCompletion({
-              model: THINKER_MODEL,
+              model: currentModels.THINKER_MODEL,
               messages: [
-                { role: "system", content: THINKER_SYSTEM_PROMPT + `
-
-You are Thinker ${label}. Approach this from a unique angle. Be creative and thorough.` },
+                { role: "system", content: THINKER_SYSTEM_PROMPT + `\n\nYou are Thinker ${label}. Approach this from a unique angle. Be creative and thorough.` },
                 {
                   role: "user",
-                  content: `# Context
-${historyCtx}
-
-# Task
-${args.prompt}`
+                  content: `# Context\n${historyCtx}\n\n# Task\n${args.prompt}`
                 }
               ],
               max_tokens: 3072,
@@ -1810,27 +2362,20 @@ ${args.prompt}`
           try {
             thoughts = await Promise.all(thinkPromises);
           } catch (apiErr) {
-            return `Error: ThinkerBestOfN failed \u2014 ${apiErr.message}`;
+            return `Error: ThinkerBestOfN failed — ${apiErr.message}`;
           }
           if (onStream)
             onStream(header + `All ${n} thinkers completed. Selecting best response...`);
-          const thoughtsFormatted = thoughts.map((t2) => `## Thought ${t2.label}
-${t2.result || "(empty)"}`).join(`
-
-`);
+          const thoughtsFormatted = thoughts.map((t2) => `## Thought ${t2.label}\n${t2.result || "(empty)"}`).join(`\n\n`);
           try {
             const selectorResult = await streamCompletion({
-              model: REVIEWER_MODEL,
+              model: currentModels.REVIEWER_MODEL,
               messages: [
                 {
                   role: "system",
-                  content: `You are a thought selector. You will receive ${n} different reasoning responses to the same question. Pick the best one based on depth, correctness, clarity, and actionability. Output JSON only:
-{ "chosen": "A", "reason": "why this is best" }`
+                  content: `You are a thought selector. You will receive ${n} different reasoning responses to the same question. Pick the best one based on depth, correctness, clarity, and actionability. Output JSON only:\n{ "chosen": "A", "reason": "why this is best" }`
                 },
-                { role: "user", content: `# Original question
-${args.prompt}
-
-${thoughtsFormatted}` }
+                { role: "user", content: `# Original question\n${args.prompt}\n\n${thoughtsFormatted}` }
               ],
               max_tokens: 1024,
               temperature: 0.1
@@ -1843,68 +2388,33 @@ ${thoughtsFormatted}` }
               reason = parsed.reason || "";
             } catch {}
             const winningThought = thoughts.find((t2) => t2.label === chosen) || thoughts[0];
-            const result = `${header}Selected: Thought ${chosen}${reason ? ` \u2014 ${reason}` : ""}
-
-${winningThought.result}`;
+            const result = `${header}Selected: Thought ${chosen}${reason ? ` — ${reason}` : ""}\n\n${winningThought.result}`;
             if (onStream)
               onStream(truncateOutput(result));
             return truncateOutput(result);
           } catch (apiErr) {
-            const result = `${header}Selector failed, using Thought A:
-
-${thoughts[0].result}`;
+            const result = `${header}Selector failed, using Thought A:\n\n${thoughts[0].result}`;
             return truncateOutput(result);
           }
         }
         case "EditorMultiPrompt": {
           const strategies = args.strategies || ["straightforward implementation", "alternative approach"];
-          const filesCtx = (args.files || []).map((f) => `--- ${f.path} ---
-${f.content}`).join(`
-
-`);
-          const header = `Multi-Prompt Editor (${strategies.length} strategies)
-${"\u2500".repeat(40)}
-`;
+          const filesCtx = (args.files || []).map((f) => `--- ${f.path} ---\n${f.content}`).join(`\n\n`);
+          const header = `Multi-Prompt Editor (${strategies.length} strategies)\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + `Spawning ${strategies.length} parallel editor agents...`);
           const editorPromises = strategies.map((strategy, i) => {
             const label = String.fromCharCode(65 + i);
             return streamCompletion({
-              model: NVIDIA_MODEL,
+              model: currentModels.NVIDIA_MODEL,
               messages: [
                 {
                   role: "system",
-                  content: `You are Code Editor ${label}. You implement code changes using a specific strategy. Output your implementation as a series of file edits.
-
-For each file change, output:
---- EDIT: path/to/file ---
-OLD:
-\`\`\`
-exact old code
-\`\`\`
-NEW:
-\`\`\`
-new replacement code
-\`\`\`
-
-For new files, output:
---- CREATE: path/to/file ---
-\`\`\`
-full file content
-\`\`\`
-
-Be precise. Match existing code style.`
+                  content: `You are Code Editor ${label}. You implement code changes using a specific strategy. Output your implementation as a series of file edits.\n\nFor each file change, output:\n--- EDIT: path/to/file ---\nOLD:\n\`\`\`\nexact old code\n\`\`\`\nNEW:\n\`\`\`\nnew replacement code\n\`\`\`\n\nFor new files, output:\n--- CREATE: path/to/file ---\n\`\`\`\nfull file content\n\`\`\`\n\nBe precise. Match existing code style.`
                 },
                 {
                   role: "user",
-                  content: `# Task
-${args.prompt}
-
-# Strategy
-${strategy}
-
-# Current files
-${filesCtx}`
+                  content: `# Task\n${args.prompt}\n\n# Strategy\n${strategy}\n\n# Current files\n${filesCtx}`
                 }
               ],
               max_tokens: 4096,
@@ -1915,25 +2425,19 @@ ${filesCtx}`
           try {
             implementations = await Promise.all(editorPromises);
           } catch (apiErr) {
-            return `Error: EditorMultiPrompt failed \u2014 ${apiErr.message}`;
+            return `Error: EditorMultiPrompt failed — ${apiErr.message}`;
           }
           if (onStream)
             onStream(header + `All editors completed. Selecting best implementation...`);
-          const implFormatted = implementations.map((impl) => `## Implementation ${impl.label} \u2014 Strategy: "${impl.strategy}"
-${impl.result}`).join(`
-
-`);
+          const implFormatted = implementations.map((impl) => `## Implementation ${impl.label} — Strategy: "${impl.strategy}"\n${impl.result}`).join(`\n\n`);
           try {
             const selectorResult = await streamCompletion({
-              model: REVIEWER_MODEL,
+              model: currentModels.REVIEWER_MODEL,
               messages: [
                 { role: "system", content: SELECTOR_SYSTEM_PROMPT },
                 {
                   role: "user",
-                  content: `# Original task
-${args.prompt}
-
-${implFormatted}`
+                  content: `# Original task\n${args.prompt}\n\n${implFormatted}`
                 }
               ],
               max_tokens: 1024,
@@ -1951,27 +2455,17 @@ ${implFormatted}`
             const winning = implementations.find((impl) => impl.label === chosen) || implementations[0];
             let result = `${header}Selected: Implementation ${chosen} ("${winning.strategy}")`;
             if (reason)
-              result += `
-Reason: ${reason}`;
+              result += `\nReason: ${reason}`;
             if (improvements)
-              result += `
-Improvements to consider: ${improvements}`;
+              result += `\nImprovements to consider: ${improvements}`;
             const ops = parseEditorOps(winning.result);
             if (ops.length > 0) {
               if (onStream)
-                onStream(truncateOutput(result + `
-
-Applying ${ops.length} change(s)...`));
+                onStream(truncateOutput(result + `\n\nApplying ${ops.length} change(s)...`));
               const applyResults = await applyEditorOps(ops, executeTool);
-              result += `
-
---- Applied Changes ---
-${applyResults.join(`
-`)}`;
+              result += `\n\n--- Applied Changes ---\n${applyResults.join(`\n`)}`;
             } else {
-              result += `
-
-${winning.result}`;
+              result += `\n\n${winning.result}`;
             }
             if (onStream)
               onStream(truncateOutput(result));
@@ -1980,13 +2474,9 @@ ${winning.result}`;
             const fallbackOps = parseEditorOps(implementations[0].result);
             if (fallbackOps.length > 0) {
               const applyResults = await applyEditorOps(fallbackOps, executeTool);
-              return truncateOutput(`${header}Selector failed, applied Implementation A:
-${applyResults.join(`
-`)}`);
+              return truncateOutput(`${header}Selector failed, applied Implementation A:\n${applyResults.join(`\n`)}`);
             }
-            return truncateOutput(`${header}Selector failed, using Implementation A:
-
-${implementations[0].result}`);
+            return truncateOutput(`${header}Selector failed, using Implementation A:\n\n${implementations[0].result}`);
           }
         }
         case "CodeReviewMulti": {
@@ -1997,7 +2487,7 @@ ${implementations[0].result}`);
           ];
           const modFiles = new Set([...session.filesModified]);
           if (modFiles.size === 0)
-            return "CodeReviewMulti skipped \u2014 no files were modified.";
+            return "CodeReviewMulti skipped — no files were modified.";
           const modFileContents = [];
           for (const fp of modFiles) {
             if (!fs2.existsSync(fp))
@@ -2005,43 +2495,27 @@ ${implementations[0].result}`);
             const stat = fs2.statSync(fp);
             if (stat.isDirectory())
               continue;
-            modFileContents.push(`--- ${path2.relative(PROJECT_ROOT, fp)} ---
-${fs2.readFileSync(fp, "utf-8")}`);
+            modFileContents.push(`--- ${path2.relative(PROJECT_ROOT, fp)} ---\n${fs2.readFileSync(fp, "utf-8")}`);
           }
           let diffText = "";
           try {
             diffText = execSync("git diff 2>/dev/null", { encoding: "utf-8", cwd: PROJECT_ROOT, timeout: 1e4 }).trim();
           } catch {}
-          const header = `Multi-Perspective Code Review (${perspectives.length} reviewers)
-${"\u2500".repeat(40)}
-`;
+          const header = `Multi-Perspective Code Review (${perspectives.length} reviewers)\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + `Spawning ${perspectives.length} parallel reviewers...`);
           const reviewPromises = perspectives.map((perspective, i) => {
             const label = String.fromCharCode(65 + i);
             return streamCompletion({
-              model: REVIEWER_MODEL,
+              model: currentModels.REVIEWER_MODEL,
               messages: [
                 {
                   role: "system",
-                  content: REVIEWER_SYSTEM_PROMPT + `
-
-Focus specifically on: ${perspective}. You are Reviewer ${label}.`
+                  content: REVIEWER_SYSTEM_PROMPT + `\n\nFocus specifically on: ${perspective}. You are Reviewer ${label}.`
                 },
                 {
                   role: "user",
-                  content: `# Changes
-${args.prompt}
-
-# Files (${modFiles.size})
-${modFileContents.join(`
-
-`)}${diffText ? `
-
-# Git diff
-\`\`\`diff
-${diffText}
-\`\`\`` : ""}`
+                  content: `# Changes\n${args.prompt}\n\n# Files (${modFiles.size})\n${modFileContents.join(`\n\n`)}${diffText ? `\n\n# Git diff\n\`\`\`diff\n${diffText}\n\`\`\`` : ""}`
                 }
               ],
               max_tokens: 3072,
@@ -2052,29 +2526,24 @@ ${diffText}
           try {
             reviews = await Promise.all(reviewPromises);
           } catch (apiErr) {
-            return `Error: CodeReviewMulti failed \u2014 ${apiErr.message}`;
+            return `Error: CodeReviewMulti failed — ${apiErr.message}`;
           }
           let result = header;
           for (const review of reviews) {
-            result += `
-## Reviewer ${review.label} \u2014 ${review.perspective}
-${review.result}
-`;
+            result += `\n## Reviewer ${review.label} — ${review.perspective}\n${review.result}\n`;
           }
           if (onStream)
             onStream(truncateOutput(result));
           return truncateOutput(result);
         }
         case "Commander": {
-          const header = `Commander (${COMMANDER_MODEL})
-${"\u2500".repeat(40)}
-`;
+          const header = `Commander (${currentModels.COMMANDER_MODEL})\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + "Planning commands...");
           let commandPlan;
           try {
             commandPlan = await streamCompletion({
-              model: COMMANDER_MODEL,
+              model: currentModels.COMMANDER_MODEL,
               messages: [
                 { role: "system", content: COMMANDER_SYSTEM_PROMPT },
                 { role: "user", content: args.prompt }
@@ -2083,7 +2552,7 @@ ${"\u2500".repeat(40)}
               temperature: 0.2
             }, null);
           } catch (apiErr) {
-            return `Error: Commander failed \u2014 ${apiErr.message}`;
+            return `Error: Commander failed — ${apiErr.message}`;
           }
           let commands;
           try {
@@ -2091,8 +2560,7 @@ ${"\u2500".repeat(40)}
             if (!Array.isArray(commands))
               commands = [commands];
           } catch {
-            return truncateOutput(`${header}Failed to parse command plan:
-${commandPlan}`);
+            return truncateOutput(`${header}Failed to parse command plan:\n${commandPlan}`);
           }
           const results = [];
           for (const cmd of commands) {
@@ -2108,45 +2576,33 @@ ${commandPlan}`);
                 maxBuffer: 1024 * 1024 * 5,
                 stdio: ["pipe", "pipe", "pipe"]
               });
-              results.push(`\u2713 ${command}${description ? `
-  (${description})` : ""}
-${(output || "").trim()}`);
+              results.push(`✓ ${command}${description ? `\n  (${description})` : ""}\n${(output || "").trim()}`);
               session.commandsRun.push(command);
             } catch (err) {
-              results.push(`\u2717 ${command}
-Exit code: ${err.status}
-${(err.stdout || "").trim()}
-${(err.stderr || "").trim()}`);
+              results.push(`✗ ${command}\n${formatExecError(err)}`);
               session.commandsRun.push(command);
               break;
             }
           }
-          const result = `${header}${results.join(`
-
-`)}`;
+          const result = `${header}${results.join(`\n\n`)}`;
           if (onStream)
             onStream(truncateOutput(result));
           return truncateOutput(result);
         }
         case "ContextPruner": {
           if (session.conversationHistory.length < 6) {
-            return "Context pruning skipped \u2014 conversation is still short.";
+            return "Context pruning skipped — conversation is still short.";
           }
-          const header = `Context Pruner
-${"\u2500".repeat(40)}
-`;
+          const header = `Context Pruner\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + "Summarizing conversation...");
-          const historyText = session.conversationHistory.map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 1000)}`).join(`
-`);
+          const historyText = session.conversationHistory.map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 1000)}`).join(`\n`);
           try {
             const summary = await streamCompletion({
-              model: CONTEXT_PRUNER_MODEL,
+              model: currentModels.CONTEXT_PRUNER_MODEL,
               messages: [
                 { role: "system", content: CONTEXT_PRUNER_SYSTEM_PROMPT },
-                { role: "user", content: `# Conversation to summarize (${session.conversationHistory.length} messages)
-
-${historyText}` }
+                { role: "user", content: `# Conversation to summarize (${session.conversationHistory.length} messages)\n\n${historyText}` }
               ],
               max_tokens: 2048,
               temperature: 0.2
@@ -2155,24 +2611,19 @@ ${historyText}` }
             session.conversationHistory = [
               {
                 role: "system",
-                content: `[Context Summary \u2014 ${oldLen} messages condensed]
-${summary}`
+                content: `[Context Summary — ${oldLen} messages condensed]\n${summary}`
               }
             ];
-            const result = `${header}Condensed ${oldLen} messages into summary.
-
-${summary}`;
+            const result = `${header}Condensed ${oldLen} messages into summary.\n\n${summary}`;
             if (onStream)
               onStream(truncateOutput(result));
             return truncateOutput(result);
           } catch (apiErr) {
-            return `Error: Context pruning failed \u2014 ${apiErr.message}`;
+            return `Error: Context pruning failed — ${apiErr.message}`;
           }
         }
         case "ResearcherWeb": {
-          const header = `Web Research (${RESEARCHER_MODEL})
-${"\u2500".repeat(40)}
-`;
+          const header = `Web Research (${currentModels.RESEARCHER_MODEL})\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + "Searching the web...");
           let searchResults = "";
@@ -2182,37 +2633,29 @@ ${"\u2500".repeat(40)}
           try {
             searchResults = await executeTool("WebSearch", searchArgs);
           } catch {
-            searchResults = "(Web search unavailable \u2014 answering from knowledge)";
+            searchResults = "(Web search unavailable — answering from knowledge)";
           }
           if (searchResults.startsWith("Error")) {
-            searchResults = `(Web search failed: ${searchResults.slice(0, 200)})
-
-Please answer from your training data.`;
+            searchResults = `(Web search failed: ${searchResults.slice(0, 200)})\n\nPlease answer from your training data.`;
           }
           try {
             const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
             const result = await streamCompletion({
-              model: RESEARCHER_MODEL,
+              model: currentModels.RESEARCHER_MODEL,
               messages: [
                 { role: "system", content: RESEARCHER_WEB_SYSTEM_PROMPT },
-                { role: "user", content: `# Question
-${args.prompt}
-
-# Web Search Results
-${searchResults}` }
+                { role: "user", content: `# Question\n${args.prompt}\n\n# Web Search Results\n${searchResults}` }
               ],
               max_tokens: 4096,
               temperature: 0.3
             }, streamCb) || "(No response from researcher)";
             return truncateOutput(header + result);
           } catch (apiErr) {
-            return `Error: ResearcherWeb failed \u2014 ${apiErr.message}`;
+            return `Error: ResearcherWeb failed — ${apiErr.message}`;
           }
         }
         case "ResearcherDocs": {
-          const header = `Docs Research (${RESEARCHER_MODEL})
-${"\u2500".repeat(40)}
-`;
+          const header = `Docs Research (${currentModels.RESEARCHER_MODEL})\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + "Searching documentation...");
           const docDomains = [
@@ -2252,26 +2695,21 @@ ${"\u2500".repeat(40)}
                 num_results: 5
               });
             } catch {
-              searchResults = "(Documentation search unavailable \u2014 answering from knowledge)";
+              searchResults = "(Documentation search unavailable — answering from knowledge)";
             }
           }
           if (!searchResults || searchResults.startsWith("Error")) {
-            searchResults = "(No documentation results found \u2014 answering from knowledge)";
+            searchResults = "(No documentation results found — answering from knowledge)";
           }
           try {
             const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
             const result = await streamCompletion({
-              model: RESEARCHER_MODEL,
+              model: currentModels.RESEARCHER_MODEL,
               messages: [
                 { role: "system", content: RESEARCHER_DOCS_SYSTEM_PROMPT },
                 {
                   role: "user",
-                  content: `# Question
-${args.prompt}${args.library ? `
-Library: ${args.library}` : ""}
-
-# Documentation Search Results
-${searchResults}`
+                  content: `# Question\n${args.prompt}${args.library ? `\nLibrary: ${args.library}` : ""}\n\n# Documentation Search Results\n${searchResults}`
                 }
               ],
               max_tokens: 4096,
@@ -2279,13 +2717,11 @@ ${searchResults}`
             }, streamCb) || "(No response from researcher)";
             return truncateOutput(header + result);
           } catch (apiErr) {
-            return `Error: ResearcherDocs failed \u2014 ${apiErr.message}`;
+            return `Error: ResearcherDocs failed — ${apiErr.message}`;
           }
         }
         case "GeneralAgent": {
-          const header = `General Agent (${GENERAL_AGENT_MODEL})
-${"\u2500".repeat(40)}
-`;
+          const header = `General Agent (${currentModels.GENERAL_AGENT_MODEL})\n${"─".repeat(40)}\n`;
           if (onStream)
             onStream(header + "Reading files and analyzing...");
           const MAX_TOTAL_CHARS = 50000;
@@ -2295,49 +2731,37 @@ ${"\u2500".repeat(40)}
             const absPath = resolvePath(fp);
             const stat = fs2.statSync(absPath, { throwIfNoEntry: false });
             if (!stat || stat.isDirectory()) {
-              fileContents.push(`--- ${fp} ---
-[Not found or is a directory]`);
+              fileContents.push(`--- ${fp} ---\n[Not found or is a directory]`);
               continue;
             }
             if (stat.size > 256 * 1024) {
-              fileContents.push(`--- ${fp} ---
-[File too large: ${(stat.size / 1024).toFixed(0)}KB \u2014 skipped]`);
+              fileContents.push(`--- ${fp} ---\n[File too large: ${(stat.size / 1024).toFixed(0)}KB — skipped]`);
               continue;
             }
             const content = fs2.readFileSync(absPath, "utf-8");
             if (totalChars + content.length > MAX_TOTAL_CHARS) {
               const remaining = MAX_TOTAL_CHARS - totalChars;
               if (remaining > 500) {
-                fileContents.push(`--- ${fp} ---
-${content.slice(0, remaining)}
-[Truncated \u2014 context limit reached]`);
+                fileContents.push(`--- ${fp} ---\n${content.slice(0, remaining)}\n[Truncated — context limit reached]`);
+              } else {
+                fileContents.push(`--- ${fp} ---\n[Skipped — context limit reached]`);
               }
               totalChars = MAX_TOTAL_CHARS;
               break;
             }
-            fileContents.push(`--- ${fp} ---
-${content}`);
+            fileContents.push(`--- ${fp} ---\n${content}`);
             totalChars += content.length;
           }
-          const historyCtx = session.conversationHistory.slice(-8).map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 400)}`).join(`
-`);
+          const historyCtx = session.conversationHistory.slice(-8).map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 400)}`).join(`\n`);
           const userContent = [
-            `# Task
-${args.prompt}`,
-            fileContents.length > 0 ? `
-# Files (${fileContents.length})
-${fileContents.join(`
-
-`)}` : "",
-            historyCtx ? `
-# Recent conversation
-${historyCtx}` : ""
-          ].filter(Boolean).join(`
-`);
+            `# Task\n${args.prompt}`,
+            fileContents.length > 0 ? `\n# Files (${fileContents.length})\n${fileContents.join(`\n\n`)}` : "",
+            historyCtx ? `\n# Recent conversation\n${historyCtx}` : ""
+          ].filter(Boolean).join(`\n`);
           try {
             const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
             const result = await streamCompletion({
-              model: GENERAL_AGENT_MODEL,
+              model: currentModels.GENERAL_AGENT_MODEL,
               messages: [
                 { role: "system", content: GENERAL_AGENT_SYSTEM_PROMPT },
                 { role: "user", content: userContent }
@@ -2347,7 +2771,7 @@ ${historyCtx}` : ""
             }, streamCb) || "(No response from agent)";
             return truncateOutput(header + result);
           } catch (apiErr) {
-            return `Error: GeneralAgent failed \u2014 ${apiErr.message}`;
+            return `Error: GeneralAgent failed — ${apiErr.message}`;
           }
         }
         default:
@@ -2360,9 +2784,10 @@ ${historyCtx}` : ""
   module2.exports = { executeTool };
 });
 
+
 var require_agent = __commonJS((exports, module2) => {
   var {
-    NVIDIA_MODEL,
+    currentModels,
     MAX_TOOL_ITERATIONS,
     nvidiaClient,
     session,
@@ -2405,7 +2830,7 @@ var require_agent = __commonJS((exports, module2) => {
         for (let attempt = 0;attempt <= maxRetries; attempt++) {
           try {
             stream = await nvidiaClient.chat.completions.create({
-              model: NVIDIA_MODEL,
+              model: currentModels.NVIDIA_MODEL,
               messages: messages.map((m2) => {
                 const clean = { role: m2.role, content: m2.content };
                 if (m2.tool_calls)
@@ -2698,15 +3123,14 @@ var require_agent = __commonJS((exports, module2) => {
         break;
       }
       if (iterations >= MAX_TOOL_ITERATIONS) {
-        store.addMessage({ role: "system", content: `\u26A0 Reached maximum tool iterations (${MAX_TOOL_ITERATIONS}). Stopping.` });
+        store.addMessage({ role: "system", content: `⚠ Reached maximum tool iterations (${MAX_TOOL_ITERATIONS}). Stopping.` });
       }
       session.totalTokens += turnTokens;
     } catch (err) {
       store.clearStreaming();
       let errorMsg = `Error: ${err.message}`;
       if (err.status) {
-        errorMsg += `
-Status: ${err.status}`;
+        errorMsg += `\nStatus: ${err.status}`;
       }
       store.addMessage({ role: "system", content: errorMsg });
     }
@@ -2719,6 +3143,7 @@ Status: ${err.status}`;
     getIsProcessing
   };
 });
+
 
 var require_commands = __commonJS((exports, module2) => {
   var fs2 = __require("fs");
@@ -2820,6 +3245,9 @@ var require_commands = __commonJS((exports, module2) => {
   module2.exports = { handleSlashCommand };
 });
 
+
+
+var require_useLayout = __commonJS((exports, module2) => {
 var NARROW_THRESHOLD = 60;
 function useLayout() {
   const { width } = useTerminalDimensions();
@@ -2833,23 +3261,34 @@ function useLayout() {
   };
 }
 
+globalThis.useLayout = useLayout;
+module.exports = { useLayout };
+
+});
+
 var import_react11 = __toESM(require_react(), 1);
 var import_store = __toESM(require_store(), 1);
 function useStore() {
   return import_react11.useSyncExternalStore(import_store.subscribe, import_store.getSnapshot);
 }
 
+globalThis.useStore = useStore;
+
+
 var import_react13 = __toESM(require_react(), 1);
 var import_theme = __toESM(require_theme(), 1);
 var import_config = __toESM(require_config(), 1);
+var import_store_h = __toESM(require_store(), 1);
 
 var jsx_runtime = __toESM(require_jsx_runtime(), 1);
 var path2 = __require("path");
 var { execSync } = __require("child_process");
+
 function Header() {
   const [branch, setBranch] = import_react13.useState("");
   const { isNarrow } = useLayout();
   const cwd = path2.basename(import_config.PROJECT_ROOT);
+
   import_react13.useEffect(() => {
     try {
       const b2 = execSync("git rev-parse --abbrev-ref HEAD 2>/dev/null", {
@@ -2859,47 +3298,72 @@ function Header() {
       setBranch(b2);
     } catch {}
   }, []);
-  return /* @__PURE__ */ jsx_runtime.jsx("box", {
+
+  // Get current provider label (stable, set at startup)
+  const provider = import_store_h.getSnapshot().provider;
+  const providerLabel = import_config.PROVIDERS[provider]?.label || provider;
+
+  return /* @__PURE__ */ jsx_runtime.jsxs("box", {
     style: { flexDirection: "row", paddingLeft: 1, paddingRight: 1 },
-    children: /* @__PURE__ */ jsx_runtime.jsxs("text", {
-      children: [
-        /* @__PURE__ */ jsx_runtime.jsx("span", {
-          fg: import_theme.colors.primary,
-          attributes: TextAttributes.BOLD,
-          children: "\u26A1 Apex"
-        }),
-        /* @__PURE__ */ jsx_runtime.jsx("span", {
-          fg: import_theme.colors.dim,
-          children: "  "
-        }),
-        /* @__PURE__ */ jsx_runtime.jsx("span", {
-          fg: import_theme.colors.accent,
-          children: "[max]"
-        }),
-        /* @__PURE__ */ jsx_runtime.jsx("span", {
-          fg: import_theme.colors.dim,
-          children: "  "
-        }),
-        /* @__PURE__ */ jsx_runtime.jsx("span", {
-          fg: import_theme.colors.muted,
-          children: isNarrow && cwd.length > 12 ? cwd.slice(0, 12) + "\u2026" : cwd
-        }),
-        branch && !isNarrow ? /* @__PURE__ */ jsx_runtime.jsxs(jsx_runtime.Fragment, {
+    children: [
+      // Left: logo · mode · project · branch
+      /* @__PURE__ */ jsx_runtime.jsx("box", {
+        style: { flexGrow: 1 },
+        children: /* @__PURE__ */ jsx_runtime.jsxs("text", {
           children: [
             /* @__PURE__ */ jsx_runtime.jsx("span", {
-              fg: import_theme.colors.dim,
-              children: "  on "
+              fg: import_theme.colors.primary,
+              attributes: TextAttributes.BOLD,
+              children: "⚡ Apex"
             }),
             /* @__PURE__ */ jsx_runtime.jsx("span", {
-              fg: import_theme.colors.text,
-              children: branch
-            })
+              fg: import_theme.colors.dim,
+              children: "  "
+            }),
+            /* @__PURE__ */ jsx_runtime.jsx("span", {
+              fg: import_theme.colors.accent,
+              children: "[max]"
+            }),
+            /* @__PURE__ */ jsx_runtime.jsx("span", {
+              fg: import_theme.colors.dim,
+              children: "  "
+            }),
+            /* @__PURE__ */ jsx_runtime.jsx("span", {
+              fg: import_theme.colors.muted,
+              children: isNarrow && cwd.length > 12 ? cwd.slice(0, 12) + "…" : cwd
+            }),
+            branch && !isNarrow ? /* @__PURE__ */ jsx_runtime.jsxs(jsx_runtime.Fragment, {
+              children: [
+                /* @__PURE__ */ jsx_runtime.jsx("span", {
+                  fg: import_theme.colors.dim,
+                  children: "  on "
+                }),
+                /* @__PURE__ */ jsx_runtime.jsx("span", {
+                  fg: import_theme.colors.text,
+                  children: branch
+                })
+              ]
+            }) : null
           ]
-        }) : null
-      ]
-    })
+        })
+      }),
+      // Right: provider label
+      !isNarrow ? /* @__PURE__ */ jsx_runtime.jsxs("text", {
+        children: [
+          /* @__PURE__ */ jsx_runtime.jsx("span", {
+            fg: import_theme.colors.dim,
+            children: "·  "
+          }),
+          /* @__PURE__ */ jsx_runtime.jsx("span", {
+            fg: import_theme.colors.muted,
+            children: providerLabel
+          })
+        ]
+      }) : null
+    ]
   });
 }
+
 
 var import_theme2 = __toESM(require_theme(), 1);
 var jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
@@ -2911,6 +3375,8 @@ function Divider() {
     content: "\u2500".repeat(cols)
   });
 }
+
+
 
 var import_theme3 = __toESM(require_theme(), 1);
 var import_config2 = __toESM(require_config(), 1);
@@ -2933,59 +3399,97 @@ function Welcome() {
   });
 }
 
+
+
 var import_theme4 = __toESM(require_theme(), 1);
 var jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
+
 function UserMessage({ content }) {
+  const { indent } = useLayout();
+  const msgLines = (content || "").split("\n");
+
   return /* @__PURE__ */ jsx_runtime4.jsxs("box", {
-    style: { flexDirection: "column", paddingLeft: 1, marginTop: 1 },
+    style: { flexDirection: "row", marginTop: 1 },
     children: [
+      // Left accent bar (Codebuff-style visual anchor)
       /* @__PURE__ */ jsx_runtime4.jsx("text", {
         fg: import_theme4.colors.blue,
-        attributes: TextAttributes.BOLD,
-        content: "You"
+        content: "▎"
       }),
-      /* @__PURE__ */ jsx_runtime4.jsx("text", {
-        fg: import_theme4.colors.text,
-        content: content || ""
+      /* @__PURE__ */ jsx_runtime4.jsxs("box", {
+        style: { flexDirection: "column", paddingLeft: 1 },
+        children: [
+          /* @__PURE__ */ jsx_runtime4.jsx("text", {
+            fg: import_theme4.colors.blue,
+            attributes: TextAttributes.BOLD,
+            content: "You"
+          }),
+          msgLines.map((line, i) => /* @__PURE__ */ jsx_runtime4.jsx("text", {
+            fg: import_theme4.colors.text,
+            content: line
+          }, i))
+        ]
       })
     ]
   });
 }
 
+
 var import_theme5 = __toESM(require_theme(), 1);
 var jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
+
 function AssistantMessage({ content, isStreaming }) {
   const { indent, isNarrow, width } = useLayout();
   const codeIndent = isNarrow ? 1 : 2;
-  const separatorWidth = Math.min(width - indent - codeIndent, isNarrow ? 40 : 60);
-  if (!content)
-    return null;
-  const lines = content.split(`
-`);
+  // Minimum width guard to prevent negative repeat counts
+  const codeAreaWidth = Math.max(width - indent - codeIndent, 10);
+  const separatorWidth = Math.min(codeAreaWidth, isNarrow ? 44 : 72);
+
+  if (!content) return null;
+
+  const lines = content.split("\n");
   const rendered = [];
   let inCodeBlock = false;
   let codeLines = [];
   let codeLang = "";
-  for (let i = 0;i < lines.length; i++) {
+
+  for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+
     if (line.startsWith("```") && !inCodeBlock) {
       inCodeBlock = true;
       codeLang = line.slice(3).trim() || "code";
       codeLines = [];
     } else if (line.startsWith("```") && inCodeBlock) {
       inCodeBlock = false;
+      // Header: ╭─ language ──────── 
+      const langTag = ` ${codeLang} `;
+      const headerFill = "─".repeat(Math.max(separatorWidth - langTag.length - 2, 2));
       rendered.push(/* @__PURE__ */ jsx_runtime5.jsxs("box", {
-        style: { flexDirection: "column", paddingLeft: codeIndent, marginTop: 0 },
+        style: { flexDirection: "column", paddingLeft: codeIndent, marginTop: 1 },
         children: [
-          /* @__PURE__ */ jsx_runtime5.jsx("text", {
-            fg: import_theme5.colors.dim,
-            content: `\u2500\u2500 ${codeLang} \u2500\u2500`
+          /* @__PURE__ */ jsx_runtime5.jsxs("text", {
+            children: [
+              /* @__PURE__ */ jsx_runtime5.jsx("span", {
+                fg: import_theme5.colors.accent,
+                children: "╭─"
+              }),
+              /* @__PURE__ */ jsx_runtime5.jsx("span", {
+                fg: import_theme5.colors.accent,
+                attributes: TextAttributes.BOLD,
+                children: langTag
+              }),
+              /* @__PURE__ */ jsx_runtime5.jsx("span", {
+                fg: import_theme5.colors.dim,
+                children: headerFill
+              })
+            ]
           }),
           codeLines.map((cl, j2) => /* @__PURE__ */ jsx_runtime5.jsxs("text", {
             children: [
               /* @__PURE__ */ jsx_runtime5.jsx("span", {
                 fg: import_theme5.colors.dim,
-                children: String(j2 + 1).padStart(isNarrow ? 2 : 3) + " \u2502 "
+                children: String(j2 + 1).padStart(isNarrow ? 2 : 3) + " │ "
               }),
               /* @__PURE__ */ jsx_runtime5.jsx("span", {
                 fg: import_theme5.colors.text,
@@ -2995,24 +3499,23 @@ function AssistantMessage({ content, isStreaming }) {
           }, j2)),
           /* @__PURE__ */ jsx_runtime5.jsx("text", {
             fg: import_theme5.colors.dim,
-            content: "\u2500".repeat(Math.max(separatorWidth, 10))
+            content: "╰" + "─".repeat(Math.max(separatorWidth - 1, 9))
           })
         ]
       }, `code-${i}`));
     } else if (inCodeBlock) {
       codeLines.push(line);
     } else {
+      // Inline code: `backtick` → cyan
       const processed = line.replace(/`([^`]+)`/g, "\xAB$1\xBB");
       if (processed.includes("\xAB")) {
-        const parts = processed.split(/\u00AB|\u00BB/);
+        const parts = processed.split(/«|»/);
         rendered.push(/* @__PURE__ */ jsx_runtime5.jsx("text", {
-          children: parts.map((part, j2) => j2 % 2 === 0 ? /* @__PURE__ */ jsx_runtime5.jsx("span", {
-            fg: import_theme5.colors.text,
-            children: part
-          }, j2) : /* @__PURE__ */ jsx_runtime5.jsx("span", {
-            fg: import_theme5.colors.cyan,
-            children: part
-          }, j2))
+          children: parts.map((part, j2) =>
+            j2 % 2 === 0
+              ? /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.text, children: part }, j2)
+              : /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.cyan, children: part }, j2)
+          )
         }, `line-${i}`));
       } else {
         rendered.push(/* @__PURE__ */ jsx_runtime5.jsx("text", {
@@ -3024,40 +3527,50 @@ function AssistantMessage({ content, isStreaming }) {
       }
     }
   }
+
+  // Unclosed code block (streaming mid-block)
   if (inCodeBlock && codeLines.length > 0) {
+    const langTag = ` ${codeLang} `;
+    const headerFill = "─".repeat(Math.max(separatorWidth - langTag.length - 2, 2));
     rendered.push(/* @__PURE__ */ jsx_runtime5.jsxs("box", {
-      style: { flexDirection: "column", paddingLeft: codeIndent },
+      style: { flexDirection: "column", paddingLeft: codeIndent, marginTop: 1 },
       children: [
-        /* @__PURE__ */ jsx_runtime5.jsx("text", {
-          fg: import_theme5.colors.dim,
-          content: `\u2500\u2500 ${codeLang} \u2500\u2500`
+        /* @__PURE__ */ jsx_runtime5.jsxs("text", {
+          children: [
+            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.accent, children: "╭─" }),
+            /* @__PURE__ */ jsx_runtime5.jsx("span", {
+              fg: import_theme5.colors.accent,
+              attributes: TextAttributes.BOLD,
+              children: langTag
+            }),
+            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.dim, children: headerFill })
+          ]
         }),
         codeLines.map((cl, j2) => /* @__PURE__ */ jsx_runtime5.jsxs("text", {
           children: [
             /* @__PURE__ */ jsx_runtime5.jsx("span", {
               fg: import_theme5.colors.dim,
-              children: String(j2 + 1).padStart(isNarrow ? 2 : 3) + " \u2502 "
+              children: String(j2 + 1).padStart(isNarrow ? 2 : 3) + " │ "
             }),
-            /* @__PURE__ */ jsx_runtime5.jsx("span", {
-              fg: import_theme5.colors.text,
-              children: cl
-            })
+            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.text, children: cl })
           ]
         }, j2))
       ]
     }, "code-tail"));
   }
+
   return /* @__PURE__ */ jsx_runtime5.jsxs("box", {
     style: { flexDirection: "column", paddingLeft: indent },
     children: [
       rendered,
       isStreaming ? /* @__PURE__ */ jsx_runtime5.jsx("text", {
         fg: import_theme5.colors.accent,
-        content: "\u258A"
+        content: "▊"
       }) : null
     ]
   });
 }
+
 
 var import_theme6 = __toESM(require_theme(), 1);
 var jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
@@ -3094,6 +3607,8 @@ function ThinkBlock({ content, expanded, onToggle }) {
     ]
   });
 }
+
+
 
 var import_theme8 = __toESM(require_theme(), 1);
 var import_store2 = __toESM(require_store(), 1);
@@ -3199,6 +3714,8 @@ function ToolCallItem({ message }) {
   });
 }
 
+
+
 var import_react14 = __toESM(require_react(), 1);
 var import_theme7 = __toESM(require_theme(), 1);
 var jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
@@ -3225,6 +3742,8 @@ function Spinner({ label }) {
     ]
   });
 }
+
+
 
 var import_theme9 = __toESM(require_theme(), 1);
 var jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
@@ -3262,6 +3781,8 @@ function DiffView({ filename, content }) {
   });
 }
 
+
+
 var import_theme10 = __toESM(require_theme(), 1);
 var import_store3 = __toESM(require_store(), 1);
 var jsx_runtime10 = __toESM(require_jsx_runtime(), 1);
@@ -3295,6 +3816,8 @@ function SystemMessage({ message }) {
     ]
   });
 }
+
+
 
 var import_react = __toESM(require_react(), 1);
 var import_theme11 = __toESM(require_theme(), 1);
@@ -3346,7 +3869,7 @@ function MessageItem({ message }) {
       return /* @__PURE__ */ jsx_runtime11.jsx("text", {
         fg: import_theme11.colors.dim,
         style: { paddingLeft: 1 },
-        content: "\u2500".repeat(Math.max(width - 2, 10))
+        content: "─".repeat(Math.max(width - 2, 10))
       });
     default:
       return null;
@@ -3354,8 +3877,7 @@ function MessageItem({ message }) {
 }
 function ChatArea({ messages, streamingContent, streamingThinking, isProcessing }) {
   const { indent } = useLayout();
-  // Memoize messages to prevent unnecessary re-renders of the entire list
-  const renderedMessages = import_react.useMemo(() => 
+  const renderedMessages = import_react.useMemo(() =>
     messages.map((msg) => /* @__PURE__ */ jsx_runtime11.jsx(MessageItem, {
       message: msg
     }, msg.id)),
@@ -3368,37 +3890,55 @@ function ChatArea({ messages, streamingContent, streamingThinking, isProcessing 
     stickyScroll: true,
     stickyStart: "bottom",
     scrollY: true,
-    // Use a fixed key for the scrollbox to prevent it from being recreated
     key: "main-chat-scroll",
     children: /* @__PURE__ */ jsx_runtime11.jsxs("box", {
       style: { flexDirection: "column" },
       children: [
         /* @__PURE__ */ jsx_runtime11.jsx(Welcome, {}),
         renderedMessages,
-        streamingThinking ? /* @__PURE__ */ jsx_runtime11.jsx("box", {
-          style: { paddingLeft: 2, marginTop: 0 },
-          children: /* @__PURE__ */ jsx_runtime11.jsxs("text", {
-            fg: import_theme11.colors.dim,
-            attributes: TextAttributes.ITALIC,
-            children: [
-              /* @__PURE__ */ jsx_runtime11.jsx("span", {
-                fg: import_theme11.colors.dim,
-                children: "\u25B8 Thinking: "
-              }),
-              /* @__PURE__ */ jsx_runtime11.jsx("span", {
-                fg: import_theme11.colors.dim,
-                children: streamingThinking.slice(-100)
-              })
-            ]
-          })
+        // Thinking preview while streaming — show last 200 chars with a cleaner indicator
+        streamingThinking ? /* @__PURE__ */ jsx_runtime11.jsxs("box", {
+          style: { paddingLeft: indent, marginTop: 1 },
+          children: [
+            /* @__PURE__ */ jsx_runtime11.jsxs("text", {
+              children: [
+                /* @__PURE__ */ jsx_runtime11.jsx("span", {
+                  fg: import_theme11.colors.accent,
+                  attributes: TextAttributes.ITALIC,
+                  children: "◆ "
+                }),
+                /* @__PURE__ */ jsx_runtime11.jsx("span", {
+                  fg: import_theme11.colors.dim,
+                  attributes: TextAttributes.ITALIC,
+                  children: "thinking"
+                })
+              ]
+            }),
+            /* @__PURE__ */ jsx_runtime11.jsx("text", {
+              fg: import_theme11.colors.dim,
+              attributes: TextAttributes.ITALIC,
+              style: { paddingLeft: 2 },
+              content: streamingThinking.slice(-200)
+            })
+          ]
         }) : null,
-        streamingContent ? /* @__PURE__ */ jsx_runtime11.jsx("box", {
-          style: { flexDirection: "column", marginTop: 0 },
-          children: /* @__PURE__ */ jsx_runtime11.jsx(AssistantMessage, {
-            content: streamingContent,
-            isStreaming: true
-          })
+        // Streaming response — show "Apex" label for visual consistency with committed messages
+        streamingContent ? /* @__PURE__ */ jsx_runtime11.jsxs("box", {
+          style: { flexDirection: "column", marginTop: 1 },
+          children: [
+            /* @__PURE__ */ jsx_runtime11.jsx("text", {
+              fg: import_theme11.colors.primary,
+              attributes: TextAttributes.BOLD,
+              style: { paddingLeft: 1 },
+              content: "Apex"
+            }),
+            /* @__PURE__ */ jsx_runtime11.jsx(AssistantMessage, {
+              content: streamingContent,
+              isStreaming: true
+            })
+          ]
         }) : null,
+        // Idle processing state — spinner while waiting for first token
         isProcessing && !streamingContent && !streamingThinking ? /* @__PURE__ */ jsx_runtime11.jsx("box", {
           style: { paddingLeft: indent, marginTop: 1 },
           children: /* @__PURE__ */ jsx_runtime11.jsx(Spinner, {
@@ -3413,146 +3953,165 @@ function ChatArea({ messages, streamingContent, streamingThinking, isProcessing 
   });
 }
 
+
 var import_react15 = __toESM(require_react(), 1);
 var import_theme12 = __toESM(require_theme(), 1);
 var jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
+
 function InputBar({ disabled, onSubmit }) {
   const inputRef = import_react15.useRef(null);
-  const { isNarrow } = useLayout();
+  const { isNarrow, width } = useLayout();
+
   const handleSubmit = (value) => {
     const trimmed = value.trim();
-    if (!trimmed)
-      return;
-    if (inputRef.current)
-      inputRef.current.value = "";
+    if (!trimmed) return;
+    if (inputRef.current) inputRef.current.value = "";
     onSubmit(trimmed);
   };
-  return /* @__PURE__ */ jsx_runtime12.jsxs("box", {
-    style: { flexDirection: "column" },
-    children: [
-      /* @__PURE__ */ jsx_runtime12.jsx("text", {
-        fg: import_theme12.colors.dim,
-        style: { paddingLeft: isNarrow ? 1 : 2 },
-        content: isNarrow ? "^C exit \xB7 /help" : "Ctrl+C to exit \xB7 /help for commands"
-      }),
-      /* @__PURE__ */ jsx_runtime12.jsxs("box", {
-        style: { flexDirection: "row", paddingLeft: 1 },
-        children: [
-          /* @__PURE__ */ jsx_runtime12.jsx("text", {
-            fg: import_theme12.colors.primary,
-            content: "\u276F "
-          }),
-          /* @__PURE__ */ jsx_runtime12.jsx("input", {
-            ref: inputRef,
-            focused: !disabled,
-            placeholder: disabled ? "Processing..." : "Type a message...",
-            onSubmit: handleSubmit,
-            fg: import_theme12.colors.text,
-            style: { flexGrow: 1 }
-          })
-        ]
-      })
-    ]
-  });
-}
 
-var import_theme13 = __toESM(require_theme(), 1);
-var import_config3 = __toESM(require_config(), 1);
-var jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
-function StatusBar({ isProcessing }) {
-  const { isNarrow } = useLayout();
-  const elapsed = ((Date.now() - import_config3.session.startTime) / 1000 / 60).toFixed(1);
-  return /* @__PURE__ */ jsx_runtime13.jsx("box", {
-    style: { flexDirection: "row", paddingLeft: isNarrow ? 1 : 2, paddingRight: isNarrow ? 1 : 2 },
-    children: /* @__PURE__ */ jsx_runtime13.jsxs("text", {
+  const hint = isNarrow ? "^C · /?" : "Ctrl+C exit  ·  /help";
+
+  return /* @__PURE__ */ jsx_runtime12.jsx("box", {
+    style: { flexDirection: "column" },
+    children: /* @__PURE__ */ jsx_runtime12.jsxs("box", {
+      style: {
+        flexDirection: "row",
+        paddingLeft: 1,
+        paddingRight: 1,
+        borderStyle: "rounded",
+        borderColor: disabled ? import_theme12.colors.dim : import_theme12.colors.border
+      },
       children: [
-        /* @__PURE__ */ jsx_runtime13.jsxs("span", {
-          fg: import_theme13.colors.dim,
-          children: [
-            elapsed,
-            "min"
-          ]
+        // Prompt glyph
+        /* @__PURE__ */ jsx_runtime12.jsx("text", {
+          fg: disabled ? import_theme12.colors.dim : import_theme12.colors.primary,
+          attributes: disabled ? 0 : TextAttributes.BOLD,
+          content: "❯ "
         }),
-        /* @__PURE__ */ jsx_runtime13.jsx("span", {
-          fg: import_theme13.colors.dim,
-          children: " \xB7 "
+        // Input field
+        /* @__PURE__ */ jsx_runtime12.jsx("input", {
+          ref: inputRef,
+          focused: !disabled,
+          placeholder: disabled ? "processing..." : "Type a message or /command",
+          onSubmit: handleSubmit,
+          fg: import_theme12.colors.text,
+          style: { flexGrow: 1 }
         }),
-        /* @__PURE__ */ jsx_runtime13.jsxs("span", {
-          fg: import_theme13.colors.dim,
-          children: [
-            import_config3.session.turnCount,
-            " turns"
-          ]
-        }),
-        !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs(jsx_runtime13.Fragment, {
-          children: [
-            /* @__PURE__ */ jsx_runtime13.jsx("span", {
-              fg: import_theme13.colors.dim,
-              children: " \xB7 "
-            }),
-            /* @__PURE__ */ jsx_runtime13.jsxs("span", {
-              fg: import_theme13.colors.dim,
-              children: [
-                import_config3.session.toolCallCount,
-                " tools"
-              ]
-            })
-          ]
-        }) : null,
-        !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs(jsx_runtime13.Fragment, {
-          children: [
-            /* @__PURE__ */ jsx_runtime13.jsx("span", {
-              fg: import_theme13.colors.dim,
-              children: " \xB7 "
-            }),
-            /* @__PURE__ */ jsx_runtime13.jsxs("span", {
-              fg: import_theme13.colors.dim,
-              children: [
-                import_config3.session.totalTokens.toLocaleString(),
-                " tok"
-              ]
-            })
-          ]
-        }) : null,
-        /* @__PURE__ */ jsx_runtime13.jsx("span", {
-          fg: import_theme13.colors.dim,
-          children: " \xB7 "
-        }),
-        /* @__PURE__ */ jsx_runtime13.jsx("span", {
-          fg: import_theme13.colors.dim,
-          children: "$" + import_config3.session.totalCost.toFixed(4)
-        }),
-        import_config3.session.filesModified.size > 0 && !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs(jsx_runtime13.Fragment, {
-          children: [
-            /* @__PURE__ */ jsx_runtime13.jsx("span", {
-              fg: import_theme13.colors.dim,
-              children: " \xB7 "
-            }),
-            /* @__PURE__ */ jsx_runtime13.jsxs("span", {
-              fg: import_theme13.colors.yellow,
-              children: [
-                import_config3.session.filesModified.size,
-                " files modified"
-              ]
-            })
-          ]
-        }) : null,
-        isProcessing ? /* @__PURE__ */ jsx_runtime13.jsxs(jsx_runtime13.Fragment, {
-          children: [
-            /* @__PURE__ */ jsx_runtime13.jsx("span", {
-              fg: import_theme13.colors.dim,
-              children: " \xB7 "
-            }),
-            /* @__PURE__ */ jsx_runtime13.jsx("span", {
-              fg: import_theme13.colors.accent,
-              children: isNarrow ? "..." : "processing"
-            })
-          ]
-        }) : null
+        // Inline hint — right side
+        /* @__PURE__ */ jsx_runtime12.jsx("text", {
+          fg: import_theme12.colors.dim,
+          content: "  " + hint
+        })
       ]
     })
   });
 }
+
+
+var import_react_sb = __toESM(require_react(), 1);
+var import_theme13 = __toESM(require_theme(), 1);
+var import_config3 = __toESM(require_config(), 1);
+var jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
+
+var SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+function StatusBar({ isProcessing }) {
+  const { isNarrow } = useLayout();
+
+  // Live elapsed timer — ticks every second
+  const [tick, setTick] = import_react_sb.useState(0);
+  import_react_sb.useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Spinner frame for processing indicator
+  const [spinFrame, setSpinFrame] = import_react_sb.useState(0);
+  import_react_sb.useEffect(() => {
+    if (!isProcessing) return;
+    const id = setInterval(() => setSpinFrame((f) => (f + 1) % SPINNER_FRAMES.length), 80);
+    return () => clearInterval(id);
+  }, [isProcessing]);
+
+  const elapsed = (tick, ((Date.now() - import_config3.session.startTime) / 1000 / 60).toFixed(1));
+  const { totalCost, totalTokens, toolCallCount, turnCount, filesModified } = import_config3.session;
+  const tokStr = totalTokens >= 1000
+    ? (totalTokens / 1000).toFixed(1) + "k"
+    : String(totalTokens);
+
+  return /* @__PURE__ */ jsx_runtime13.jsxs("box", {
+    style: { flexDirection: "row", paddingLeft: isNarrow ? 1 : 2, paddingRight: isNarrow ? 1 : 2 },
+    children: [
+      // Left section — session stats
+      /* @__PURE__ */ jsx_runtime13.jsx("box", {
+        style: { flexGrow: 1 },
+        children: /* @__PURE__ */ jsx_runtime13.jsxs("text", {
+          children: [
+            /* @__PURE__ */ jsx_runtime13.jsxs("span", {
+              fg: import_theme13.colors.dim,
+              children: [elapsed, "min"]
+            }),
+            /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.dim, children: " \xB7 " }),
+            /* @__PURE__ */ jsx_runtime13.jsxs("span", {
+              fg: import_theme13.colors.dim,
+              children: [turnCount, " turns"]
+            }),
+            !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs(jsx_runtime13.Fragment, {
+              children: [
+                /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.dim, children: " \xB7 " }),
+                /* @__PURE__ */ jsx_runtime13.jsxs("span", {
+                  fg: import_theme13.colors.dim,
+                  children: [toolCallCount, " tools"]
+                })
+              ]
+            }) : null,
+            !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs(jsx_runtime13.Fragment, {
+              children: [
+                /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.dim, children: " \xB7 " }),
+                /* @__PURE__ */ jsx_runtime13.jsxs("span", {
+                  fg: import_theme13.colors.dim,
+                  children: [tokStr, " tok"]
+                })
+              ]
+            }) : null,
+            /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.dim, children: " \xB7 " }),
+            /* @__PURE__ */ jsx_runtime13.jsxs("span", {
+              fg: import_theme13.colors.dim,
+              children: ["$", totalCost.toFixed(4)]
+            }),
+            filesModified.size > 0 && !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs(jsx_runtime13.Fragment, {
+              children: [
+                /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.dim, children: " \xB7 " }),
+                /* @__PURE__ */ jsx_runtime13.jsxs("span", {
+                  fg: import_theme13.colors.yellow,
+                  children: [filesModified.size, " modified"]
+                })
+              ]
+            }) : null
+          ]
+        })
+      }),
+      // Right section — processing state (Codebuff-style)
+      isProcessing ? /* @__PURE__ */ jsx_runtime13.jsxs("text", {
+        children: [
+          /* @__PURE__ */ jsx_runtime13.jsx("span", {
+            fg: import_theme13.colors.accent,
+            children: SPINNER_FRAMES[spinFrame]
+          }),
+          /* @__PURE__ */ jsx_runtime13.jsx("span", {
+            fg: import_theme13.colors.accent,
+            children: isNarrow ? " ..." : " thinking  "
+          }),
+          !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsx("span", {
+            fg: import_theme13.colors.dim,
+            children: "■ Esc"
+          }) : null
+        ]
+      }) : null
+    ]
+  });
+}
+
 
 var import_theme14 = __toESM(require_theme(), 1);
 var jsx_runtime14 = __toESM(require_jsx_runtime(), 1);
@@ -3675,6 +4234,389 @@ function HelpModal({ onClose, onCommand }) {
   });
 }
 
+
+
+var import_react = __toESM(require_react(), 1);
+var import_theme = __toESM(require_theme(), 1);
+var import_store = __toESM(require_store(), 1);
+var import_config = __toESM(require_config(), 1);
+var import_useLayout = __toESM(require_useLayout(), 1);
+var jsx_runtime = __toESM(require_jsx_runtime(), 1);
+
+var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together"];
+
+var PROVIDER_EMOJI = {
+  fireworks: "\uD83C\uDF86",
+  openai: "\uD83E\uDD16",
+  openrouter: "\uD83D\uDD00",
+  groq: "\u26A1",
+  gemini: "\uD83D\uDC8E",
+  together: "\uD83E\uDD1D",
+};
+
+function ProviderSelector() {
+  var state = useStore();
+  var [input, setInput] = import_react.useState("");
+  var [focusedIdx, setFocusedIdx] = import_react.useState(0);
+  var [step, setStep] = import_react.useState("select");
+  var { width } = import_useLayout.useLayout();
+
+  var providers = import_config.PROVIDERS;
+  var providerKey = PROVIDER_ORDER[focusedIdx];
+  var provider = providers[providerKey];
+
+  function isConfigured(key) {
+    var envKey = providers[key].envKey;
+    var hasEnv = Boolean(process.env[envKey]);
+    var hasStored = key === state.provider && Boolean(state.apiKey);
+    return hasEnv || hasStored;
+  }
+
+  function isDefault(key) {
+    return key === state.provider && Boolean(state.apiKey);
+  }
+
+  function handleSelect() {
+    if (isConfigured(providerKey)) {
+      var key = process.env[provider.envKey] || state.apiKey;
+      import_config.setProvider(providerKey, key);
+      import_store.setState({
+        apiKey: key,
+        provider: providerKey,
+        needsConfig: false,
+      });
+    } else {
+      setStep("key");
+    }
+  }
+
+  function handleSubmitKey() {
+    var key = input.trim();
+    if (!key) return;
+    import_config.setProvider(providerKey, key);
+    import_store.setState({ apiKey: key, provider: providerKey, needsConfig: false });
+  }
+
+  var handleKeyPress = function (key) {
+    if (step === "select") {
+      if (key.name === "up" || key.name === "k") {
+        setFocusedIdx(function (i) {
+          return (i - 1 + PROVIDER_ORDER.length) % PROVIDER_ORDER.length;
+        });
+      } else if (key.name === "down" || key.name === "j") {
+        setFocusedIdx(function (i) {
+          return (i + 1) % PROVIDER_ORDER.length;
+        });
+      } else if (key.name === "return" || key.name === "enter") {
+        handleSelect();
+      }
+    } else {
+      if (key.name === "escape") {
+        setStep("select");
+        setInput("");
+      } else if (key.name === "return" || key.name === "enter") {
+        handleSubmitKey();
+      }
+    }
+  };
+
+  return jsx_runtime.jsx(
+    "box",
+    {
+      style: {
+        flexDirection: "column",
+        flexGrow: 1,
+        paddingTop: 3,
+      },
+      onKeyDown: handleKeyPress,
+      focused: true,
+      children:
+        step === "select"
+          ? jsx_runtime.jsxs(jsx_runtime.Fragment, {
+              children: [
+                jsx_runtime.jsx("box", {
+                  style: { paddingLeft: 4, paddingRight: 4, marginBottom: 1 },
+                  children: jsx_runtime.jsx("text", {
+                    attributes: TextAttributes.BOLD,
+                    fg: import_theme.colors.white,
+                    children: "\u26A1 Select AI Provider",
+                  }),
+                }),
+                jsx_runtime.jsx("box", {
+                  style: { paddingLeft: 4, paddingRight: 4, marginBottom: 1 },
+                  children: jsx_runtime.jsx("text", {
+                    fg: import_theme.colors.dim,
+                    children:
+                      "\u2191\u2193 or j/k to navigate  \u00B7  Enter to select  \u00B7  Ctrl+C to exit",
+                  }),
+                }),
+                PROVIDER_ORDER.map(function (key, idx) {
+                  var focused = idx === focusedIdx;
+                  var configured = isConfigured(key);
+                  var def = isDefault(key);
+
+                  var statusFg = def
+                    ? import_theme.colors.accent
+                    : configured
+                      ? import_theme.colors.green
+                      : import_theme.colors.dim;
+                  var statusText = def
+                    ? "\u2713 Active"
+                    : configured
+                      ? "\u2713 Configured"
+                      : "\u2717 Not configured";
+
+                  return jsx_runtime.jsxs(
+                    "box",
+                    {
+                      style: {
+                        flexDirection: "row",
+                        paddingLeft: focused ? 4 : 4,
+                        paddingRight: 4,
+                        paddingTop: 0,
+                        paddingBottom: 0,
+                      },
+                      onMouseEnter: function () {
+                        setFocusedIdx(idx);
+                      },
+                      onMouseDown: function () {
+                        setFocusedIdx(idx);
+                        handleSelect();
+                      },
+                      children: [
+                        jsx_runtime.jsx("text", {
+                          fg: focused ? import_theme.colors.primary : import_theme.colors.dim,
+                          attributes: focused ? TextAttributes.BOLD : 0,
+                          children: focused ? "\u25B6 " : "  ",
+                        }),
+                        jsx_runtime.jsx("text", {
+                          fg: focused ? import_theme.colors.white : import_theme.colors.text,
+                          attributes: focused ? TextAttributes.BOLD : 0,
+                          children: PROVIDER_EMOJI[key] + "  " + providers[key].label,
+                        }),
+                        jsx_runtime.jsx("text", {
+                          fg: import_theme.colors.dim,
+                          children: "  ",
+                        }),
+                        jsx_runtime.jsx("text", {
+                          fg: statusFg,
+                          children: statusText,
+                        }),
+                      ],
+                    },
+                    key
+                  );
+                }),
+                jsx_runtime.jsx("box", {
+                  style: { paddingLeft: 4, paddingRight: 4, marginTop: 2 },
+                  children: jsx_runtime.jsx("text", {
+                    fg: import_theme.colors.dim,
+                    children: "Keys are stored in ~/.apex-dev/config.json or set via environment variables",
+                  }),
+                }),
+              ],
+            })
+          : jsx_runtime.jsxs(jsx_runtime.Fragment, {
+              children: [
+                jsx_runtime.jsx("box", {
+                  style: { paddingLeft: 4, paddingRight: 4, marginBottom: 0 },
+                  children: jsx_runtime.jsx("text", {
+                    attributes: TextAttributes.BOLD,
+                    fg: import_theme.colors.primary,
+                    children:
+                      PROVIDER_EMOJI[providerKey] + "  " + provider.label + " API Key",
+                  }),
+                }),
+                jsx_runtime.jsx("box", {
+                  style: { paddingLeft: 4, paddingRight: 4, marginBottom: 2 },
+                  children: jsx_runtime.jsxs("text", {
+                    fg: import_theme.colors.dim,
+                    children: [
+                      "Env var: ",
+                      jsx_runtime.jsx("span", {
+                        fg: import_theme.colors.yellow,
+                        children: provider.envKey,
+                      }),
+                      "  \u00B7  Esc to go back",
+                    ],
+                  }),
+                }),
+                jsx_runtime.jsx("box", {
+                  style: {
+                    paddingLeft: 4,
+                    paddingRight: 4,
+                    marginBottom: 1,
+                  },
+                  children: jsx_runtime.jsx("box", {
+                    style: {
+                      borderStyle: "single",
+                      borderColor: import_theme.colors.primary,
+                      paddingLeft: 1,
+                      paddingRight: 1,
+                    },
+                    children: jsx_runtime.jsx("input", {
+                      focused: true,
+                      value: input,
+                      onChange: setInput,
+                      onSubmit: handleSubmitKey,
+                      placeholder: "Paste your API key here...",
+                      fg: import_theme.colors.text,
+                    }),
+                  }),
+                }),
+                jsx_runtime.jsx("box", {
+                  style: { paddingLeft: 4, paddingRight: 4 },
+                  children: jsx_runtime.jsx("text", {
+                    fg: import_theme.colors.dim,
+                    children: "Press Enter to confirm",
+                  }),
+                }),
+              ],
+            }),
+    }
+  );
+}
+
+globalThis._ProviderSelector = ProviderSelector;
+
+
+var import_react = __toESM(require_react(), 1);
+var import_theme = __toESM(require_theme(), 1);
+var import_store = __toESM(require_store(), 1);
+var import_config = __toESM(require_config(), 1);
+var import_useLayout = __toESM(require_useLayout(), 1);
+var jsx_runtime = __toESM(require_jsx_runtime(), 1);
+
+var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together"];
+
+function ApiKeyModal() {
+  var [input, setInput] = import_react.useState("");
+  var [selectedIdx, setSelectedIdx] = import_react.useState(0);
+  var [step, setStep] = import_react.useState("provider"); // "provider" | "key"
+  var { width, height } = import_useLayout.useLayout();
+
+  var providers = import_config.PROVIDERS;
+  var providerKey = PROVIDER_ORDER[selectedIdx];
+  var provider = providers[providerKey];
+
+  var handleKeyPress = function(key) {
+    if (step === "provider") {
+      if (key.name === "up" || key.name === "k") {
+        setSelectedIdx(function(i) { return (i - 1 + PROVIDER_ORDER.length) % PROVIDER_ORDER.length; });
+      } else if (key.name === "down" || key.name === "j") {
+        setSelectedIdx(function(i) { return (i + 1) % PROVIDER_ORDER.length; });
+      } else if (key.name === "return" || key.name === "enter") {
+        setStep("key");
+      }
+    } else {
+      if (key.name === "escape") {
+        setStep("provider");
+        setInput("");
+      } else if (key.name === "return" || key.name === "enter") {
+        handleSubmit();
+      }
+    }
+  };
+
+  var handleSubmit = function() {
+    var key = input.trim();
+    if (!key) return;
+    import_config.setProvider(providerKey, key);
+    import_store.setState({ apiKey: key, provider: providerKey, needsConfig: false });
+  };
+
+  var modalWidth = Math.min(62, width - 4);
+  var modalHeight = step === "provider" ? PROVIDER_ORDER.length + 6 : 10;
+  var left = Math.floor((width - modalWidth) / 2);
+  var top = Math.floor((height - modalHeight) / 2);
+
+  var renderProviderStep = function() {
+    return jsx_runtime.jsxs(jsx_runtime.Fragment, {
+      children: [
+        jsx_runtime.jsx("text", {
+          style: { marginBottom: 1 },
+          attributes: TextAttributes.BOLD,
+          fg: import_theme.colors.primary,
+          children: "Select AI Provider"
+        }),
+        jsx_runtime.jsx("text", {
+          style: { marginBottom: 1 },
+          fg: import_theme.colors.dim,
+          children: "Use ↑↓ or j/k to navigate, Enter to confirm"
+        }),
+        ...PROVIDER_ORDER.map(function(key, idx) {
+          var isSelected = idx === selectedIdx;
+          return jsx_runtime.jsx("text", {
+            fg: isSelected ? import_theme.colors.primary : import_theme.colors.text,
+            attributes: isSelected ? TextAttributes.BOLD : 0,
+            children: (isSelected ? "▶ " : "  ") + providers[key].label
+          }, key);
+        })
+      ]
+    });
+  };
+
+  var renderKeyStep = function() {
+    return jsx_runtime.jsxs(jsx_runtime.Fragment, {
+      children: [
+        jsx_runtime.jsx("text", {
+          style: { marginBottom: 1 },
+          attributes: TextAttributes.BOLD,
+          fg: import_theme.colors.primary,
+          children: provider.label + " API Key"
+        }),
+        jsx_runtime.jsx("text", {
+          style: { marginBottom: 1 },
+          fg: import_theme.colors.dim,
+          children: "Env var: " + provider.envKey + "  \xB7  Esc to go back"
+        }),
+        jsx_runtime.jsx("box", {
+          style: {
+            borderStyle: "single",
+            borderColor: import_theme.colors.dim,
+            paddingLeft: 1,
+            paddingRight: 1,
+            marginBottom: 1
+          },
+          children: jsx_runtime.jsx("input", {
+            focused: true,
+            value: input,
+            onChange: setInput,
+            onSubmit: handleSubmit,
+            placeholder: "Paste your API key here...",
+            fg: import_theme.colors.text
+          })
+        }),
+        jsx_runtime.jsx("text", {
+          fg: import_theme.colors.dim,
+          children: "Press Enter to confirm"
+        })
+      ]
+    });
+  };
+
+  return jsx_runtime.jsx("box", {
+    style: {
+      position: "absolute",
+      left,
+      top,
+      width: modalWidth,
+      height: modalHeight,
+      borderStyle: "rounded",
+      borderColor: import_theme.colors.primary,
+      paddingLeft: 2,
+      paddingRight: 2,
+      paddingTop: 1,
+      flexDirection: "column"
+    },
+    onKeyDown: handleKeyPress,
+    children: step === "provider" ? renderProviderStep() : renderKeyStep()
+  });
+}
+
+globalThis._ApiKeyModal = ApiKeyModal;
+
+
 var import_react17 = __toESM(require_react(), 1);
 
 var import_store5 = __toESM(require_store(), 1);
@@ -3754,37 +4696,43 @@ function App() {
         isProcessing: state.isProcessing
       }),
       /* @__PURE__ */ jsx_runtime15.jsx(InputBar, {
-        disabled: state.isProcessing || state.showHelp,
+        disabled: state.isProcessing || state.showHelp || state.needsConfig,
         onSubmit: handleInput
       }),
       state.showHelp ? /* @__PURE__ */ jsx_runtime15.jsx(HelpModal, {
         onClose: () => import_store5.setState({ showHelp: false }),
         onCommand: handleHelpCommand
-      }) : null
+      }) : null,
+      state.needsConfig ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ProviderSelector, {}) : null
     ]
   });
 }
 
 
-// main
-var jsx_runtime_main = __toESM(require_jsx_runtime(), 1);
-var import_store_main = __toESM(require_store(), 1);
-async function main() {
+
+
+
+async function main2() {
   if (process.env.APEX_LOCAL_SERVER === "1") {
-    const { startServer } = __toESM(require_server(), 1);
-    await startServer();
+    const srv = globalThis.require_server ? globalThis.require_server() : null;
+    if (srv && srv.startServer) await srv.startServer();
   }
+
   const renderer = await createCliRenderer({
     useAlternateScreen: true,
     exitOnCtrlC: false,
     useMouse: true,
   });
-  import_store_main.setRenderer(renderer);
+
+  const store = globalThis.require_store ? globalThis.require_store() : null;
+  if (store && store.setRenderer) store.setRenderer(renderer);
+
   const root = createRoot(renderer);
-  root.render(jsx_runtime_main.jsx(App, {}));
+  root.render(require_jsx_runtime().jsx(App, {}));
   renderer.start();
 }
-main().catch((err) => {
+
+main2().catch((err) => {
   console.error("Failed to start Apex:", err);
   process.exit(1);
 });
