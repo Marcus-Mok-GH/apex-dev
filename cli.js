@@ -15,7 +15,7 @@ function detectPlatform() {
     win32: "windows",
   };
   const archMap = {
-    x64: "x64",
+    x64: "amd64",
     arm64: "arm64",
   };
   const platform = platformMap[process.platform];
@@ -91,7 +91,7 @@ function downloadBinary(destPath) {
   });
 }
 
-function ensureBinary() {
+async function ensureBinary() {
   const localPath = getLocalBinaryPath();
 
   if (fs.existsSync(localPath)) {
@@ -99,7 +99,7 @@ function ensureBinary() {
   }
 
   try {
-    downloadBinary(localPath);
+    await downloadBinary(localPath);
     console.error(`Binary downloaded to ${localPath}`);
     return localPath;
   } catch (err) {
@@ -132,7 +132,7 @@ function runWithBun() {
   });
 }
 
-function main() {
+async function main() {
   const args = process.argv.slice(2);
 
   if (args.includes("--help") || args.includes("-h")) {
@@ -149,7 +149,7 @@ function main() {
     process.exit(0);
   }
 
-  const binaryPath = ensureBinary();
+  const binaryPath = await ensureBinary();
 
   if (binaryPath && fs.existsSync(binaryPath)) {
     const child = spawn(binaryPath, args, {
