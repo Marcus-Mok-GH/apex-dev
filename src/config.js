@@ -708,7 +708,6 @@ function truncateOutput(str) {
   return str;
 }
 
-const path = require("path");
 function resolvePath(p) {
   if (!p) return PROJECT_ROOT;
   return path.isAbsolute(p) ? p : path.resolve(PROJECT_ROOT, p);
