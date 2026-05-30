@@ -4,10 +4,11 @@
   "description": "Apex AI - a friendly agentic coding assistant for the terminal",
   "main": "dist/index.js",
   "bin": {
-    "apex": "./dist/index.js"
+    "apex": "./cli.js"
   },
   "files": [
-    "dist/"
+    "dist/",
+    "cli.js"
   ],
   "scripts": {
     "build": "NODE_ENV=production bun build entry.mjs --target=bun --outfile=dist/index.js --packages=external",
