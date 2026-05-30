@@ -1,0 +1,10 @@
+binary-downloader/
+.git/
+node_modules/
+src/
+apex.mjs
+entry.mjs
+index.jsx
+bun.lock
+package-lock.json
+replit.md

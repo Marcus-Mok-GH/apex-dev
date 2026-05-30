@@ -1,19 +1,29 @@
 {
   "name": "apex-dev",
-  "version": "3.10.9",
+  "version": "3.10.10",
+  "type": "module",
   "description": "Apex AI - a friendly agentic coding assistant for the terminal",
   "main": "dist/index.js",
   "bin": {
-    "apex": "./dist/index.js"
+    "apex": "./cli.js"
   },
   "files": [
-    "dist/"
+    "dist/",
+    "lib/",
+    "cli.js",
+    "install.js",
+    "index.js"
   ],
   "scripts": {
-    "build": "NODE_ENV=production bun build apex.mjs --target=bun --outfile=dist/index.js --packages=external && sed -i '1s/.*/#!\\/usr\\/bin\\/env node/' dist/index.js",
+    "build": "bun build ./src/index.js --outfile dist/index.js && sed -i '1s/.*/#!/usr/bin/env node/' dist/index.js",
+    "build:compile": "bun build --compile ./src/index.js --outfile dist/apex-dev",
+    "postinstall": "node install.js",
     "prepack": "npm run build",
-    "start": "bun apex.mjs",
+    "start": "node apex.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "keywords": [],
   "author": "",
@@ -28,5 +38,8 @@
     "react": "^19.2.4",
     "react-reconciler": "^0.32.0",
     "vercel": "^50.25.6"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0"
   }
 }
