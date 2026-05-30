@@ -301,6 +301,8 @@ var require_utils3 = __commonJS((exports, module2) => {
 });
 var require_config = __commonJS((exports, module) => {
   const OpenAI = __require("openai");
+  const fs = __require("fs");
+  const path = __require("path");
   const PROVIDERS = {
     fireworks: {
       label: "Fireworks AI",
@@ -866,6 +868,15 @@ The user asks you to implement a new feature. You respond in multiple steps:
     minimax: { model: "minimax/minimax-01", temperature: 0.1, maxTokens: 8192 }
   };
   const _initialProvider = PROVIDERS[currentProvider];
+  try {
+    const configPath = path.join(__require("os").homedir(), ".apex-dev", "config.json");
+    if (fs.existsSync(configPath)) {
+      const savedConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      if (savedConfig[currentProvider] && !process.env[_initialProvider.envKey]) {
+        process.env[_initialProvider.envKey] = savedConfig[currentProvider];
+      }
+    }
+  } catch (e) {}
   const _initialKey = process.env[_initialProvider.envKey] || "no-key";
   let _internalClient = new OpenAI({
     apiKey: _initialKey,
@@ -947,7 +958,6 @@ The user asks you to implement a new feature. You respond in multiple steps:
     }
     return str;
   }
-  const path = __require("path");
   function resolvePath(p) {
     if (!p)
       return PROJECT_ROOT;
@@ -2985,7 +2995,7 @@ var require_agent = __commonJS((exports, module2) => {
             });
             break;
           } catch (apiErr) {
-            if (attempt < maxRetries && apiErr.status >= 400 && apiErr.status < 500) {
+            if (attempt < maxRetries && (!apiErr.status || apiErr.status >= 500)) {
               await sleep(1000 * Math.pow(2, attempt));
               continue;
             }
@@ -4703,6 +4713,7 @@ function App() {
     ]
   });
 }
+globalThis._App = App;
 async function main2() {
   if (process.env.APEX_LOCAL_SERVER === "1") {
     const srv = globalThis.require_server ? globalThis.require_server() : null;

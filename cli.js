@@ -152,10 +152,12 @@ function downloadBinary(destPath) {
 
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destPath, { mode: 0o755 });
-    https
-      .get(url, (response) => {
+    const DOWNLOAD_TIMEOUT = 10000;
+
+    const req = https
+      .get(url, { timeout: DOWNLOAD_TIMEOUT }, (response) => {
         if (response.statusCode === 302 || response.statusCode === 301) {
-          https.get(response.headers.location, (redirectRes) => {
+          const redirectReq = https.get(response.headers.location, { timeout: DOWNLOAD_TIMEOUT }, (redirectRes) => {
             if (redirectRes.statusCode !== 200) {
               reject(new Error(`Download failed with status ${redirectRes.statusCode}`));
               return;
@@ -165,7 +167,12 @@ function downloadBinary(destPath) {
               file.close();
               resolve();
             });
-          }).on("error", reject);
+          });
+          redirectReq.on("error", reject);
+          redirectReq.on("timeout", () => {
+            redirectReq.destroy();
+            reject(new Error("Download timed out after 10s"));
+          });
           return;
         }
         if (response.statusCode !== 200) {
@@ -177,8 +184,13 @@ function downloadBinary(destPath) {
           file.close();
           resolve();
         });
-      })
-      .on("error", reject);
+      });
+
+    req.on("error", reject);
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error("Download timed out after 10s"));
+    });
   });
 }
 
@@ -186,7 +198,17 @@ async function ensureBinary() {
   const localPath = getLocalBinaryPath();
 
   if (fs.existsSync(localPath)) {
-    return localPath;
+    // Check for empty/partial downloads and remove them
+    try {
+      const stat = fs.statSync(localPath);
+      if (stat.size === 0) {
+        fs.unlinkSync(localPath);
+      } else {
+        return localPath;
+      }
+    } catch {
+      try { fs.unlinkSync(localPath); } catch {}
+    }
   }
 
   try {
@@ -195,6 +217,7 @@ async function ensureBinary() {
     return localPath;
   } catch (err) {
     console.error(`Failed to download binary: ${err.message}`);
+    try { fs.unlinkSync(localPath); } catch {}
     return null;
   }
 }
@@ -221,6 +244,10 @@ function runWithBun() {
     const child = spawn(bunPath, [distPath, ...process.argv.slice(2)], {
       stdio: "inherit",
     });
+    child.on("error", (err) => {
+      console.error(`Failed to launch bun: ${err.message}`);
+      process.exit(1);
+    });
     child.on("exit", (code) => {
       process.exit(code || 0);
     });
@@ -228,6 +255,10 @@ function runWithBun() {
   }
   const child = spawn(bunPath, [scriptPath, ...process.argv.slice(2)], {
     stdio: "inherit",
+  });
+  child.on("error", (err) => {
+    console.error(`Failed to launch bun: ${err.message}`);
+    process.exit(1);
   });
   child.on("exit", (code) => {
     process.exit(code || 0);
@@ -328,6 +359,10 @@ async function main() {
   if (binaryPath && fs.existsSync(binaryPath)) {
     const child = spawn(binaryPath, args, {
       stdio: "inherit",
+    });
+    child.on("error", (err) => {
+      console.error(`Failed to launch binary: ${err.message}`);
+      process.exit(1);
     });
     child.on("exit", (code) => {
       process.exit(code || 0);

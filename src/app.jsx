@@ -89,3 +89,4 @@ function App() {
   });
 }
 
+globalThis._App = App;
