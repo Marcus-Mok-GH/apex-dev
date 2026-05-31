@@ -61,37 +61,34 @@ function App() {
       });
     }
   }, []);
-  const forceSetup = process.env.APEX_DEV_NEEDS_CONFIG === "true";
-  const shouldShowSetup = forceSetup || state.needsConfig;
-  if (shouldShowSetup) {
-    return /* @__PURE__ */ jsx_runtime15.jsx("box", {
-      style: { flexDirection: "column", flexGrow: 1 },
-      children: /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ProviderSelector, {})
-    });
-  }
+  const shouldShowSetup = process.env.APEX_DEV_NEEDS_CONFIG === "true" || state.needsConfig;
   return /* @__PURE__ */ jsx_runtime15.jsxs("box", {
     style: { flexDirection: "column", flexGrow: 1 },
     children: [
-      /* @__PURE__ */ jsx_runtime15.jsx(Header, {}),
-      /* @__PURE__ */ jsx_runtime15.jsx(Divider, {}),
-      /* @__PURE__ */ jsx_runtime15.jsx(ChatArea, {
-        messages: state.messages,
-        streamingContent: state.streamingContent,
-        streamingThinking: state.streamingThinking,
-        isProcessing: state.isProcessing
-      }),
-      /* @__PURE__ */ jsx_runtime15.jsx(Divider, {}),
-      /* @__PURE__ */ jsx_runtime15.jsx(StatusBar, {
-        isProcessing: state.isProcessing
-      }),
-      /* @__PURE__ */ jsx_runtime15.jsx(InputBar, {
-        disabled: state.isProcessing || state.showHelp,
-        onSubmit: handleInput
-      }),
-      state.showHelp ? /* @__PURE__ */ jsx_runtime15.jsx(HelpModal, {
-        onClose: () => import_store5.setState({ showHelp: false }),
-        onCommand: handleHelpCommand
-      }) : null
+      shouldShowSetup ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ProviderSelector, {}) : /* @__PURE__ */ jsx_runtime15.jsxs(jsx_runtime15.Fragment, {
+        children: [
+          /* @__PURE__ */ jsx_runtime15.jsx(Header, {}),
+          /* @__PURE__ */ jsx_runtime15.jsx(Divider, {}),
+          /* @__PURE__ */ jsx_runtime15.jsx(ChatArea, {
+            messages: state.messages,
+            streamingContent: state.streamingContent,
+            streamingThinking: state.streamingThinking,
+            isProcessing: state.isProcessing
+          }),
+          /* @__PURE__ */ jsx_runtime15.jsx(Divider, {}),
+          /* @__PURE__ */ jsx_runtime15.jsx(StatusBar, {
+            isProcessing: state.isProcessing
+          }),
+          /* @__PURE__ */ jsx_runtime15.jsx(InputBar, {
+            disabled: state.isProcessing || state.showHelp || shouldShowSetup,
+            onSubmit: handleInput
+          }),
+          state.showHelp ? /* @__PURE__ */ jsx_runtime15.jsx(HelpModal, {
+            onClose: () => import_store5.setState({ showHelp: false }),
+            onCommand: handleHelpCommand
+          }) : null
+        ]
+      })
     ]
   });
 }

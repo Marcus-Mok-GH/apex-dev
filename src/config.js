@@ -1,6 +1,96 @@
 const OpenAI = require("openai");
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
+
+const CONFIG_PATH = path.join(os.homedir(), ".apex-dev", "config.json");
+
+function readSavedApiKeys() {
+  try {
+    if (!fs.existsSync(CONFIG_PATH)) return {};
+    const parsed = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeSavedApiKeys(config) {
+  const dir = path.dirname(CONFIG_PATH);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+  fs.chmodSync(CONFIG_PATH, 0o600);
+}
+
+function getSavedApiKey(providerKey) {
+  const config = readSavedApiKeys();
+  return config[providerKey] || "";
+}
+
+function getProviderLoginState(providerKey) {
+  const provider = PROVIDERS[providerKey];
+  if (!provider) return "empty";
+  if (process.env[provider.envKey]) return "logged-in";
+  if (getSavedApiKey(providerKey)) return "saved";
+  return "empty";
+}
+
+function updateSavedApiKey(providerKey, apiKey) {
+  const config = readSavedApiKeys();
+  if (apiKey) {
+    config[providerKey] = apiKey;
+  } else {
+    delete config[providerKey];
+  }
+  if (Object.keys(config).length === 0) {
+    try {
+      fs.unlinkSync(CONFIG_PATH);
+    } catch {}
+    return config;
+  }
+  writeSavedApiKeys(config);
+  return config;
+}
+
+function clearSavedApiKey(providerKey) {
+  return updateSavedApiKey(providerKey, "");
+}
+
+function loginProvider(providerKey, apiKey) {
+  updateSavedApiKey(providerKey, apiKey);
+  setProvider(providerKey, apiKey);
+  return { providerKey, apiKey };
+}
+
+function logoutProvider(providerKey) {
+  clearSavedApiKey(providerKey);
+  const provider = PROVIDERS[providerKey];
+  if (provider) {
+    delete process.env[provider.envKey];
+    if (currentProvider === providerKey) {
+      setProvider(providerKey, "");
+    }
+  }
+  const remaining = getFirstSavedProvider();
+  if (remaining) {
+    currentProvider = remaining.providerKey;
+    process.env[remaining.provider.envKey] = remaining.apiKey;
+    setProvider(remaining.providerKey, remaining.apiKey);
+  }
+  return remaining;
+}
+
+function getFirstSavedProvider() {
+  const config = readSavedApiKeys();
+  for (const [providerKey, provider] of Object.entries(PROVIDERS)) {
+    if (config[providerKey]) {
+      return { providerKey, apiKey: config[providerKey], provider };
+    }
+  }
+  return null;
+}
 
 // ── Provider registry ────────────────────────────────────────────────────
 const PROVIDERS = {
@@ -109,6 +199,17 @@ function detectInitialProvider() {
 
 let currentProvider = detectInitialProvider();
 
+try {
+  const hasEnvKey = Object.values(PROVIDERS).some((p) => process.env[p.envKey]);
+  if (!hasEnvKey) {
+    const saved = getFirstSavedProvider();
+    if (saved) {
+      currentProvider = saved.providerKey;
+      process.env[saved.provider.envKey] = saved.apiKey;
+    }
+  }
+} catch {}
+
 // ── Mutable models object (shared reference — mutations propagate) ────────
 const currentModels = Object.assign({}, PROVIDERS[currentProvider].models);
 
@@ -157,7 +258,7 @@ const BUFFY_SYSTEM_PROMPT = `You are Buffy, a strategic assistant that orchestra
 
 - **Idiomatic Changes:** When editing, understand the local context (imports, functions/classes) to ensure your changes integrate naturally and idiomatically.
 
-- **Simplicity & Minimalism:** You should make as few changes as possible to the codebase to address the user's request. Only do what the user has asked for and no more. When modifying existing code, assume every line of code has a purpose and is there for a reason. Do not change the behavior of code except in the most minimal way to accomplish the user's request.
+- **Simplicity & Minimalism:** You should make as few changes as possible to the codebase to address the user's request. Only do what the user has asked and no more. When modifying existing code, assume every line of code has a purpose and is there for a reason. Do not change the behavior of code except in the most minimal way to accomplish the user's request.
 
 - **Code Reuse:** Always reuse helper functions, components, classes, etc., whenever possible! Don't reimplement what already exists elsewhere in the codebase.
 
@@ -193,7 +294,7 @@ const BUFFY_SYSTEM_PROMPT = `You are Buffy, a strategic assistant that orchestra
 
 Use the spawn_agents tool to spawn specialized agents to help you complete the user's request.
 
-- **Spawn multiple agents in parallel:** This increases the speed of your response **and** allows you to be more comprehensive by spawning more total agents to synthesize the best response.
+- **Spawn multiple agents in parallel:** This increases the speed of your response **and** allows you to be more comprehensive by spawning more total agents to synthesize the best solution.
 
 - **Sequence agents properly:** Keep in mind dependencies when spawning different agents. Don't spawn agents in parallel that depend on each other.
 
@@ -609,30 +710,6 @@ const codeEditorModelVariants = {
 };
 
 // ── Internal client holder ────────────────────────────────────────────────
-const os = require("os");
-
-// Load saved provider from config file if no env var is set for any provider
-let savedProvider = null;
-try {
-  const configPath = path.join(os.homedir(), ".apex-dev", "config.json");
-  if (fs.existsSync(configPath)) {
-    const savedConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-    // Check if ANY env var is already set
-    const hasEnvKey = Object.values(PROVIDERS).some(p => process.env[p.envKey]);
-    if (!hasEnvKey) {
-      // Find first provider with a saved key in config
-      for (const [providerKey, provider] of Object.entries(PROVIDERS)) {
-        if (savedConfig[providerKey]) {
-          currentProvider = providerKey;
-          process.env[provider.envKey] = savedConfig[providerKey];
-          savedProvider = providerKey;
-          break;
-        }
-      }
-    }
-  }
-} catch (e) {}
-
 const _initialProvider = PROVIDERS[currentProvider];
 const _initialKey = process.env[_initialProvider.envKey] || "no-key";
 
@@ -754,6 +831,15 @@ module.exports = {
   get currentProvider()     { return currentProvider; },
   detectInitialProvider,
   setProvider,
+  readSavedApiKeys,
+  writeSavedApiKeys,
+  getSavedApiKey,
+  getProviderLoginState,
+  updateSavedApiKey,
+  clearSavedApiKey,
+  loginProvider,
+  logoutProvider,
+  getFirstSavedProvider,
   // Codebuff agent configs
   agentConfigs,
   agentModes,

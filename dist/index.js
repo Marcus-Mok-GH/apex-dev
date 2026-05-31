@@ -305,6 +305,90 @@ var require_config = __commonJS((exports, module) => {
   const OpenAI = __require("openai");
   const fs = __require("fs");
   const path = __require("path");
+  const os = __require("os");
+  const CONFIG_PATH = path.join(os.homedir(), ".apex-dev", "config.json");
+  function readSavedApiKeys() {
+    try {
+      if (!fs.existsSync(CONFIG_PATH))
+        return {};
+      const parsed = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+  function writeSavedApiKeys(config) {
+    const dir = path.dirname(CONFIG_PATH);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+    fs.chmodSync(CONFIG_PATH, 384);
+  }
+  function getSavedApiKey(providerKey) {
+    const config = readSavedApiKeys();
+    return config[providerKey] || "";
+  }
+  function getProviderLoginState(providerKey) {
+    const provider = PROVIDERS[providerKey];
+    if (!provider)
+      return "empty";
+    if (process.env[provider.envKey])
+      return "logged-in";
+    if (getSavedApiKey(providerKey))
+      return "saved";
+    return "empty";
+  }
+  function updateSavedApiKey(providerKey, apiKey) {
+    const config = readSavedApiKeys();
+    if (apiKey) {
+      config[providerKey] = apiKey;
+    } else {
+      delete config[providerKey];
+    }
+    if (Object.keys(config).length === 0) {
+      try {
+        fs.unlinkSync(CONFIG_PATH);
+      } catch {}
+      return config;
+    }
+    writeSavedApiKeys(config);
+    return config;
+  }
+  function clearSavedApiKey(providerKey) {
+    return updateSavedApiKey(providerKey, "");
+  }
+  function loginProvider(providerKey, apiKey) {
+    updateSavedApiKey(providerKey, apiKey);
+    setProvider(providerKey, apiKey);
+    return { providerKey, apiKey };
+  }
+  function logoutProvider(providerKey) {
+    clearSavedApiKey(providerKey);
+    const provider = PROVIDERS[providerKey];
+    if (provider) {
+      delete process.env[provider.envKey];
+      if (currentProvider === providerKey) {
+        setProvider(providerKey, "");
+      }
+    }
+    const remaining = getFirstSavedProvider();
+    if (remaining) {
+      currentProvider = remaining.providerKey;
+      process.env[remaining.provider.envKey] = remaining.apiKey;
+      setProvider(remaining.providerKey, remaining.apiKey);
+    }
+    return remaining;
+  }
+  function getFirstSavedProvider() {
+    const config = readSavedApiKeys();
+    for (const [providerKey, provider] of Object.entries(PROVIDERS)) {
+      if (config[providerKey]) {
+        return { providerKey, apiKey: config[providerKey], provider };
+      }
+    }
+    return null;
+  }
   const PROVIDERS = {
     fireworks: {
       label: "Fireworks AI",
@@ -413,6 +497,16 @@ var require_config = __commonJS((exports, module) => {
     return "fireworks";
   }
   let currentProvider = detectInitialProvider();
+  try {
+    const hasEnvKey = Object.values(PROVIDERS).some((p) => process.env[p.envKey]);
+    if (!hasEnvKey) {
+      const saved = getFirstSavedProvider();
+      if (saved) {
+        currentProvider = saved.providerKey;
+        process.env[saved.provider.envKey] = saved.apiKey;
+      }
+    }
+  } catch {}
   const currentModels = Object.assign({}, PROVIDERS[currentProvider].models);
   const MAX_TOOL_ITERATIONS = 50;
   const MAX_OUTPUT_LEN = 12000;
@@ -453,7 +547,7 @@ var require_config = __commonJS((exports, module) => {
 
 - **Idiomatic Changes:** When editing, understand the local context (imports, functions/classes) to ensure your changes integrate naturally and idiomatically.
 
-- **Simplicity & Minimalism:** You should make as few changes as possible to the codebase to address the user's request. Only do what the user has asked for and no more. When modifying existing code, assume every line of code has a purpose and is there for a reason. Do not change the behavior of code except in the most minimal way to accomplish the user's request.
+- **Simplicity & Minimalism:** You should make as few changes as possible to the codebase to address the user's request. Only do what the user has asked and no more. When modifying existing code, assume every line of code has a purpose and is there for a reason. Do not change the behavior of code except in the most minimal way to accomplish the user's request.
 
 - **Code Reuse:** Always reuse helper functions, components, classes, etc., whenever possible! Don't reimplement what already exists elsewhere in the codebase.
 
@@ -489,7 +583,7 @@ var require_config = __commonJS((exports, module) => {
 
 Use the spawn_agents tool to spawn specialized agents to help you complete the user's request.
 
-- **Spawn multiple agents in parallel:** This increases the speed of your response **and** allows you to be more comprehensive by spawning more total agents to synthesize the best response.
+- **Spawn multiple agents in parallel:** This increases the speed of your response **and** allows you to be more comprehensive by spawning more total agents to synthesize the best solution.
 
 - **Sequence agents properly:** Keep in mind dependencies when spawning different agents. Don't spawn agents in parallel that depend on each other.
 
@@ -869,25 +963,6 @@ The user asks you to implement a new feature. You respond in multiple steps:
     deepseek: { model: "deepseek/deepseek-chat-v3", temperature: 0.1, maxTokens: 8192 },
     minimax: { model: "minimax/minimax-01", temperature: 0.1, maxTokens: 8192 }
   };
-  const os = __require("os");
-  let savedProvider = null;
-  try {
-    const configPath = path.join(os.homedir(), ".apex-dev", "config.json");
-    if (fs.existsSync(configPath)) {
-      const savedConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-      const hasEnvKey = Object.values(PROVIDERS).some((p) => process.env[p.envKey]);
-      if (!hasEnvKey) {
-        for (const [providerKey, provider] of Object.entries(PROVIDERS)) {
-          if (savedConfig[providerKey]) {
-            currentProvider = providerKey;
-            process.env[provider.envKey] = savedConfig[providerKey];
-            savedProvider = providerKey;
-            break;
-          }
-        }
-      }
-    }
-  } catch (e) {}
   const _initialProvider = PROVIDERS[currentProvider];
   const _initialKey = process.env[_initialProvider.envKey] || "no-key";
   let _internalClient = new OpenAI({
@@ -1016,6 +1091,15 @@ The user asks you to implement a new feature. You respond in multiple steps:
     },
     detectInitialProvider,
     setProvider,
+    readSavedApiKeys,
+    writeSavedApiKeys,
+    getSavedApiKey,
+    getProviderLoginState,
+    updateSavedApiKey,
+    clearSavedApiKey,
+    loginProvider,
+    logoutProvider,
+    getFirstSavedProvider,
     agentConfigs,
     agentModes,
     codeEditorModelVariants,
@@ -3301,7 +3385,7 @@ var require_commands = __commonJS((exports, module2) => {
   var fs2 = __require2("fs");
   var path2 = __require2("path");
   var { execSync } = __require2("child_process");
-  var { PROJECT_ROOT, session, resolvePath } = require_config();
+  var { PROJECT_ROOT, session, resolvePath, logoutProvider, getProviderLoginState } = require_config();
   var { executeTool } = require_toolExecutors();
   var store = require_store();
   async function handleSlashCommand(input) {
@@ -3311,6 +3395,20 @@ var require_commands = __commonJS((exports, module2) => {
       case "/help":
         store.setState({ showHelp: true });
         break;
+      case "/login":
+      case "/provider":
+        store.setState({ showHelp: false, needsConfig: true });
+        break;
+      case "/logout": {
+        const provider = store.getSnapshot().provider;
+        if (getProviderLoginState(provider) === "logged-in") {
+          logoutProvider(provider);
+          store.setState({ showHelp: false, needsConfig: true, apiKey: "" });
+        } else {
+          store.setState({ showHelp: false, needsConfig: true });
+        }
+        break;
+      }
       case "/clear":
         session.conversationHistory = [];
         store.clearMessages();
@@ -4376,36 +4474,62 @@ function ProviderSelector() {
   var providers = import_config.PROVIDERS;
   var providerKey = PROVIDER_ORDER[focusedIdx];
   var provider = providers[providerKey];
+  function getStoredKey(key) {
+    return import_config.getSavedApiKey(key);
+  }
+  function loginState(key) {
+    return import_config.getProviderLoginState(key);
+  }
   function isConfigured(key) {
-    var envKey = providers[key].envKey;
-    var hasEnv = Boolean(process.env[envKey]);
-    var hasStored = key === state.provider && Boolean(state.apiKey);
-    return hasEnv || hasStored;
+    return loginState(key) !== "empty";
   }
-  function isDefault(key) {
-    return key === state.provider && Boolean(state.apiKey);
+  function isLoggedIn(key) {
+    return loginState(key) === "logged-in";
   }
-  function handleSelect() {
-    if (isConfigured(providerKey)) {
-      var key = process.env[provider.envKey] || state.apiKey;
-      import_config.setProvider(providerKey, key);
-      import_store.setState({
-        apiKey: key,
-        provider: providerKey,
-        needsConfig: false
-      });
-      return;
-    }
-    setStep("key");
+  function finishLogin(providerKey2, key) {
+    import_config.loginProvider(providerKey2, key);
+    import_store.setState({
+      apiKey: key,
+      provider: providerKey2,
+      needsConfig: false
+    });
   }
-  function handleSubmitKey() {
+  function handleLogin() {
     var key = input.trim();
     if (!key)
       return;
-    import_config.setProvider(providerKey, key);
-    import_store.setState({ apiKey: key, provider: providerKey, needsConfig: false });
+    finishLogin(providerKey, key);
     setInput("");
     setStep("select");
+  }
+  function handleLogout() {
+    var remaining = import_config.logoutProvider(providerKey);
+    if (remaining) {
+      import_store.setState({
+        apiKey: remaining.apiKey,
+        provider: remaining.providerKey,
+        needsConfig: false
+      });
+    } else {
+      import_store.setState({
+        apiKey: "",
+        provider: providerKey,
+        needsConfig: true
+      });
+    }
+    setInput("");
+    setStep("select");
+  }
+  function handleSelect() {
+    if (isLoggedIn(providerKey)) {
+      handleLogout();
+      return;
+    }
+    if (isConfigured(providerKey)) {
+      finishLogin(providerKey, getStoredKey(providerKey));
+      return;
+    }
+    setStep("key");
   }
   var handleKeyPress = function(key) {
     if (step === "select") {
@@ -4419,16 +4543,20 @@ function ProviderSelector() {
         });
       } else if (key.name === "return" || key.name === "enter") {
         handleSelect();
+      } else if (key.name === "l") {
+        if (isLoggedIn(providerKey))
+          handleLogout();
       }
     } else {
       if (key.name === "escape") {
         setStep("select");
         setInput("");
       } else if (key.name === "return" || key.name === "enter") {
-        handleSubmitKey();
+        handleLogin();
       }
     }
   };
+  var selectedState = loginState(providerKey);
   return jsx_runtime.jsx("box", {
     style: {
       flexDirection: "column",
@@ -4451,15 +4579,14 @@ function ProviderSelector() {
           style: { paddingLeft: 4, paddingRight: 4, marginBottom: 1 },
           children: jsx_runtime.jsx("text", {
             fg: import_theme.colors.dim,
-            children: "Use \u2191\u2193 or j/k to navigate, Enter to continue, or select a configured provider to reuse its key."
+            children: "Use \u2191\u2193 or j/k to navigate. Enter logs in or out depending on the selected provider's state."
           })
         }),
         PROVIDER_ORDER.map(function(key, idx) {
           var focused = idx === focusedIdx;
-          var configured = isConfigured(key);
-          var def = isDefault(key);
-          var statusFg = def ? import_theme.colors.accent : configured ? import_theme.colors.green : import_theme.colors.dim;
-          var statusText = def ? "Active" : configured ? "Configured" : "Needs key";
+          var stateLabel = loginState(key);
+          var statusFg = stateLabel === "logged-in" ? import_theme.colors.green : stateLabel === "saved" ? import_theme.colors.yellow : import_theme.colors.dim;
+          var statusText = stateLabel === "logged-in" ? "Logged in" : stateLabel === "saved" ? "Logged out" : "Needs key";
           return jsx_runtime.jsxs("box", {
             style: {
               flexDirection: "row",
@@ -4471,7 +4598,13 @@ function ProviderSelector() {
             },
             onMouseDown: function() {
               setFocusedIdx(idx);
-              handleSelect();
+              if (stateLabel === "logged-in") {
+                handleLogout();
+              } else if (stateLabel === "saved") {
+                finishLogin(key, getStoredKey(key));
+              } else {
+                setStep("key");
+              }
             },
             children: [
               jsx_runtime.jsx("text", {
@@ -4499,7 +4632,7 @@ function ProviderSelector() {
           style: { paddingLeft: 4, paddingRight: 4, marginTop: 2 },
           children: jsx_runtime.jsx("text", {
             fg: import_theme.colors.dim,
-            children: "Keys are stored in ~/.apex-dev/config.json or can be supplied via environment variables."
+            children: selectedState === "logged-in" ? "Press Enter to log out of the selected provider." : selectedState === "saved" ? "Press Enter to log in with the saved key." : "Press Enter to log in with a new key. Keys are stored in ~/.apex-dev/config.json or can be supplied via environment variables."
           })
         })
       ]
@@ -4544,7 +4677,7 @@ function ProviderSelector() {
               focused: true,
               value: input,
               onChange: setInput,
-              onSubmit: handleSubmitKey,
+              onSubmit: handleLogin,
               placeholder: "Paste your API key here...",
               fg: import_theme.colors.text
             })
@@ -4554,7 +4687,7 @@ function ProviderSelector() {
           style: { paddingLeft: 4, paddingRight: 4 },
           children: jsx_runtime.jsx("text", {
             fg: import_theme.colors.dim,
-            children: "Press Enter to confirm"
+            children: "Press Enter to login"
           })
         })
       ]
@@ -4753,37 +4886,34 @@ function App() {
       });
     }
   }, []);
-  const forceSetup = process.env.APEX_DEV_NEEDS_CONFIG === "true";
-  const shouldShowSetup = forceSetup || state.needsConfig;
-  if (shouldShowSetup) {
-    return /* @__PURE__ */ jsx_runtime15.jsx("box", {
-      style: { flexDirection: "column", flexGrow: 1 },
-      children: /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ProviderSelector, {})
-    });
-  }
+  const shouldShowSetup = process.env.APEX_DEV_NEEDS_CONFIG === "true" || state.needsConfig;
   return /* @__PURE__ */ jsx_runtime15.jsxs("box", {
     style: { flexDirection: "column", flexGrow: 1 },
     children: [
-      /* @__PURE__ */ jsx_runtime15.jsx(Header, {}),
-      /* @__PURE__ */ jsx_runtime15.jsx(Divider, {}),
-      /* @__PURE__ */ jsx_runtime15.jsx(ChatArea, {
-        messages: state.messages,
-        streamingContent: state.streamingContent,
-        streamingThinking: state.streamingThinking,
-        isProcessing: state.isProcessing
-      }),
-      /* @__PURE__ */ jsx_runtime15.jsx(Divider, {}),
-      /* @__PURE__ */ jsx_runtime15.jsx(StatusBar, {
-        isProcessing: state.isProcessing
-      }),
-      /* @__PURE__ */ jsx_runtime15.jsx(InputBar, {
-        disabled: state.isProcessing || state.showHelp,
-        onSubmit: handleInput
-      }),
-      state.showHelp ? /* @__PURE__ */ jsx_runtime15.jsx(HelpModal, {
-        onClose: () => import_store5.setState({ showHelp: false }),
-        onCommand: handleHelpCommand
-      }) : null
+      shouldShowSetup ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ProviderSelector, {}) : /* @__PURE__ */ jsx_runtime15.jsxs(jsx_runtime15.Fragment, {
+        children: [
+          /* @__PURE__ */ jsx_runtime15.jsx(Header, {}),
+          /* @__PURE__ */ jsx_runtime15.jsx(Divider, {}),
+          /* @__PURE__ */ jsx_runtime15.jsx(ChatArea, {
+            messages: state.messages,
+            streamingContent: state.streamingContent,
+            streamingThinking: state.streamingThinking,
+            isProcessing: state.isProcessing
+          }),
+          /* @__PURE__ */ jsx_runtime15.jsx(Divider, {}),
+          /* @__PURE__ */ jsx_runtime15.jsx(StatusBar, {
+            isProcessing: state.isProcessing
+          }),
+          /* @__PURE__ */ jsx_runtime15.jsx(InputBar, {
+            disabled: state.isProcessing || state.showHelp || shouldShowSetup,
+            onSubmit: handleInput
+          }),
+          state.showHelp ? /* @__PURE__ */ jsx_runtime15.jsx(HelpModal, {
+            onClose: () => import_store5.setState({ showHelp: false }),
+            onCommand: handleHelpCommand
+          }) : null
+        ]
+      })
     ]
   });
 }

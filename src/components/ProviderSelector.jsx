@@ -27,38 +27,68 @@ function ProviderSelector() {
   var providerKey = PROVIDER_ORDER[focusedIdx];
   var provider = providers[providerKey];
 
-  function isConfigured(key) {
-    var envKey = providers[key].envKey;
-    var hasEnv = Boolean(process.env[envKey]);
-    var hasStored = key === state.provider && Boolean(state.apiKey);
-    return hasEnv || hasStored;
+  function getStoredKey(key) {
+    return import_config.getSavedApiKey(key);
   }
 
-  function isDefault(key) {
-    return key === state.provider && Boolean(state.apiKey);
+  function loginState(key) {
+    return import_config.getProviderLoginState(key);
+  }
+
+  function isConfigured(key) {
+    return loginState(key) !== "empty";
+  }
+
+  function isLoggedIn(key) {
+    return loginState(key) === "logged-in";
+  }
+
+  function finishLogin(providerKey2, key) {
+    import_config.loginProvider(providerKey2, key);
+    import_store.setState({
+      apiKey: key,
+      provider: providerKey2,
+      needsConfig: false,
+    });
+  }
+
+  function handleLogin() {
+    var key = input.trim();
+    if (!key) return;
+    finishLogin(providerKey, key);
+    setInput("");
+    setStep("select");
+  }
+
+  function handleLogout() {
+    var remaining = import_config.logoutProvider(providerKey);
+    if (remaining) {
+      import_store.setState({
+        apiKey: remaining.apiKey,
+        provider: remaining.providerKey,
+        needsConfig: false,
+      });
+    } else {
+      import_store.setState({
+        apiKey: "",
+        provider: providerKey,
+        needsConfig: true,
+      });
+    }
+    setInput("");
+    setStep("select");
   }
 
   function handleSelect() {
+    if (isLoggedIn(providerKey)) {
+      handleLogout();
+      return;
+    }
     if (isConfigured(providerKey)) {
-      var key = process.env[provider.envKey] || state.apiKey;
-      import_config.setProvider(providerKey, key);
-      import_store.setState({
-        apiKey: key,
-        provider: providerKey,
-        needsConfig: false,
-      });
+      finishLogin(providerKey, getStoredKey(providerKey));
       return;
     }
     setStep("key");
-  }
-
-  function handleSubmitKey() {
-    var key = input.trim();
-    if (!key) return;
-    import_config.setProvider(providerKey, key);
-    import_store.setState({ apiKey: key, provider: providerKey, needsConfig: false });
-    setInput("");
-    setStep("select");
   }
 
   var handleKeyPress = function (key) {
@@ -73,16 +103,20 @@ function ProviderSelector() {
         });
       } else if (key.name === "return" || key.name === "enter") {
         handleSelect();
+      } else if (key.name === "l") {
+        if (isLoggedIn(providerKey)) handleLogout();
       }
     } else {
       if (key.name === "escape") {
         setStep("select");
         setInput("");
       } else if (key.name === "return" || key.name === "enter") {
-        handleSubmitKey();
+        handleLogin();
       }
     }
   };
+
+  var selectedState = loginState(providerKey);
 
   return jsx_runtime.jsx(
     "box",
@@ -111,22 +145,21 @@ function ProviderSelector() {
                   children: jsx_runtime.jsx("text", {
                     fg: import_theme.colors.dim,
                     children:
-                      "Use ↑↓ or j/k to navigate, Enter to continue, or select a configured provider to reuse its key.",
+                      "Use ↑↓ or j/k to navigate. Enter logs in or out depending on the selected provider's state.",
                   }),
                 }),
                 PROVIDER_ORDER.map(function (key, idx) {
                   var focused = idx === focusedIdx;
-                  var configured = isConfigured(key);
-                  var def = isDefault(key);
-                  var statusFg = def
-                    ? import_theme.colors.accent
-                    : configured
-                      ? import_theme.colors.green
+                  var stateLabel = loginState(key);
+                  var statusFg = stateLabel === "logged-in"
+                    ? import_theme.colors.green
+                    : stateLabel === "saved"
+                      ? import_theme.colors.yellow
                       : import_theme.colors.dim;
-                  var statusText = def
-                    ? "Active"
-                    : configured
-                      ? "Configured"
+                  var statusText = stateLabel === "logged-in"
+                    ? "Logged in"
+                    : stateLabel === "saved"
+                      ? "Logged out"
                       : "Needs key";
 
                   return jsx_runtime.jsxs(
@@ -142,7 +175,13 @@ function ProviderSelector() {
                       },
                       onMouseDown: function () {
                         setFocusedIdx(idx);
-                        handleSelect();
+                        if (stateLabel === "logged-in") {
+                          handleLogout();
+                        } else if (stateLabel === "saved") {
+                          finishLogin(key, getStoredKey(key));
+                        } else {
+                          setStep("key");
+                        }
                       },
                       children: [
                         jsx_runtime.jsx("text", {
@@ -172,7 +211,11 @@ function ProviderSelector() {
                   style: { paddingLeft: 4, paddingRight: 4, marginTop: 2 },
                   children: jsx_runtime.jsx("text", {
                     fg: import_theme.colors.dim,
-                    children: "Keys are stored in ~/.apex-dev/config.json or can be supplied via environment variables.",
+                    children: selectedState === "logged-in"
+                      ? "Press Enter to log out of the selected provider."
+                      : selectedState === "saved"
+                        ? "Press Enter to log in with the saved key."
+                        : "Press Enter to log in with a new key. Keys are stored in ~/.apex-dev/config.json or can be supplied via environment variables.",
                   }),
                 }),
               ],
@@ -219,7 +262,7 @@ function ProviderSelector() {
                       focused: true,
                       value: input,
                       onChange: setInput,
-                      onSubmit: handleSubmitKey,
+                      onSubmit: handleLogin,
                       placeholder: "Paste your API key here...",
                       fg: import_theme.colors.text,
                     }),
@@ -229,7 +272,7 @@ function ProviderSelector() {
                   style: { paddingLeft: 4, paddingRight: 4 },
                   children: jsx_runtime.jsx("text", {
                     fg: import_theme.colors.dim,
-                    children: "Press Enter to confirm",
+                    children: "Press Enter to login",
                   }),
                 }),
               ],

@@ -2,7 +2,7 @@ var require_commands = __commonJS((exports, module2) => {
   var fs2 = __require("fs");
   var path2 = __require("path");
   var { execSync } = __require("child_process");
-  var { PROJECT_ROOT, session, resolvePath } = require_config();
+  var { PROJECT_ROOT, session, resolvePath, logoutProvider, getProviderLoginState } = require_config();
   var { executeTool } = require_toolExecutors();
   var store = require_store();
   async function handleSlashCommand(input) {
@@ -12,6 +12,20 @@ var require_commands = __commonJS((exports, module2) => {
       case "/help":
         store.setState({ showHelp: true });
         break;
+      case "/login":
+      case "/provider":
+        store.setState({ showHelp: false, needsConfig: true });
+        break;
+      case "/logout": {
+        const provider = store.getSnapshot().provider;
+        if (getProviderLoginState(provider) === "logged-in") {
+          logoutProvider(provider);
+          store.setState({ showHelp: false, needsConfig: true, apiKey: "" });
+        } else {
+          store.setState({ showHelp: false, needsConfig: true });
+        }
+        break;
+      }
       case "/clear":
         session.conversationHistory = [];
         store.clearMessages();
@@ -39,8 +53,7 @@ var require_commands = __commonJS((exports, module2) => {
           parts.push(`Files modified: ${session.filesModified.size}`);
         if (session.commandsRun.length > 0)
           parts.push(`Commands: ${session.commandsRun.length}`);
-        store.addMessage({ role: "system", content: parts.join(`
-`), label: "Session Stats" });
+        store.addMessage({ role: "system", content: parts.join(`\n`), label: "Session Stats" });
         break;
       }
       case "/undo": {
