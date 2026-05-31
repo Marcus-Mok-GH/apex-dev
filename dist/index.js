@@ -301,6 +301,8 @@ var require_utils3 = __commonJS((exports, module2) => {
 });
 var require_config = __commonJS((exports, module) => {
   const OpenAI = __require("openai");
+  const fs = __require("fs");
+  const path = __require("path");
   const PROVIDERS = {
     fireworks: {
       label: "Fireworks AI",
@@ -865,6 +867,25 @@ The user asks you to implement a new feature. You respond in multiple steps:
     deepseek: { model: "deepseek/deepseek-chat-v3", temperature: 0.1, maxTokens: 8192 },
     minimax: { model: "minimax/minimax-01", temperature: 0.1, maxTokens: 8192 }
   };
+  const os = __require("os");
+  let savedProvider = null;
+  try {
+    const configPath = path.join(os.homedir(), ".apex-dev", "config.json");
+    if (fs.existsSync(configPath)) {
+      const savedConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      const hasEnvKey = Object.values(PROVIDERS).some((p) => process.env[p.envKey]);
+      if (!hasEnvKey) {
+        for (const [providerKey, provider] of Object.entries(PROVIDERS)) {
+          if (savedConfig[providerKey]) {
+            currentProvider = providerKey;
+            process.env[provider.envKey] = savedConfig[providerKey];
+            savedProvider = providerKey;
+            break;
+          }
+        }
+      }
+    }
+  } catch (e) {}
   const _initialProvider = PROVIDERS[currentProvider];
   const _initialKey = process.env[_initialProvider.envKey] || "no-key";
   let _internalClient = new OpenAI({
@@ -947,7 +968,6 @@ The user asks you to implement a new feature. You respond in multiple steps:
     }
     return str;
   }
-  const path = __require("path");
   function resolvePath(p) {
     if (!p)
       return PROJECT_ROOT;
@@ -2985,7 +3005,7 @@ var require_agent = __commonJS((exports, module2) => {
             });
             break;
           } catch (apiErr) {
-            if (attempt < maxRetries && apiErr.status >= 400 && apiErr.status < 500) {
+            if (attempt < maxRetries && (!apiErr.status || apiErr.status >= 500)) {
               await sleep(1000 * Math.pow(2, attempt));
               continue;
             }
