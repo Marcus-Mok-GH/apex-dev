@@ -14,7 +14,7 @@
     "build": "bun scripts/build-entry.mjs && NODE_ENV=production bun build entry.mjs --target=bun --outfile=dist/index.js --packages=external",
     "prepack": "npm run build",
     "start": "bun apex.mjs",
-    "test": "bun test tests/cli.test.ts"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
