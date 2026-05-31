@@ -145,6 +145,8 @@ function getDownloadUrl() {
   return `https://github.com/Marcus-Mok-GH/apex-dev/releases/download/v${VERSION}/apex-dev-${platform}-${arch}`;
 }
 
+const DOWNLOAD_TIMEOUT = 10 * 1000;
+
 function downloadBinary(destPath) {
   const url = getDownloadUrl();
   console.error(`Downloading apex-dev v${VERSION} for ${detectPlatform().platform}-${detectPlatform().arch}...`);
@@ -152,45 +154,80 @@ function downloadBinary(destPath) {
 
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destPath, { mode: 0o755 });
-    const DOWNLOAD_TIMEOUT = 10000;
+    let settled = false;
 
-    const req = https
-      .get(url, { timeout: DOWNLOAD_TIMEOUT }, (response) => {
-        if (response.statusCode === 302 || response.statusCode === 301) {
-          const redirectReq = https.get(response.headers.location, { timeout: DOWNLOAD_TIMEOUT }, (redirectRes) => {
-            if (redirectRes.statusCode !== 200) {
-              reject(new Error(`Download failed with status ${redirectRes.statusCode}`));
-              return;
-            }
-            redirectRes.pipe(file);
-            file.on("finish", () => {
-              file.close();
-              resolve();
-            });
-          });
-          redirectReq.on("error", reject);
-          redirectReq.on("timeout", () => {
-            redirectReq.destroy();
-            reject(new Error("Download timed out after 10s"));
-          });
-          return;
-        }
-        if (response.statusCode !== 200) {
-          reject(new Error(`Download failed with status ${response.statusCode}`));
-          return;
-        }
-        response.pipe(file);
-        file.on("finish", () => {
-          file.close();
-          resolve();
+    function cleanupAndReject(err) {
+      if (settled) return;
+      settled = true;
+      file.destroy();
+      try { fs.unlinkSync(destPath); } catch {}
+      reject(err);
+    }
+
+    function onFileError(err) {
+      cleanupAndReject(new Error(`Write stream error: ${err.message}`));
+    }
+
+    file.on("error", onFileError);
+
+    const req = https.get(url, (response) => {
+      if (response.statusCode === 302 || response.statusCode === 301) {
+        const redirectReq = https.get(response.headers.location, (redirectRes) => {
+          if (redirectRes.statusCode !== 200) {
+            cleanupAndReject(new Error(`Download failed with status ${redirectRes.statusCode}`));
+            return;
+          }
+
+          function onFinish() {
+            file.removeListener("error", onFileError);
+            redirectReq.removeListener("error", onRedirectError);
+            redirectReq.removeListener("timeout", onRedirectTimeout);
+            file.close();
+            resolve();
+          }
+
+          file.on("finish", onFinish);
+          redirectRes.pipe(file);
         });
-      });
 
-    req.on("error", reject);
-    req.on("timeout", () => {
-      req.destroy();
-      reject(new Error("Download timed out after 10s"));
+        function onRedirectError(err) {
+          cleanupAndReject(new Error(`Redirect request error: ${err.message}`));
+        }
+        function onRedirectTimeout() {
+          cleanupAndReject(new Error("Download redirect timed out"));
+        }
+
+        redirectReq.on("error", onRedirectError);
+        redirectReq.setTimeout(DOWNLOAD_TIMEOUT, onRedirectTimeout);
+        return;
+      }
+
+      if (response.statusCode !== 200) {
+        cleanupAndReject(new Error(`Download failed with status ${response.statusCode}`));
+        return;
+      }
+
+      function onFinish() {
+        file.removeListener("error", onFileError);
+        req.removeListener("error", onReqError);
+        req.removeListener("timeout", onReqTimeout);
+        file.close();
+        resolve();
+      }
+
+      file.on("finish", onFinish);
+      response.pipe(file);
     });
+
+    function onReqError(err) {
+      cleanupAndReject(new Error(`Download request error: ${err.message}`));
+    }
+    function onReqTimeout() {
+      cleanupAndReject(new Error("Download timed out"));
+    }
+
+    req.on("error", onReqError);
+    req.setTimeout(DOWNLOAD_TIMEOUT, onReqTimeout);
   });
 }
 

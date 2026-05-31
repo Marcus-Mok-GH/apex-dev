@@ -867,6 +867,25 @@ The user asks you to implement a new feature. You respond in multiple steps:
     deepseek: { model: "deepseek/deepseek-chat-v3", temperature: 0.1, maxTokens: 8192 },
     minimax: { model: "minimax/minimax-01", temperature: 0.1, maxTokens: 8192 }
   };
+  const os = __require("os");
+  let savedProvider = null;
+  try {
+    const configPath = path.join(os.homedir(), ".apex-dev", "config.json");
+    if (fs.existsSync(configPath)) {
+      const savedConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      const hasEnvKey = Object.values(PROVIDERS).some((p) => process.env[p.envKey]);
+      if (!hasEnvKey) {
+        for (const [providerKey, provider] of Object.entries(PROVIDERS)) {
+          if (savedConfig[providerKey]) {
+            currentProvider = providerKey;
+            process.env[provider.envKey] = savedConfig[providerKey];
+            savedProvider = providerKey;
+            break;
+          }
+        }
+      }
+    }
+  } catch (e) {}
   const _initialProvider = PROVIDERS[currentProvider];
   try {
     const configPath = path.join(__require("os").homedir(), ".apex-dev", "config.json");
