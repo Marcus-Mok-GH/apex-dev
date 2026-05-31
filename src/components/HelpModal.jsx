@@ -11,6 +11,11 @@ var COMMANDS = [
   { cmd: "/git <cmd>", desc: "Run a git command" },
   { cmd: "/quit", desc: "Exit" }
 ];
+const QUICK_TIPS = [
+  "Ctrl+C exits the app",
+  "Esc closes overlays and thinking blocks",
+  "On first launch, choose a provider and paste your API key",
+];
 var TOOLS = [
   "Read",
   "Write",
@@ -85,6 +90,19 @@ function HelpModal({ onClose, onCommand }) {
             ]
           })
         }, cmd))
+      }),
+      /* @__PURE__ */ jsx_runtime14.jsx("text", {
+        fg: import_theme14.colors.white,
+        attributes: TextAttributes.BOLD,
+        style: { marginTop: 1 },
+        content: "Quick Tips"
+      }),
+      /* @__PURE__ */ jsx_runtime14.jsx("box", {
+        style: { flexDirection: "column", marginTop: 0 },
+        children: QUICK_TIPS.map((tip) => /* @__PURE__ */ jsx_runtime14.jsx("text", {
+          fg: import_theme14.colors.dim,
+          content: `• ${tip}`
+        }, tip))
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
         fg: import_theme14.colors.white,

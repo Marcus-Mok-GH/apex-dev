@@ -4,7 +4,7 @@ var jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
 function Welcome() {
   const { isNarrow } = useLayout();
   return /* @__PURE__ */ jsx_runtime3.jsxs("box", {
-    style: { flexDirection: "column", paddingLeft: 1, marginTop: 1 },
+    style: { flexDirection: "column", paddingLeft: 1, marginTop: 1, marginBottom: 1 },
     children: [
       /* @__PURE__ */ jsx_runtime3.jsx("text", {
         fg: import_theme3.colors.white,
@@ -13,8 +13,13 @@ function Welcome() {
       }),
       /* @__PURE__ */ jsx_runtime3.jsx("text", {
         fg: import_theme3.colors.dim,
-        content: isNarrow ? `Max ${import_config2.MAX_TOOL_ITERATIONS} iterations` : `Tools available \xB7 Max ${import_config2.MAX_TOOL_ITERATIONS} iterations per turn`
-      })
+        content: isNarrow ? `Type a message or /help` : `Apex can read, edit, run commands, and review your code. Use /help to see shortcuts.`
+      }),
+      !isNarrow ? /* @__PURE__ */ jsx_runtime3.jsx("text", {
+        fg: import_theme3.colors.dim,
+        style: { marginTop: 0 },
+        content: `Shortcuts · /help · /files · /diff · /cost · /quit · Max ${import_config2.MAX_TOOL_ITERATIONS} iterations`
+      }) : null
     ]
   });
 }

@@ -22,16 +22,16 @@ function Header() {
     } catch {}
   }, []);
 
-  // Get current provider label (stable, set at startup)
-  const provider = import_store_h.getSnapshot().provider;
+  const snapshot = import_store_h.getSnapshot();
+  const provider = snapshot.provider;
   const providerLabel = import_config.PROVIDERS[provider]?.label || provider;
+  const configReady = !snapshot.needsConfig;
 
   return /* @__PURE__ */ jsx_runtime.jsxs("box", {
-    style: { flexDirection: "row", paddingLeft: 1, paddingRight: 1 },
+    style: { flexDirection: "row", paddingLeft: 1, paddingRight: 1, paddingTop: 1, paddingBottom: 0 },
     children: [
-      // Left: logo · mode · project · branch
       /* @__PURE__ */ jsx_runtime.jsx("box", {
-        style: { flexGrow: 1 },
+        style: { flexGrow: 1, flexDirection: "column" },
         children: /* @__PURE__ */ jsx_runtime.jsxs("text", {
           children: [
             /* @__PURE__ */ jsx_runtime.jsx("span", {
@@ -70,16 +70,36 @@ function Header() {
           ]
         })
       }),
-      // Right: provider label
-      !isNarrow ? /* @__PURE__ */ jsx_runtime.jsxs("text", {
+      !isNarrow ? /* @__PURE__ */ jsx_runtime.jsxs("box", {
+        style: { flexDirection: "column", alignItems: "flex-end" },
         children: [
-          /* @__PURE__ */ jsx_runtime.jsx("span", {
-            fg: import_theme.colors.dim,
-            children: "·  "
+          /* @__PURE__ */ jsx_runtime.jsxs("text", {
+            children: [
+              /* @__PURE__ */ jsx_runtime.jsx("span", {
+                fg: configReady ? import_theme.colors.green : import_theme.colors.yellow,
+                children: configReady ? "●" : "○"
+              }),
+              /* @__PURE__ */ jsx_runtime.jsx("span", {
+                fg: import_theme.colors.dim,
+                children: " "
+              }),
+              /* @__PURE__ */ jsx_runtime.jsx("span", {
+                fg: import_theme.colors.muted,
+                children: configReady ? "ready" : "needs setup"
+              })
+            ]
           }),
-          /* @__PURE__ */ jsx_runtime.jsx("span", {
-            fg: import_theme.colors.muted,
-            children: providerLabel
+          /* @__PURE__ */ jsx_runtime.jsxs("text", {
+            children: [
+              /* @__PURE__ */ jsx_runtime.jsx("span", {
+                fg: import_theme.colors.dim,
+                children: "provider "
+              }),
+              /* @__PURE__ */ jsx_runtime.jsx("span", {
+                fg: import_theme.colors.primary,
+                children: providerLabel
+              })
+            ]
           })
         ]
       }) : null
