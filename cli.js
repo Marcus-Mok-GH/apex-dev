@@ -323,36 +323,40 @@ async function ensureBinary() {
   let releaseMetadata = null;
   try {
     releaseMetadata = await fetchReleaseAssetInfo();
-  } catch (err) {
-    if (looksValidBinary(localPath)) {
-      return localPath;
-    }
-    throw err;
+  } catch {
+    releaseMetadata = null;
   }
 
   const binaryExists = looksValidBinary(localPath);
-  const cacheMatches = cachedMetadata
-    && cachedMetadata.assetId === releaseMetadata.id
-    && cachedMetadata.assetSize === releaseMetadata.size
-    && cachedMetadata.assetUpdatedAt === releaseMetadata.updatedAt;
 
-  if (binaryExists && cacheMatches) {
-    return localPath;
-  }
+  if (binaryExists) {
+    if (!releaseMetadata || !cachedMetadata) {
+      return localPath;
+    }
 
-  if (binaryExists && !cacheMatches) {
+    const cacheMatches =
+      cachedMetadata.assetId === releaseMetadata.id &&
+      cachedMetadata.assetSize === releaseMetadata.size &&
+      cachedMetadata.assetUpdatedAt === releaseMetadata.updatedAt;
+
+    if (cacheMatches) {
+      return localPath;
+    }
+
     try { fs.unlinkSync(localPath); } catch {}
     clearBinaryMetadata();
   }
 
   try {
     await downloadBinary(localPath);
-    saveBinaryMetadata({
-      assetId: releaseMetadata.id,
-      assetSize: releaseMetadata.size,
-      assetUpdatedAt: releaseMetadata.updatedAt,
-      downloadedAt: new Date().toISOString()
-    });
+    if (releaseMetadata) {
+      saveBinaryMetadata({
+        assetId: releaseMetadata.id,
+        assetSize: releaseMetadata.size,
+        assetUpdatedAt: releaseMetadata.updatedAt,
+        downloadedAt: new Date().toISOString()
+      });
+    }
     console.error(`Binary downloaded to ${localPath}`);
     return localPath;
   } catch (err) {
