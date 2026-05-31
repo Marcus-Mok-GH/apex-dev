@@ -58,6 +58,7 @@ var require_store = __commonJS((exports, module2) => {
       messages: state.messages.map((m2) => m2.id === id ? { ...m2, ...updates } : m2)
     };
     notify();
+    return id;
   }
   function toggleMessageExpanded(id) {
     state = {

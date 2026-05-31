@@ -47,9 +47,9 @@ function ProviderSelector() {
         provider: providerKey,
         needsConfig: false,
       });
-    } else {
-      setStep("key");
+      return;
     }
+    setStep("key");
   }
 
   function handleSubmitKey() {
@@ -57,6 +57,8 @@ function ProviderSelector() {
     if (!key) return;
     import_config.setProvider(providerKey, key);
     import_store.setState({ apiKey: key, provider: providerKey, needsConfig: false });
+    setInput("");
+    setStep("select");
   }
 
   var handleKeyPress = function (key) {
@@ -116,7 +118,6 @@ function ProviderSelector() {
                   var focused = idx === focusedIdx;
                   var configured = isConfigured(key);
                   var def = isDefault(key);
-
                   var statusFg = def
                     ? import_theme.colors.accent
                     : configured

@@ -124,6 +124,7 @@ var require_store = __commonJS((exports, module2) => {
       messages: state.messages.map((m2) => m2.id === id ? { ...m2, ...updates } : m2)
     };
     notify();
+    return id;
   }
   function toggleMessageExpanded(id) {
     state = {
@@ -4358,9 +4359,9 @@ function ProviderSelector() {
         provider: providerKey,
         needsConfig: false,
       });
-    } else {
-      setStep("key");
+      return;
     }
+    setStep("key");
   }
 
   function handleSubmitKey() {
@@ -4368,6 +4369,8 @@ function ProviderSelector() {
     if (!key) return;
     import_config.setProvider(providerKey, key);
     import_store.setState({ apiKey: key, provider: providerKey, needsConfig: false });
+    setInput("");
+    setStep("select");
   }
 
   var handleKeyPress = function (key) {
@@ -4427,7 +4430,6 @@ function ProviderSelector() {
                   var focused = idx === focusedIdx;
                   var configured = isConfigured(key);
                   var def = isDefault(key);
-
                   var statusFg = def
                     ? import_theme.colors.accent
                     : configured
@@ -4713,9 +4715,9 @@ function exitApp() {
   if (import_config4.session.commandsRun.length > 0)
     parts.push(`${import_config4.session.commandsRun.length} commands`);
   console.log(`
-  Session: ${parts.join(" \xB7 ")}
+  Session: ${parts.join(" · ")}
 `);
-  console.log(`  Goodbye! \u2726
+  console.log(`  Goodbye! ✦
 `);
   process.exit(0);
 }
@@ -4752,8 +4754,13 @@ function App() {
     }
   }, []);
   const forceSetup = process.env.APEX_DEV_NEEDS_CONFIG === "true";
-  const showSetup = state.needsConfig && !forceSetup;
-  const showForcedConfig = forceSetup;
+  const shouldShowSetup = forceSetup || state.needsConfig;
+  if (shouldShowSetup) {
+    return /* @__PURE__ */ jsx_runtime15.jsx("box", {
+      style: { flexDirection: "column", flexGrow: 1 },
+      children: /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ProviderSelector, {})
+    });
+  }
   return /* @__PURE__ */ jsx_runtime15.jsxs("box", {
     style: { flexDirection: "column", flexGrow: 1 },
     children: [
@@ -4770,15 +4777,13 @@ function App() {
         isProcessing: state.isProcessing
       }),
       /* @__PURE__ */ jsx_runtime15.jsx(InputBar, {
-        disabled: state.isProcessing || state.showHelp || state.needsConfig,
+        disabled: state.isProcessing || state.showHelp,
         onSubmit: handleInput
       }),
       state.showHelp ? /* @__PURE__ */ jsx_runtime15.jsx(HelpModal, {
         onClose: () => import_store5.setState({ showHelp: false }),
         onCommand: handleHelpCommand
-      }) : null,
-      showForcedConfig ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ApiKeyModal, {}) : null,
-      showSetup ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ProviderSelector, {}) : null
+      }) : null
     ]
   });
 }
