@@ -1,16 +1,35 @@
 var import_theme14 = __toESM(require_theme(), 1);
 var jsx_runtime14 = __toESM(require_jsx_runtime(), 1);
-var COMMANDS = [
-  { cmd: "/help", desc: "Show this menu" },
-  { cmd: "/compact", desc: "Compact/summarize conversation context" },
-  { cmd: "/files", desc: "Show project file tree" },
-  { cmd: "/clear", desc: "Clear conversation" },
-  { cmd: "/cost", desc: "Show session stats" },
-  { cmd: "/undo", desc: "Undo last edit" },
-  { cmd: "/diff", desc: "Show git diff" },
-  { cmd: "/git <cmd>", desc: "Run a git command" },
-  { cmd: "/quit", desc: "Exit" }
-];
+var { getProviderLoginState } = require_config();
+var store = require_store();
+
+function getCommandsForState() {
+  const provider = store.getSnapshot().provider;
+  const loginState = getProviderLoginState(provider);
+  const isLoggedIn = loginState === "logged-in" || loginState === "saved";
+  
+  const baseCommands = [
+    { cmd: "/help", desc: "Show this menu" },
+    { cmd: "/compact", desc: "Compact/summarize conversation context" },
+    { cmd: "/files", desc: "Show project file tree" },
+    { cmd: "/clear", desc: "Clear conversation" },
+    { cmd: "/cost", desc: "Show session stats" },
+    { cmd: "/undo", desc: "Undo last edit" },
+    { cmd: "/diff", desc: "Show git diff" },
+    { cmd: "/git <cmd>", desc: "Run a git command" },
+  ];
+  
+  if (isLoggedIn) {
+    baseCommands.splice(1, 0, { cmd: "/logout", desc: `Logout from ${provider}` });
+  } else {
+    baseCommands.splice(1, 0, { cmd: "/login", desc: "Login to a provider" });
+  }
+  
+  baseCommands.push({ cmd: "/quit", desc: "Exit" });
+  return baseCommands;
+}
+
+var COMMANDS = getCommandsForState();
 const QUICK_TIPS = [
   "Ctrl+C exits the app",
   "Esc closes overlays and thinking blocks",
