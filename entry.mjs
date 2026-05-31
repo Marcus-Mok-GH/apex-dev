@@ -332,6 +332,8 @@ var require_utils3 = __commonJS((exports, module2) => {
 
 var require_config = __commonJS((exports, module) => {
 const OpenAI = require("openai");
+const fs = require("fs");
+const path = require("path");
 
 // ── Provider registry ────────────────────────────────────────────────────
 const PROVIDERS = {
@@ -940,7 +942,43 @@ const codeEditorModelVariants = {
 };
 
 // ── Internal client holder ────────────────────────────────────────────────
+const os = require("os");
+
+// Load saved provider from config file if no env var is set for any provider
+let savedProvider = null;
+try {
+  const configPath = path.join(os.homedir(), ".apex-dev", "config.json");
+  if (fs.existsSync(configPath)) {
+    const savedConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    // Check if ANY env var is already set
+    const hasEnvKey = Object.values(PROVIDERS).some(p => process.env[p.envKey]);
+    if (!hasEnvKey) {
+      // Find first provider with a saved key in config
+      for (const [providerKey, provider] of Object.entries(PROVIDERS)) {
+        if (savedConfig[providerKey]) {
+          currentProvider = providerKey;
+          process.env[provider.envKey] = savedConfig[providerKey];
+          savedProvider = providerKey;
+          break;
+        }
+      }
+    }
+  }
+} catch (e) {}
+
 const _initialProvider = PROVIDERS[currentProvider];
+
+// Load stored key from config file before initializing the OpenAI client
+try {
+  const configPath = path.join(require("os").homedir(), ".apex-dev", "config.json");
+  if (fs.existsSync(configPath)) {
+    const savedConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    if (savedConfig[currentProvider] && !process.env[_initialProvider.envKey]) {
+      process.env[_initialProvider.envKey] = savedConfig[currentProvider];
+    }
+  }
+} catch (e) {}
+
 const _initialKey = process.env[_initialProvider.envKey] || "no-key";
 
 let _internalClient = new OpenAI({
@@ -1027,7 +1065,6 @@ function truncateOutput(str) {
   return str;
 }
 
-const path = require("path");
 function resolvePath(p) {
   if (!p) return PROJECT_ROOT;
   return path.isAbsolute(p) ? p : path.resolve(PROJECT_ROOT, p);
@@ -2854,7 +2891,7 @@ var require_agent = __commonJS((exports, module2) => {
             });
             break;
           } catch (apiErr) {
-            if (attempt < maxRetries && apiErr.status >= 400 && apiErr.status < 500) {
+            if (attempt < maxRetries && (!apiErr.status || apiErr.status >= 500)) {
               await sleep(1000 * Math.pow(2, attempt));
               continue;
             }
@@ -4708,7 +4745,7 @@ function App() {
   });
 }
 
-
+globalThis._App = App;
 
 
 
