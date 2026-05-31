@@ -23,9 +23,9 @@ function exitApp() {
   if (import_config4.session.commandsRun.length > 0)
     parts.push(`${import_config4.session.commandsRun.length} commands`);
   console.log(`
-  Session: ${parts.join(" \xB7 ")}
+  Session: ${parts.join(" · ")}
 `);
-  console.log(`  Goodbye! \u2726
+  console.log(`  Goodbye! ✦
 `);
   process.exit(0);
 }
@@ -62,8 +62,13 @@ function App() {
     }
   }, []);
   const forceSetup = process.env.APEX_DEV_NEEDS_CONFIG === "true";
-  const showSetup = state.needsConfig && !forceSetup;
-  const showForcedConfig = forceSetup;
+  const shouldShowSetup = forceSetup || state.needsConfig;
+  if (shouldShowSetup) {
+    return /* @__PURE__ */ jsx_runtime15.jsx("box", {
+      style: { flexDirection: "column", flexGrow: 1 },
+      children: /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ProviderSelector, {})
+    });
+  }
   return /* @__PURE__ */ jsx_runtime15.jsxs("box", {
     style: { flexDirection: "column", flexGrow: 1 },
     children: [
@@ -80,15 +85,13 @@ function App() {
         isProcessing: state.isProcessing
       }),
       /* @__PURE__ */ jsx_runtime15.jsx(InputBar, {
-        disabled: state.isProcessing || state.showHelp || state.needsConfig,
+        disabled: state.isProcessing || state.showHelp,
         onSubmit: handleInput
       }),
       state.showHelp ? /* @__PURE__ */ jsx_runtime15.jsx(HelpModal, {
         onClose: () => import_store5.setState({ showHelp: false }),
         onCommand: handleHelpCommand
-      }) : null,
-      showForcedConfig ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ApiKeyModal, {}) : null,
-      showSetup ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ProviderSelector, {}) : null
+      }) : null
     ]
   });
 }
