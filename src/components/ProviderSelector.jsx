@@ -8,12 +8,12 @@ var jsx_runtime = __toESM(require_jsx_runtime(), 1);
 var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together"];
 
 var PROVIDER_EMOJI = {
-  fireworks: "\uD83C\uDF86",
-  openai: "\uD83E\uDD16",
-  openrouter: "\uD83D\uDD00",
-  groq: "\u26A1",
-  gemini: "\uD83D\uDC8E",
-  together: "\uD83E\uDD1D",
+  fireworks: "🔥",
+  openai: "🤖",
+  openrouter: "🔀",
+  groq: "⚡",
+  gemini: "💎",
+  together: "🤝",
 };
 
 function ProviderSelector() {
@@ -88,7 +88,7 @@ function ProviderSelector() {
       style: {
         flexDirection: "column",
         flexGrow: 1,
-        paddingTop: 3,
+        paddingTop: 2,
       },
       onKeyDown: handleKeyPress,
       focused: true,
@@ -101,7 +101,7 @@ function ProviderSelector() {
                   children: jsx_runtime.jsx("text", {
                     attributes: TextAttributes.BOLD,
                     fg: import_theme.colors.white,
-                    children: "\u26A1 Select AI Provider",
+                    children: "Choose your AI provider",
                   }),
                 }),
                 jsx_runtime.jsx("box", {
@@ -109,7 +109,7 @@ function ProviderSelector() {
                   children: jsx_runtime.jsx("text", {
                     fg: import_theme.colors.dim,
                     children:
-                      "\u2191\u2193 or j/k to navigate  \u00B7  Enter to select  \u00B7  Ctrl+C to exit",
+                      "Use ↑↓ or j/k to navigate, Enter to continue, or select a configured provider to reuse its key.",
                   }),
                 }),
                 PROVIDER_ORDER.map(function (key, idx) {
@@ -123,20 +123,18 @@ function ProviderSelector() {
                       ? import_theme.colors.green
                       : import_theme.colors.dim;
                   var statusText = def
-                    ? "\u2713 Active"
+                    ? "Active"
                     : configured
-                      ? "\u2713 Configured"
-                      : "\u2717 Not configured";
+                      ? "Configured"
+                      : "Needs key";
 
                   return jsx_runtime.jsxs(
                     "box",
                     {
                       style: {
                         flexDirection: "row",
-                        paddingLeft: focused ? 4 : 4,
+                        paddingLeft: 4,
                         paddingRight: 4,
-                        paddingTop: 0,
-                        paddingBottom: 0,
                       },
                       onMouseEnter: function () {
                         setFocusedIdx(idx);
@@ -149,7 +147,7 @@ function ProviderSelector() {
                         jsx_runtime.jsx("text", {
                           fg: focused ? import_theme.colors.primary : import_theme.colors.dim,
                           attributes: focused ? TextAttributes.BOLD : 0,
-                          children: focused ? "\u25B6 " : "  ",
+                          children: focused ? "▶ " : "  ",
                         }),
                         jsx_runtime.jsx("text", {
                           fg: focused ? import_theme.colors.white : import_theme.colors.text,
@@ -173,7 +171,7 @@ function ProviderSelector() {
                   style: { paddingLeft: 4, paddingRight: 4, marginTop: 2 },
                   children: jsx_runtime.jsx("text", {
                     fg: import_theme.colors.dim,
-                    children: "Keys are stored in ~/.apex-dev/config.json or set via environment variables",
+                    children: "Keys are stored in ~/.apex-dev/config.json or can be supplied via environment variables.",
                   }),
                 }),
               ],
@@ -199,7 +197,7 @@ function ProviderSelector() {
                         fg: import_theme.colors.yellow,
                         children: provider.envKey,
                       }),
-                      "  \u00B7  Esc to go back",
+                      "  ·  Esc to go back",
                     ],
                   }),
                 }),

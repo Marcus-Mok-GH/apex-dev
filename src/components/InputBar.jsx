@@ -13,35 +13,38 @@ function InputBar({ disabled, onSubmit }) {
     onSubmit(trimmed);
   };
 
-  const hint = isNarrow ? "^C · /?" : "Ctrl+C exit  ·  /help";
+  const hint = isNarrow ? "Ctrl+C · /" : "Ctrl+C exit · /help · /files";
+  const placeholder = disabled
+    ? "setup in progress..."
+    : isNarrow
+      ? "Message or /cmd"
+      : "Ask Apex anything, or use /commands";
 
   return /* @__PURE__ */ jsx_runtime12.jsx("box", {
-    style: { flexDirection: "column" },
+    style: { flexDirection: "column", paddingLeft: 1, paddingRight: 1, paddingBottom: 1 },
     children: /* @__PURE__ */ jsx_runtime12.jsxs("box", {
       style: {
         flexDirection: "row",
         paddingLeft: 1,
         paddingRight: 1,
         borderStyle: "rounded",
-        borderColor: disabled ? import_theme12.colors.dim : import_theme12.colors.border
+        borderColor: disabled ? import_theme12.colors.dim : import_theme12.colors.border,
+        backgroundColor: disabled ? import_theme12.colors.surface : undefined
       },
       children: [
-        // Prompt glyph
         /* @__PURE__ */ jsx_runtime12.jsx("text", {
           fg: disabled ? import_theme12.colors.dim : import_theme12.colors.primary,
           attributes: disabled ? 0 : TextAttributes.BOLD,
           content: "❯ "
         }),
-        // Input field
         /* @__PURE__ */ jsx_runtime12.jsx("input", {
           ref: inputRef,
           focused: !disabled,
-          placeholder: disabled ? "processing..." : "Type a message or /command",
+          placeholder,
           onSubmit: handleSubmit,
           fg: import_theme12.colors.text,
           style: { flexGrow: 1 }
         }),
-        // Inline hint — right side
         /* @__PURE__ */ jsx_runtime12.jsx("text", {
           fg: import_theme12.colors.dim,
           content: "  " + hint
