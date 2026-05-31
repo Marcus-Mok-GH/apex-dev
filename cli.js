@@ -135,9 +135,12 @@ function getCacheDir() {
   return dir;
 }
 
+function getBinaryCacheDir() {
+  return path.join(getCacheDir(), "bin", `v${VERSION}`);
+}
+
 function getLocalBinaryPath() {
-  const cacheDir = getCacheDir();
-  return path.join(cacheDir, getBinaryName());
+  return path.join(getBinaryCacheDir(), getBinaryName());
 }
 
 function getDownloadUrl() {
@@ -153,6 +156,7 @@ function downloadBinary(destPath) {
   console.error(`URL: ${url}`);
 
   return new Promise((resolve, reject) => {
+    fs.mkdirSync(path.dirname(destPath), { recursive: true });
     const file = fs.createWriteStream(destPath, { mode: 0o755 });
     let settled = false;
 
