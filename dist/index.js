@@ -54,6 +54,7 @@ var require_store = __commonJS((exports, module2) => {
   var _detectedProvider = config.detectInitialProvider();
   var _providerEnvKey = config.PROVIDERS[_detectedProvider].envKey;
   var _apiKey = process.env[_providerEnvKey] || "";
+  var _needsConfig = process.env.APEX_DEV_NEEDS_CONFIG === "true" || !Boolean(_apiKey);
   var state = {
     messages: [],
     streamingContent: "",
@@ -63,7 +64,7 @@ var require_store = __commonJS((exports, module2) => {
     showSummary: false,
     apiKey: _apiKey,
     provider: _detectedProvider,
-    needsConfig: !Boolean(_apiKey)
+    needsConfig: _needsConfig
   };
   var nextId = 1;
   var listeners = new Set;
@@ -887,15 +888,6 @@ The user asks you to implement a new feature. You respond in multiple steps:
     }
   } catch (e) {}
   const _initialProvider = PROVIDERS[currentProvider];
-  try {
-    const configPath = path.join(__require("os").homedir(), ".apex-dev", "config.json");
-    if (fs.existsSync(configPath)) {
-      const savedConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-      if (savedConfig[currentProvider] && !process.env[_initialProvider.envKey]) {
-        process.env[_initialProvider.envKey] = savedConfig[currentProvider];
-      }
-    }
-  } catch (e) {}
   const _initialKey = process.env[_initialProvider.envKey] || "no-key";
   let _internalClient = new OpenAI({
     apiKey: _initialKey,
@@ -4705,6 +4697,7 @@ function App() {
       });
     }
   }, []);
+  const showConfig = state.needsConfig || process.env.APEX_DEV_NEEDS_CONFIG === "true";
   return /* @__PURE__ */ jsx_runtime15.jsxs("box", {
     style: { flexDirection: "column", flexGrow: 1 },
     children: [
@@ -4728,6 +4721,7 @@ function App() {
         onClose: () => import_store5.setState({ showHelp: false }),
         onCommand: handleHelpCommand
       }) : null,
+      showConfig ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ApiKeyModal, {}) : null,
       state.needsConfig ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ProviderSelector, {}) : null
     ]
   });

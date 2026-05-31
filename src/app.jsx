@@ -61,6 +61,7 @@ function App() {
       });
     }
   }, []);
+  const showConfig = state.needsConfig || process.env.APEX_DEV_NEEDS_CONFIG === "true";
   return /* @__PURE__ */ jsx_runtime15.jsxs("box", {
     style: { flexDirection: "column", flexGrow: 1 },
     children: [
@@ -84,6 +85,7 @@ function App() {
         onClose: () => import_store5.setState({ showHelp: false }),
         onCommand: handleHelpCommand
       }) : null,
+      showConfig ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ApiKeyModal, {}) : null,
       state.needsConfig ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ProviderSelector, {}) : null
     ]
   });
