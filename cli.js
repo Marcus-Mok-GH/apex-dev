@@ -7,6 +7,8 @@ const https = require("https");
 const { spawnSync, spawn } = require("child_process");
 
 const VERSION = require("./package.json").version;
+const RELEASE_OWNER = "Marcus-Mok-GH";
+const RELEASE_REPO = "apex-dev";
 
 // ── Config ────────────────────────────────────────────────────────────────
 const CONFIG_PATH = path.join(os.homedir(), ".apex-dev", "config.json");
@@ -139,6 +141,85 @@ function getBinaryCacheDir() {
   return path.join(getCacheDir(), "bin", `v${VERSION}`);
 }
 
+function getBinaryMetadataPath() {
+  return path.join(getBinaryCacheDir(), `${getBinaryName()}.json`);
+}
+
+function readBinaryMetadata() {
+  try {
+    const metadataPath = getBinaryMetadataPath();
+    if (!fs.existsSync(metadataPath)) return null;
+    return JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
+  } catch {
+    return null;
+  }
+}
+
+function saveBinaryMetadata(metadata) {
+  const metadataPath = getBinaryMetadataPath();
+  fs.mkdirSync(path.dirname(metadataPath), { recursive: true });
+  fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+  fs.chmodSync(metadataPath, 0o600);
+}
+
+function clearBinaryMetadata() {
+  try { fs.unlinkSync(getBinaryMetadataPath()); } catch {}
+}
+
+function fetchReleaseAssetInfo() {
+  const apiUrl = `https://api.github.com/repos/${RELEASE_OWNER}/${RELEASE_REPO}/releases/tags/v${VERSION}`;
+  return new Promise((resolve, reject) => {
+    const req = https.get(apiUrl, {
+      headers: {
+        "accept": "application/vnd.github+json",
+        "user-agent": "apex-dev-installer"
+      }
+    }, (res) => {
+      let body = "";
+      res.setEncoding("utf8");
+      res.on("data", (chunk) => {
+        body += chunk;
+      });
+      res.on("end", () => {
+        if (res.statusCode !== 200) {
+          reject(new Error(`Release metadata request failed with status ${res.statusCode}`));
+          return;
+        }
+        try {
+          const release = JSON.parse(body);
+          const assetName = getBinaryName();
+          const asset = Array.isArray(release.assets) ? release.assets.find((item) => item.name === assetName) : null;
+          if (!asset) {
+            reject(new Error(`Release asset ${assetName} not found`));
+            return;
+          }
+          resolve({
+            id: asset.id,
+            name: asset.name,
+            size: asset.size,
+            updatedAt: asset.updated_at,
+            downloadUrl: asset.browser_download_url || getDownloadUrl()
+          });
+        } catch (err) {
+          reject(new Error(`Invalid release metadata: ${err.message}`));
+        }
+      });
+    });
+    req.on("error", (err) => reject(err));
+    req.setTimeout(DOWNLOAD_TIMEOUT, () => {
+      req.destroy(new Error("Release metadata request timed out"));
+    });
+  });
+}
+
+function looksValidBinary(pathToBinary) {
+  try {
+    return fs.existsSync(pathToBinary) && fs.statSync(pathToBinary).size > 0;
+  } catch {
+    return false;
+  }
+}
+
 function getLocalBinaryPath() {
   return path.join(getBinaryCacheDir(), getBinaryName());
 }
@@ -237,28 +318,47 @@ function downloadBinary(destPath) {
 
 async function ensureBinary() {
   const localPath = getLocalBinaryPath();
+  const cachedMetadata = readBinaryMetadata();
 
-  if (fs.existsSync(localPath)) {
-    // Check for empty/partial downloads and remove them
-    try {
-      const stat = fs.statSync(localPath);
-      if (stat.size === 0) {
-        fs.unlinkSync(localPath);
-      } else {
-        return localPath;
-      }
-    } catch {
-      try { fs.unlinkSync(localPath); } catch {}
+  let releaseMetadata = null;
+  try {
+    releaseMetadata = await fetchReleaseAssetInfo();
+  } catch (err) {
+    if (looksValidBinary(localPath)) {
+      return localPath;
     }
+    throw err;
+  }
+
+  const binaryExists = looksValidBinary(localPath);
+  const cacheMatches = cachedMetadata
+    && cachedMetadata.assetId === releaseMetadata.id
+    && cachedMetadata.assetSize === releaseMetadata.size
+    && cachedMetadata.assetUpdatedAt === releaseMetadata.updatedAt;
+
+  if (binaryExists && cacheMatches) {
+    return localPath;
+  }
+
+  if (binaryExists && !cacheMatches) {
+    try { fs.unlinkSync(localPath); } catch {}
+    clearBinaryMetadata();
   }
 
   try {
     await downloadBinary(localPath);
+    saveBinaryMetadata({
+      assetId: releaseMetadata.id,
+      assetSize: releaseMetadata.size,
+      assetUpdatedAt: releaseMetadata.updatedAt,
+      downloadedAt: new Date().toISOString()
+    });
     console.error(`Binary downloaded to ${localPath}`);
     return localPath;
   } catch (err) {
     console.error(`Failed to download binary: ${err.message}`);
     try { fs.unlinkSync(localPath); } catch {}
+    clearBinaryMetadata();
     return null;
   }
 }
