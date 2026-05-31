@@ -940,6 +940,30 @@ const codeEditorModelVariants = {
 };
 
 // ── Internal client holder ────────────────────────────────────────────────
+const os = require("os");
+
+// Load saved provider from config file if no env var is set for any provider
+let savedProvider = null;
+try {
+  const configPath = path.join(os.homedir(), ".apex-dev", "config.json");
+  if (fs.existsSync(configPath)) {
+    const savedConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    // Check if ANY env var is already set
+    const hasEnvKey = Object.values(PROVIDERS).some(p => process.env[p.envKey]);
+    if (!hasEnvKey) {
+      // Find first provider with a saved key in config
+      for (const [providerKey, provider] of Object.entries(PROVIDERS)) {
+        if (savedConfig[providerKey]) {
+          currentProvider = providerKey;
+          process.env[provider.envKey] = savedConfig[providerKey];
+          savedProvider = providerKey;
+          break;
+        }
+      }
+    }
+  }
+} catch (e) {}
+
 const _initialProvider = PROVIDERS[currentProvider];
 const _initialKey = process.env[_initialProvider.envKey] || "no-key";
 

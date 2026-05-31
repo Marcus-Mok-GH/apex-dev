@@ -145,6 +145,8 @@ function getDownloadUrl() {
   return `https://github.com/Marcus-Mok-GH/apex-dev/releases/download/v${VERSION}/apex-dev-${platform}-${arch}`;
 }
 
+const DOWNLOAD_TIMEOUT = 10 * 1000;
+
 function downloadBinary(destPath) {
   const url = getDownloadUrl();
   console.error(`Downloading apex-dev v${VERSION} for ${detectPlatform().platform}-${detectPlatform().arch}...`);
@@ -152,33 +154,80 @@ function downloadBinary(destPath) {
 
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destPath, { mode: 0o755 });
-    https
-      .get(url, (response) => {
-        if (response.statusCode === 302 || response.statusCode === 301) {
-          https.get(response.headers.location, (redirectRes) => {
-            if (redirectRes.statusCode !== 200) {
-              reject(new Error(`Download failed with status ${redirectRes.statusCode}`));
-              return;
-            }
-            redirectRes.pipe(file);
-            file.on("finish", () => {
-              file.close();
-              resolve();
-            });
-          }).on("error", reject);
-          return;
-        }
-        if (response.statusCode !== 200) {
-          reject(new Error(`Download failed with status ${response.statusCode}`));
-          return;
-        }
-        response.pipe(file);
-        file.on("finish", () => {
-          file.close();
-          resolve();
+    let settled = false;
+
+    function cleanupAndReject(err) {
+      if (settled) return;
+      settled = true;
+      file.destroy();
+      try { fs.unlinkSync(destPath); } catch {}
+      reject(err);
+    }
+
+    function onFileError(err) {
+      cleanupAndReject(new Error(`Write stream error: ${err.message}`));
+    }
+
+    file.on("error", onFileError);
+
+    const req = https.get(url, (response) => {
+      if (response.statusCode === 302 || response.statusCode === 301) {
+        const redirectReq = https.get(response.headers.location, (redirectRes) => {
+          if (redirectRes.statusCode !== 200) {
+            cleanupAndReject(new Error(`Download failed with status ${redirectRes.statusCode}`));
+            return;
+          }
+
+          function onFinish() {
+            file.removeListener("error", onFileError);
+            redirectReq.removeListener("error", onRedirectError);
+            redirectReq.removeListener("timeout", onRedirectTimeout);
+            file.close();
+            resolve();
+          }
+
+          file.on("finish", onFinish);
+          redirectRes.pipe(file);
         });
-      })
-      .on("error", reject);
+
+        function onRedirectError(err) {
+          cleanupAndReject(new Error(`Redirect request error: ${err.message}`));
+        }
+        function onRedirectTimeout() {
+          cleanupAndReject(new Error("Download redirect timed out"));
+        }
+
+        redirectReq.on("error", onRedirectError);
+        redirectReq.setTimeout(DOWNLOAD_TIMEOUT, onRedirectTimeout);
+        return;
+      }
+
+      if (response.statusCode !== 200) {
+        cleanupAndReject(new Error(`Download failed with status ${response.statusCode}`));
+        return;
+      }
+
+      function onFinish() {
+        file.removeListener("error", onFileError);
+        req.removeListener("error", onReqError);
+        req.removeListener("timeout", onReqTimeout);
+        file.close();
+        resolve();
+      }
+
+      file.on("finish", onFinish);
+      response.pipe(file);
+    });
+
+    function onReqError(err) {
+      cleanupAndReject(new Error(`Download request error: ${err.message}`));
+    }
+    function onReqTimeout() {
+      cleanupAndReject(new Error("Download timed out"));
+    }
+
+    req.on("error", onReqError);
+    req.setTimeout(DOWNLOAD_TIMEOUT, onReqTimeout);
   });
 }
 
@@ -186,7 +235,17 @@ async function ensureBinary() {
   const localPath = getLocalBinaryPath();
 
   if (fs.existsSync(localPath)) {
-    return localPath;
+    // Check for empty/partial downloads and remove them
+    try {
+      const stat = fs.statSync(localPath);
+      if (stat.size === 0) {
+        fs.unlinkSync(localPath);
+      } else {
+        return localPath;
+      }
+    } catch {
+      try { fs.unlinkSync(localPath); } catch {}
+    }
   }
 
   try {
@@ -195,6 +254,7 @@ async function ensureBinary() {
     return localPath;
   } catch (err) {
     console.error(`Failed to download binary: ${err.message}`);
+    try { fs.unlinkSync(localPath); } catch {}
     return null;
   }
 }
@@ -221,6 +281,10 @@ function runWithBun() {
     const child = spawn(bunPath, [distPath, ...process.argv.slice(2)], {
       stdio: "inherit",
     });
+    child.on("error", (err) => {
+      console.error(`Failed to launch bun: ${err.message}`);
+      process.exit(1);
+    });
     child.on("exit", (code) => {
       process.exit(code || 0);
     });
@@ -228,6 +292,10 @@ function runWithBun() {
   }
   const child = spawn(bunPath, [scriptPath, ...process.argv.slice(2)], {
     stdio: "inherit",
+  });
+  child.on("error", (err) => {
+    console.error(`Failed to launch bun: ${err.message}`);
+    process.exit(1);
   });
   child.on("exit", (code) => {
     process.exit(code || 0);
@@ -328,6 +396,10 @@ async function main() {
   if (binaryPath && fs.existsSync(binaryPath)) {
     const child = spawn(binaryPath, args, {
       stdio: "inherit",
+    });
+    child.on("error", (err) => {
+      console.error(`Failed to launch binary: ${err.message}`);
+      process.exit(1);
     });
     child.on("exit", (code) => {
       process.exit(code || 0);
