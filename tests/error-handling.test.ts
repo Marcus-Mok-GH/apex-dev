@@ -7,8 +7,8 @@ const projectRoot = join(testsDir, "..");
 const cliPath = join(projectRoot, "cli.js");
 
 test("invalid flag handling", async ({ $ }) => {
-  const result = await $`node ${cliPath} --help`;
-  
+  const result = await $`node ${cliPath} --invalid-flag`;
+
   expect(result.code).toBe(0);
 });
 
@@ -29,7 +29,7 @@ test("binary download URL is shown", async ({ $ }) => {
 
 test("handles missing API keys gracefully", async ({ $ }) => {
   const result = await $`node ${cliPath} --keys`;
-  
-  expect(result.code).toBeDefined();
-  expect(result.output).toBeDefined();
+
+  expect(result.code).toBe(0);
+  expect(result.output).toMatch(/select a provider|No API keys|please set your API key/i);
 });
