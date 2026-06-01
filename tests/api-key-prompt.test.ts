@@ -15,7 +15,7 @@ const testConfigDir = join(testHomeDir, ".apex-dev");
 const testConfigPath = join(testConfigDir, "config.json");
 
 beforeEach(async () => {
-  // Clean test home directory
+  // Clean test home directory - ensure no existing config
   if (existsSync(testHomeDir)) {
     rmSync(testHomeDir, { recursive: true, force: true });
   }
@@ -29,39 +29,40 @@ afterEach(async () => {
   }
 });
 
-test("APEX_DEV_NEEDS_CONFIG env is set when no keys configured", async ({ $ }) => {
-  // Run --keys with isolated HOME (no keys)
-  const result = await $`HOME=${testHomeDir} FIREWORKS_API_KEY= OPENAI_API_KEY= OPENROUTER_API_KEY= GROQ_API_KEY= GEMINI_API_KEY= TOGETHER_API_KEY= node ${cliPath} --keys`;
+test("APEX_DEV_NEEDS_CONFIG message shown when no keys configured", async ({ $ }) => {
+  // Run CLI with isolated HOME (no keys, no config file)
+  // Clear ALL possible provider API key env vars
+  const result = await $`HOME=${testHomeDir} FIREWORKS_API_KEY= OPENAI_API_KEY= OPENROUTER_API_KEY= GROQ_API_KEY= GEMINI_API_KEY= TOGETHER_API_KEY= ANTHROPIC_API_KEY= node ${cliPath} --keys`;
   
-  // Without keys, should show "No API keys" message
-  expect(result.stderr).toContain("No API keys");
+  // Should show "No API keys configured" message
+  expect(result.stderr).toContain("No API keys configured");
   expect(result.code).toBe(0);
 });
 
-test("stored keys are loaded from config on startup", async ({ $ }) => {
-  // Write a test config file with a saved key
+test("stored keys are loaded from config file", async ({ $ }) => {
+  // Create config directory and file BEFORE running CLI
   mkdirSync(testConfigDir, { recursive: true });
   writeFileSync(testConfigPath, JSON.stringify({ fireworks: "test-key-abc123" }), "utf-8");
   
-  // Run --keys with isolated HOME
-  const result = await $`HOME=${testHomeDir} FIREWORKS_API_KEY= OPENAI_API_KEY= node ${cliPath} --keys`;
+  // Run --keys with isolated HOME and cleared env vars
+  const result = await $`HOME=${testHomeDir} FIREWORKS_API_KEY= OPENAI_API_KEY= ANTHROPIC_API_KEY= node ${cliPath} --keys`;
   
-  // With saved key, should show Fireworks as configured
+  // Should show Fireworks as configured (loaded from config file)
   expect(result.stderr).toContain("Fireworks");
+  expect(result.stderr).toContain("1 provider");
 });
 
-test("provider selection TUI message when no keys", async ({ $ }) => {
-  // Run --keys with isolated HOME (no keys)
-  // Clear ALL possible env vars that might have keys
-  const result = await $`HOME=${testHomeDir} FIREWORKS_API_KEY= OPENAI_API_KEY= OPENROUTER_API_KEY= GROQ_API_KEY= GEMINI_API_KEY= TOGETHER_API_KEY= node ${cliPath} --keys`;
+test("launching interactive provider selection message shown", async ({ $ }) => {
+  // Run CLI with no keys - should show provider selection message
+  const result = await $`HOME=${testHomeDir} FIREWORKS_API_KEY= OPENAI_API_KEY= OPENROUTER_API_KEY= GROQ_API_KEY= GEMINI_API_KEY= TOGETHER_API_KEY= ANTHROPIC_API_KEY= node ${cliPath} --keys`;
   
-  // Should show either "No API keys" or provider list (depends on env)
-  // This test verifies the command runs without error
+  // Verify either "No API keys" or provider list shown
   expect(result.code).toBe(0);
+  expect(result.stderr).toMatch(/No API keys|provider/i);
 });
 
 test("config file stores provider keys", async ({ $ }) => {
-  // Create config dir and write config
+  // Create config directory and file BEFORE reading
   mkdirSync(testConfigDir, { recursive: true });
   writeFileSync(testConfigPath, JSON.stringify({ 
     fireworks: "fw-key",
