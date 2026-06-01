@@ -14,7 +14,9 @@
     "build": "bun scripts/build-entry.mjs && NODE_ENV=production bun build entry.mjs --target=bun --outfile=dist/index.js --packages=external",
     "prepack": "npm run build",
     "start": "bun apex.mjs",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "bunx repterm tests/",
+    "test:record": "bunx repterm --record tests/",
+    "test:verbose": "bunx repterm -v tests/"
   },
   "keywords": [],
   "author": "",
@@ -29,5 +31,8 @@
     "react": "^19.2.4",
     "react-reconciler": "^0.32.0",
     "vercel": "^50.25.6"
+  },
+  "devDependencies": {
+    "repterm": "^0.2.1"
   }
 }
