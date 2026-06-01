@@ -1,24 +1,25 @@
 import { test, expect } from "repterm";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 
-test("all expected providers are supported", async ({ terminal, $ }) => {
-  // Check help output mentions setup for API keys
-  const result = await $`apex --help`;
+const testsDir = dirname(fileURLToPath(import.meta.url));
+const projectRoot = join(testsDir, "..");
+const cliPath = join(projectRoot, "cli.js");
+
+test("all expected providers are supported", async ({ $ }) => {
+  const result = await $`node ${cliPath} --help`;
   
   expect(result.output).toContain("--setup");
   expect(result.output).toContain("--keys");
 });
 
-test("provider list includes known services", async ({ terminal, $ }) => {
-  const result = await $`apex --keys`;
+test("provider list includes known services", async ({ $ }) => {
+  const result = await $`node ${cliPath} --keys`;
   
-  // Should mention provider names or show "no keys" message
   const output = result.output;
-  
-  // Check for known provider names in output
   const knownProviders = ["Fireworks", "OpenAI", "Groq", "Gemini", "Together", "OpenRouter"];
   const foundProviders = knownProviders.filter(p => output.includes(p));
   
-  // Either found some providers or shows "no keys" message
   const hasOutput = foundProviders.length > 0 || output.includes("No API keys");
   expect(hasOutput).toBe(true);
 });

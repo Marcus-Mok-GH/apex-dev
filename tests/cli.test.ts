@@ -1,7 +1,14 @@
 import { test, expect } from "repterm";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 
-test("apex --help shows version and flags", async ({ terminal, $ }) => {
-  const result = await $`apex --help`;
+// Get absolute path to cli.js
+const testsDir = dirname(fileURLToPath(import.meta.url));
+const projectRoot = join(testsDir, "..");
+const cliPath = join(projectRoot, "cli.js");
+
+test("apex --help shows version and flags", async ({ $ }) => {
+  const result = await $`node ${cliPath} --help`;
   
   expect(result.code).toBe(0);
   expect(result.output).toMatch(/apex-dev v\d+\.\d+\.\d+/);
@@ -10,8 +17,8 @@ test("apex --help shows version and flags", async ({ terminal, $ }) => {
   expect(result.output).toContain("--help");
 });
 
-test("apex -h shows same help output", async ({ terminal, $ }) => {
-  const result = await $`apex -h`;
+test("apex -h shows same help output", async ({ $ }) => {
+  const result = await $`node ${cliPath} -h`;
   
   expect(result.code).toBe(0);
   expect(result.output).toMatch(/apex-dev v\d+\.\d+\.\d+/);
@@ -19,22 +26,19 @@ test("apex -h shows same help output", async ({ terminal, $ }) => {
   expect(result.output).toContain("--keys");
 });
 
-test("apex --keys shows provider status", async ({ terminal, $ }) => {
-  const result = await $`apex --keys`;
+test("apex --keys shows provider status", async ({ $ }) => {
+  const result = await $`node ${cliPath} --keys`;
   
-  // Exits with 0 (shows status) - may show no keys if not configured
-  expect([0, 0]).toContain(result.code);
+  expect(result.code).toBe(0);
   
-  // Should mention providers or show "No API keys" message
   const hasProviders = result.output.includes("Fireworks") || 
                        result.output.includes("OpenAI") ||
                        result.output.includes("No API keys");
   expect(hasProviders).toBe(true);
 });
 
-test("apex shows version in help output", async ({ terminal, $ }) => {
-  const result = await $`apex --help`;
+test("apex shows version in help output", async ({ $ }) => {
+  const result = await $`node ${cliPath} --help`;
   
-  // Version format: major.minor.patch
   expect(result.output).toMatch(/v\d+\.\d+\.\d+/);
 });
