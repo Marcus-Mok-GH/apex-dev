@@ -1,6 +1,6 @@
 {
   "name": "apex-dev",
-  "version": "3.10.26",
+  "version": "3.10.27",
   "description": "Apex AI - a friendly agentic coding assistant for the terminal",
   "main": "dist/index.js",
   "bin": {
