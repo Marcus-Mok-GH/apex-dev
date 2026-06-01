@@ -39,6 +39,7 @@ test("apex --keys shows provider status", async ({ $ }) => {
 
 test("apex shows version in help output", async ({ $ }) => {
   const result = await $`node ${cliPath} --help`;
-  
+
+  expect(result.code).toBe(0);
   expect(result.output).toMatch(/v\d+\.\d+\.\d+/);
 });
