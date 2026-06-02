@@ -96,7 +96,7 @@ function getFirstSavedProvider() {
 const PROVIDERS = {
   fireworks: {
     label: "Fireworks AI",
-    baseURL: process.env.APEX_API_URL || "https://fireworks-endpoint--57crestcrepe.replit.app/v1",
+    baseURL: process.env.APEX_API_URL || "https://api.fireworks.ai/inference/v1",
     envKey: "FIREWORKS_API_KEY",
     models: {
       NVIDIA_MODEL:        "z-ai/glm4.7",

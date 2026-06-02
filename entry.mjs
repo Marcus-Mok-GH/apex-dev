@@ -432,7 +432,7 @@ function getFirstSavedProvider() {
 const PROVIDERS = {
   fireworks: {
     label: "Fireworks AI",
-    baseURL: process.env.APEX_API_URL || "https://fireworks-endpoint--57crestcrepe.replit.app/v1",
+    baseURL: process.env.APEX_API_URL || "https://api.fireworks.ai/inference/v1",
     envKey: "FIREWORKS_API_KEY",
     models: {
       NVIDIA_MODEL:        "z-ai/glm4.7",
@@ -1081,6 +1081,12 @@ function setApiKey(key) {
 function setProvider(providerKey, apiKey) {
   const provider = PROVIDERS[providerKey];
   if (!provider) return;
+  
+  // Clear all provider env vars to prevent stale login state
+  for (const p of Object.values(PROVIDERS)) {
+    delete process.env[p.envKey];
+  }
+  
   currentProvider = providerKey;
   _internalClient = _makeClient(apiKey, provider.baseURL);
   Object.assign(currentModels, provider.models);
