@@ -563,7 +563,7 @@ const GENERAL_AGENT_SYSTEM_PROMPT = BUFFY_SYSTEM_PROMPT;
 
 const agentConfigs = {
   buffy: {
-    model: "anthropic/claude-opus-4.5",
+    model: "accounts/fireworks/models/kimi-k2p6",
     temperature: 0.7,
     maxTokens: 8192,
     displayName: "Buffy",
@@ -580,7 +580,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
 
 - For any task requiring 3+ steps, use the write_todos tool to write out your step-by-step implementation plan. Include ALL of the applicable tasks in the list. You should include a step to review the changes after you have implemented the changes.: You should include at least one step to validate/test your changes: be specific about whether to typecheck, run tests, run lints, etc. You may be able to do reviewing and validation in parallel in the same step. Skip write_todos for simple tasks like quick edits or answering questions.
 
-- For quick problems, use <think> tags to think through the problem. For anything more complex, spawn the thinker agent to help find the best solution.
+- For quick problems, use <tool_call>tags to think through the problem. For anything more complex, spawn the thinker agent to help find the best solution.
 
 - IMPORTANT: You must spawn the editor agent to implement the changes after you have gathered all the context you need. This agent will do the best job of implementing the changes so you must spawn it for all non-trivial changes. Do not pass any prompt or params to the editor agent when spawning it. It will make its own best choices of what to do.
 
@@ -593,7 +593,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
 - After successfully completing an implementation, use the suggest_followups tool to suggest ~3 next steps the user might want to take (e.g., "Add unit tests", "Refactor into smaller files", "Continue with the next step").`,
   },
   theo: {
-    model: "anthropic/claude-opus-4.5",
+    model: "accounts/fireworks/models/deepseek-v4-pro",
     temperature: 0.3,
     maxTokens: 4096,
     displayName: "Theo the Theorizer",
@@ -603,7 +603,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
     instructionsPrompt: THEO_INSTRUCTIONS_PROMPT,
   },
   nitPickNick: {
-    model: "anthropic/claude-sonnet-4.5",
+    model: "accounts/fireworks/models/qwen3p6-plus",
     temperature: 0.2,
     maxTokens: 4096,
     displayName: "Nit Pick Nick",
@@ -613,7 +613,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
     instructionsPrompt: NIT_PICK_NICK_INSTRUCTIONS_PROMPT,
   },
   codeEditor: {
-    model: "anthropic/claude-opus-4.5",
+    model: "accounts/fireworks/models/kimi-k2p6",
     temperature: 0.1,
     maxTokens: 8192,
     displayName: "Code Editor",
@@ -623,7 +623,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
     instructionsPrompt: CODE_EDITOR_INSTRUCTIONS_PROMPT,
   },
   weeb: {
-    model: "x-ai/grok-4-fast",
+    model: "accounts/fireworks/models/qwen3p6-plus",
     temperature: 0.5,
     maxTokens: 4096,
     displayName: "Weeb",
@@ -633,7 +633,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
     instructionsPrompt: WEEB_INSTRUCTIONS_PROMPT,
   },
   doc: {
-    model: "x-ai/grok-4-fast",
+    model: "accounts/fireworks/models/qwen3p6-plus",
     temperature: 0.5,
     maxTokens: 4096,
     displayName: "Doc",
@@ -643,7 +643,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
     instructionsPrompt: DOC_INSTRUCTIONS_PROMPT,
   },
   basher: {
-    model: "anthropic/claude-haiku-4.5",
+    model: "accounts/fireworks/models/qwen3p6-plus",
     temperature: 0.3,
     maxTokens: 4096,
     displayName: "Basher",
@@ -653,7 +653,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
     instructionsPrompt: BASHER_INSTRUCTIONS_PROMPT,
   },
   contextPruner: {
-    model: "openai/gpt-5-mini",
+    model: "accounts/fireworks/models/qwen3p6-plus",
     temperature: 0.3,
     maxTokens: 4096,
     displayName: "Context Pruner",
@@ -670,43 +670,40 @@ The user asks you to implement a new feature. You respond in multiple steps:
 
 const agentModes = {
   default: {
-    model: "anthropic/claude-opus-4.5",
+    model: "accounts/fireworks/models/kimi-k2p6",
     temperature: 0.7,
     maxTokens: 8192,
   },
   fast: {
-    model: "anthropic/claude-sonnet-4.5",
+    model: "accounts/fireworks/models/qwen3p6-plus",
     temperature: 0.1,
     maxTokens: 4096,
   },
   max: {
-    model: "anthropic/claude-opus-4.5",
+    model: "accounts/fireworks/models/kimi-k2p6",
     temperature: 0.7,
     maxTokens: 16384,
   },
   free: {
-    model: "anthropic/claude-sonnet-4.5",
+    model: "accounts/fireworks/models/qwen3p6-plus",
     temperature: 0.5,
     maxTokens: 8192,
   },
   lite: {
-    model: "anthropic/claude-haiku-4.5",
+    model: "accounts/fireworks/models/qwen3p6-plus",
     temperature: 0.3,
     maxTokens: 4096,
   },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ═══ Model variants for codeEditor (gpt-5, opus, glm, kimi, deepseek, minimax)
+// ═══ Model variants for codeEditor (kimi, deepseek, qwen) ═════════════════
 // ═══════════════════════════════════════════════════════════════════════════
 
 const codeEditorModelVariants = {
-  "gpt-5":    { model: "openai/gpt-5",       temperature: 0.1, maxTokens: 8192 },
-  "opus":     { model: "anthropic/claude-opus-4.5", temperature: 0.1, maxTokens: 8192 },
-  "glm":      { model: "z-ai/glm4.7",        temperature: 0.1, maxTokens: 8192 },
-  "kimi":     { model: "moonshot/kimi-k2.6", temperature: 0.1, maxTokens: 8192 },
-  "deepseek": { model: "deepseek/deepseek-chat-v3", temperature: 0.1, maxTokens: 8192 },
-  "minimax":  { model: "minimax/minimax-01", temperature: 0.1, maxTokens: 8192 },
+  "kimi":     { model: "accounts/fireworks/models/kimi-k2p6", temperature: 0.1, maxTokens: 8192 },
+  "deepseek": { model: "accounts/fireworks/models/deepseek-v4-pro", temperature: 0.1, maxTokens: 8192 },
+  "qwen":     { model: "accounts/fireworks/models/qwen3p6-plus", temperature: 0.1, maxTokens: 8192 },
 };
 
 // ── Internal client holder ────────────────────────────────────────────────
