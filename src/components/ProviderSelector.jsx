@@ -91,7 +91,8 @@ function ProviderSelector() {
     setStep("key");
   }
 
-  var handleKeyPress = function (key) {
+  // Use useKeyboard hook for proper keyboard handling
+  useKeyboard(function (key) {
     if (step === "select") {
       if (key.name === "up" || key.name === "k") {
         setFocusedIdx(function (i) {
@@ -110,11 +111,10 @@ function ProviderSelector() {
       if (key.name === "escape") {
         setStep("select");
         setInput("");
-      } else if (key.name === "return" || key.name === "enter") {
-        handleLogin();
       }
+      // Note: Enter in key input is handled by the input's onSubmit
     }
-  };
+  });
 
   var selectedState = loginState(providerKey);
 
@@ -126,7 +126,6 @@ function ProviderSelector() {
         flexGrow: 1,
         paddingTop: 2,
       },
-      onKeyDown: handleKeyPress,
       focused: true,
       children:
         step === "select"

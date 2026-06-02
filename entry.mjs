@@ -68,8 +68,9 @@ var require_store = __commonJS((exports, module2) => {
   // Import config for provider detection
   var config = require_config();
 
-  // Detect provider using shared logic
-  var _detectedProvider = config.detectInitialProvider();
+  // Get the initial provider - config.loadSavedProvidersIntoEnv() must run first
+  // This is called automatically when config module initializes
+  var _detectedProvider = config.currentProvider;
   var _providerEnvKey = config.PROVIDERS[_detectedProvider].envKey;
   var _apiKey = process.env[_providerEnvKey] || "";
   var _needsConfig = process.env.APEX_DEV_NEEDS_CONFIG === "true" || !Boolean(_apiKey);
@@ -1083,6 +1084,10 @@ function setProvider(providerKey, apiKey) {
   currentProvider = providerKey;
   _internalClient = _makeClient(apiKey, provider.baseURL);
   Object.assign(currentModels, provider.models);
+  // Set env var so getProviderLoginState returns correct status
+  if (apiKey) {
+    process.env[provider.envKey] = apiKey;
+  }
   if (globalThis.require_server) {
     const srv = globalThis.require_server();
     if (srv && srv.updateApiKey) srv.updateApiKey(apiKey || "no-key");
@@ -4502,7 +4507,8 @@ function ProviderSelector() {
     setStep("key");
   }
 
-  var handleKeyPress = function (key) {
+  // Use useKeyboard hook for proper keyboard handling
+  useKeyboard(function (key) {
     if (step === "select") {
       if (key.name === "up" || key.name === "k") {
         setFocusedIdx(function (i) {
@@ -4521,11 +4527,10 @@ function ProviderSelector() {
       if (key.name === "escape") {
         setStep("select");
         setInput("");
-      } else if (key.name === "return" || key.name === "enter") {
-        handleLogin();
       }
+      // Note: Enter in key input is handled by the input's onSubmit
     }
-  };
+  });
 
   var selectedState = loginState(providerKey);
 
@@ -4537,7 +4542,6 @@ function ProviderSelector() {
         flexGrow: 1,
         paddingTop: 2,
       },
-      onKeyDown: handleKeyPress,
       focused: true,
       children:
         step === "select"

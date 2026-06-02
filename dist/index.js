@@ -51,7 +51,7 @@ var require_openai = __commonJS((exports, module) => {
 });
 var require_store = __commonJS((exports, module2) => {
   var config = require_config();
-  var _detectedProvider = config.detectInitialProvider();
+  var _detectedProvider = config.currentProvider;
   var _providerEnvKey = config.PROVIDERS[_detectedProvider].envKey;
   var _apiKey = process.env[_providerEnvKey] || "";
   var _needsConfig = process.env.APEX_DEV_NEEDS_CONFIG === "true" || !Boolean(_apiKey);
@@ -998,6 +998,9 @@ The user asks you to implement a new feature. You respond in multiple steps:
     currentProvider = providerKey;
     _internalClient = _makeClient(apiKey, provider.baseURL);
     Object.assign(currentModels, provider.models);
+    if (apiKey) {
+      process.env[provider.envKey] = apiKey;
+    }
     if (globalThis.require_server) {
       const srv = globalThis.require_server();
       if (srv && srv.updateApiKey)
@@ -4531,7 +4534,7 @@ function ProviderSelector() {
     }
     setStep("key");
   }
-  var handleKeyPress = function(key) {
+  useKeyboard(function(key) {
     if (step === "select") {
       if (key.name === "up" || key.name === "k") {
         setFocusedIdx(function(i) {
@@ -4551,11 +4554,9 @@ function ProviderSelector() {
       if (key.name === "escape") {
         setStep("select");
         setInput("");
-      } else if (key.name === "return" || key.name === "enter") {
-        handleLogin();
       }
     }
-  };
+  });
   var selectedState = loginState(providerKey);
   return jsx_runtime.jsx("box", {
     style: {
@@ -4563,7 +4564,6 @@ function ProviderSelector() {
       flexGrow: 1,
       paddingTop: 2
     },
-    onKeyDown: handleKeyPress,
     focused: true,
     children: step === "select" ? jsx_runtime.jsxs(jsx_runtime.Fragment, {
       children: [
