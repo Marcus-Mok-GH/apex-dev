@@ -745,9 +745,19 @@ function setApiKey(key) {
 function setProvider(providerKey, apiKey) {
   const provider = PROVIDERS[providerKey];
   if (!provider) return;
+  
+  // Clear all provider env vars to prevent stale login state
+  for (const p of Object.values(PROVIDERS)) {
+    delete process.env[p.envKey];
+  }
+  
   currentProvider = providerKey;
   _internalClient = _makeClient(apiKey, provider.baseURL);
   Object.assign(currentModels, provider.models);
+  // Set env var so getProviderLoginState returns correct status
+  if (apiKey) {
+    process.env[provider.envKey] = apiKey;
+  }
   if (globalThis.require_server) {
     const srv = globalThis.require_server();
     if (srv && srv.updateApiKey) srv.updateApiKey(apiKey || "no-key");

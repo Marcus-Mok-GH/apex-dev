@@ -2,8 +2,9 @@ var require_store = __commonJS((exports, module2) => {
   // Import config for provider detection
   var config = require_config();
 
-  // Detect provider using shared logic
-  var _detectedProvider = config.detectInitialProvider();
+  // Get the initial provider - config.loadSavedProvidersIntoEnv() must run first
+  // This is called automatically when config module initializes
+  var _detectedProvider = config.currentProvider;
   var _providerEnvKey = config.PROVIDERS[_detectedProvider].envKey;
   var _apiKey = process.env[_providerEnvKey] || "";
   var _needsConfig = process.env.APEX_DEV_NEEDS_CONFIG === "true" || !Boolean(_apiKey);
