@@ -435,14 +435,14 @@ const PROVIDERS = {
     baseURL: process.env.APEX_API_URL || "https://api.fireworks.ai/inference/v1",
     envKey: "FIREWORKS_API_KEY",
     models: {
-      NVIDIA_MODEL:        "accounts/fireworks/models/kimi-k2p6",
-      REVIEWER_MODEL:      "accounts/fireworks/models/deepseek-v4-pro",
-      FILE_PICKER_MODEL:   "accounts/fireworks/models/qwen3p6-plus",
-      THINKER_MODEL:       "accounts/fireworks/models/kimi-k2p6",
-      COMMANDER_MODEL:     "accounts/fireworks/models/qwen3p6-plus",
-      CONTEXT_PRUNER_MODEL:"accounts/fireworks/models/qwen3p6-plus",
-      RESEARCHER_MODEL:    "accounts/fireworks/models/deepseek-v4-pro",
-      GENERAL_AGENT_MODEL: "accounts/fireworks/models/kimi-k2p6",
+      NVIDIA_MODEL:        "fireworks/kimi-k2p6",
+      REVIEWER_MODEL:      "fireworks/deepseek-v4-pro",
+      FILE_PICKER_MODEL:   "fireworks/qwen3p6-plus",
+      THINKER_MODEL:       "fireworks/kimi-k2p6",
+      COMMANDER_MODEL:     "fireworks/qwen3p6-plus",
+      CONTEXT_PRUNER_MODEL:"fireworks/qwen3p6-plus",
+      RESEARCHER_MODEL:    "fireworks/deepseek-v4-pro",
+      GENERAL_AGENT_MODEL: "fireworks/kimi-k2p6",
     },
   },
   openai: {
@@ -899,7 +899,7 @@ const GENERAL_AGENT_SYSTEM_PROMPT = BUFFY_SYSTEM_PROMPT;
 
 const agentConfigs = {
   buffy: {
-    model: "accounts/fireworks/models/kimi-k2p6",
+    model: "fireworks/kimi-k2p6",
     temperature: 0.7,
     maxTokens: 8192,
     displayName: "Buffy",
@@ -929,7 +929,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
 - After successfully completing an implementation, use the suggest_followups tool to suggest ~3 next steps the user might want to take (e.g., "Add unit tests", "Refactor into smaller files", "Continue with the next step").`,
   },
   theo: {
-    model: "accounts/fireworks/models/deepseek-v4-pro",
+    model: "fireworks/deepseek-v4-pro",
     temperature: 0.3,
     maxTokens: 4096,
     displayName: "Theo the Theorizer",
@@ -939,7 +939,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
     instructionsPrompt: THEO_INSTRUCTIONS_PROMPT,
   },
   nitPickNick: {
-    model: "accounts/fireworks/models/qwen3p6-plus",
+    model: "fireworks/qwen3p6-plus",
     temperature: 0.2,
     maxTokens: 4096,
     displayName: "Nit Pick Nick",
@@ -949,7 +949,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
     instructionsPrompt: NIT_PICK_NICK_INSTRUCTIONS_PROMPT,
   },
   codeEditor: {
-    model: "accounts/fireworks/models/kimi-k2p6",
+    model: "fireworks/kimi-k2p6",
     temperature: 0.1,
     maxTokens: 8192,
     displayName: "Code Editor",
@@ -959,7 +959,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
     instructionsPrompt: CODE_EDITOR_INSTRUCTIONS_PROMPT,
   },
   weeb: {
-    model: "accounts/fireworks/models/qwen3p6-plus",
+    model: "fireworks/qwen3p6-plus",
     temperature: 0.5,
     maxTokens: 4096,
     displayName: "Weeb",
@@ -969,7 +969,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
     instructionsPrompt: WEEB_INSTRUCTIONS_PROMPT,
   },
   doc: {
-    model: "accounts/fireworks/models/qwen3p6-plus",
+    model: "fireworks/qwen3p6-plus",
     temperature: 0.5,
     maxTokens: 4096,
     displayName: "Doc",
@@ -979,7 +979,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
     instructionsPrompt: DOC_INSTRUCTIONS_PROMPT,
   },
   basher: {
-    model: "accounts/fireworks/models/qwen3p6-plus",
+    model: "fireworks/qwen3p6-plus",
     temperature: 0.3,
     maxTokens: 4096,
     displayName: "Basher",
@@ -989,7 +989,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
     instructionsPrompt: BASHER_INSTRUCTIONS_PROMPT,
   },
   contextPruner: {
-    model: "accounts/fireworks/models/qwen3p6-plus",
+    model: "fireworks/qwen3p6-plus",
     temperature: 0.3,
     maxTokens: 4096,
     displayName: "Context Pruner",
@@ -1006,27 +1006,27 @@ The user asks you to implement a new feature. You respond in multiple steps:
 
 const agentModes = {
   default: {
-    model: "accounts/fireworks/models/kimi-k2p6",
+    model: "fireworks/kimi-k2p6",
     temperature: 0.7,
     maxTokens: 8192,
   },
   fast: {
-    model: "accounts/fireworks/models/qwen3p6-plus",
+    model: "fireworks/qwen3p6-plus",
     temperature: 0.1,
     maxTokens: 4096,
   },
   max: {
-    model: "accounts/fireworks/models/kimi-k2p6",
+    model: "fireworks/kimi-k2p6",
     temperature: 0.7,
     maxTokens: 16384,
   },
   free: {
-    model: "accounts/fireworks/models/qwen3p6-plus",
+    model: "fireworks/qwen3p6-plus",
     temperature: 0.5,
     maxTokens: 8192,
   },
   lite: {
-    model: "accounts/fireworks/models/qwen3p6-plus",
+    model: "fireworks/qwen3p6-plus",
     temperature: 0.3,
     maxTokens: 4096,
   },
@@ -1037,9 +1037,9 @@ const agentModes = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const codeEditorModelVariants = {
-  "kimi":     { model: "accounts/fireworks/models/kimi-k2p6", temperature: 0.1, maxTokens: 8192 },
-  "deepseek": { model: "accounts/fireworks/models/deepseek-v4-pro", temperature: 0.1, maxTokens: 8192 },
-  "qwen":     { model: "accounts/fireworks/models/qwen3p6-plus", temperature: 0.1, maxTokens: 8192 },
+  "kimi":     { model: "fireworks/kimi-k2p6", temperature: 0.1, maxTokens: 8192 },
+  "deepseek": { model: "fireworks/deepseek-v4-pro", temperature: 0.1, maxTokens: 8192 },
+  "qwen":     { model: "fireworks/qwen3p6-plus", temperature: 0.1, maxTokens: 8192 },
 };
 
 // ── Internal client holder ────────────────────────────────────────────────
