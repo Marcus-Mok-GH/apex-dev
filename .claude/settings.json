@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash",
+      "PowerShell",
+      "Edit",
+      "MultiEdit",
+      "Glob",
+      "WebFetch",
+      "WebSearch",
+      "NotebookEdit",
+      "TodoRead",
+      "TodoWrite",
+      "Task"
+    ]
+  }
+}
