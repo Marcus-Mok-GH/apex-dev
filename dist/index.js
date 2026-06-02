@@ -479,6 +479,21 @@ var require_config = __commonJS((exports, module) => {
         RESEARCHER_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         GENERAL_AGENT_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo"
       }
+    },
+    baseten: {
+      label: "Baseten",
+      baseURL: "https://inference.baseten.co/v1",
+      envKey: "BASETEN_API_KEY",
+      models: {
+        NVIDIA_MODEL: "moonshotai/Kimi-K2.6",
+        REVIEWER_MODEL: "deepseek-ai/DeepSeek-V4-Pro",
+        FILE_PICKER_MODEL: "zai-org/GLM-5.1",
+        THINKER_MODEL: "moonshotai/Kimi-K2.6",
+        COMMANDER_MODEL: "zai-org/GLM-5.1",
+        CONTEXT_PRUNER_MODEL: "zai-org/GLM-5.1",
+        RESEARCHER_MODEL: "deepseek-ai/DeepSeek-V4-Pro",
+        GENERAL_AGENT_MODEL: "moonshotai/Kimi-K2.6"
+      }
     }
   };
   function detectInitialProvider() {
@@ -494,6 +509,8 @@ var require_config = __commonJS((exports, module) => {
       return "gemini";
     if (process.env.TOGETHER_API_KEY)
       return "together";
+    if (process.env.BASETEN_API_KEY)
+      return "baseten";
     return "fireworks";
   }
   let currentProvider = detectInitialProvider();
@@ -4376,14 +4393,15 @@ var import_store = __toESM(require_store(), 1);
 var import_config = __toESM(require_config(), 1);
 var import_useLayout = __toESM(require_useLayout(), 1);
 var jsx_runtime = __toESM(require_jsx_runtime(), 1);
-var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together"];
+var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together", "baseten"];
 var PROVIDER_EMOJI = {
   fireworks: "\uD83D\uDD25",
   openai: "\uD83E\uDD16",
   openrouter: "\uD83D\uDD00",
   groq: "\u26A1",
   gemini: "\uD83D\uDC8E",
-  together: "\uD83E\uDD1D"
+  together: "\uD83E\uDD1D",
+  baseten: "\uD83D\uDD3A"
 };
 function ProviderSelector() {
   var state = useStore();
@@ -4618,7 +4636,7 @@ var import_store = __toESM(require_store(), 1);
 var import_config = __toESM(require_config(), 1);
 var import_useLayout = __toESM(require_useLayout(), 1);
 var jsx_runtime = __toESM(require_jsx_runtime(), 1);
-var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together"];
+var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together", "baseten"];
 function ApiKeyModal() {
   var [input, setInput] = import_react2.useState("");
   var [selectedIdx, setSelectedIdx] = import_react2.useState(0);
