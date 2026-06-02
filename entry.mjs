@@ -1677,12 +1677,24 @@ Dev dependencies: ${Object.keys(pkg.devDependencies).join(", ")}`;
 Scripts: ${Object.keys(pkg.scripts).join(", ")}`;
     } catch {}
     const currentDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-    // Prepend context info to the Apex/Apex system prompt
-    return `Current date: ${currentDate}.
-${gitInfo}
-${projectInfo}
 
-${APEX_SYSTEM_PROMPT}`;
+    // Placeholder resolution
+    const placeholders = {
+      CURRENT_DATE: currentDate,
+      GIT_CHANGES_PROMPT: gitInfo,
+      SYSTEM_INFO_PROMPT: projectInfo,
+      FILE_TREE_PROMPT: "(Project structure is available via tools)",
+      FILE_TREE_PROMPT_SMALL: "(Project structure is available via tools)",
+      KNOWLEDGE_FILES_CONTENTS: "",
+      USER_INPUT_PROMPT: ""
+    };
+
+    let resolvedPrompt = APEX_SYSTEM_PROMPT;
+    for (const [key, value] of Object.entries(placeholders)) {
+      resolvedPrompt = resolvedPrompt.split(`\${PLACEHOLDER.${key}}`).join(value);
+    }
+
+    return resolvedPrompt;
   }
   module2.exports = { buildSystemPrompt };
 });
