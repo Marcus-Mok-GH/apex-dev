@@ -395,14 +395,14 @@ var require_config = __commonJS((exports, module) => {
       baseURL: process.env.APEX_API_URL || "https://api.fireworks.ai/inference/v1",
       envKey: "FIREWORKS_API_KEY",
       models: {
-        NVIDIA_MODEL: "accounts/fireworks/models/qwen3-235b-a22b-instruct-2507",
-        REVIEWER_MODEL: "accounts/fireworks/models/llama-v3p3-70b-instruct",
-        FILE_PICKER_MODEL: "accounts/fireworks/models/qwen3-8b",
-        THINKER_MODEL: "accounts/fireworks/models/qwen3-235b-a22b-instruct-2507",
-        COMMANDER_MODEL: "accounts/fireworks/models/llama-v3p3-70b-instruct",
-        CONTEXT_PRUNER_MODEL: "accounts/fireworks/models/qwen3-8b",
-        RESEARCHER_MODEL: "accounts/fireworks/models/deepseek-v3p1",
-        GENERAL_AGENT_MODEL: "accounts/fireworks/models/qwen3-235b-a22b-instruct-2507"
+        NVIDIA_MODEL: "accounts/fireworks/models/kimi-k2p6",
+        REVIEWER_MODEL: "accounts/fireworks/models/deepseek-v4-pro",
+        FILE_PICKER_MODEL: "accounts/fireworks/models/qwen3p6-plus",
+        THINKER_MODEL: "accounts/fireworks/models/kimi-k2p6",
+        COMMANDER_MODEL: "accounts/fireworks/models/qwen3p6-plus",
+        CONTEXT_PRUNER_MODEL: "accounts/fireworks/models/qwen3p6-plus",
+        RESEARCHER_MODEL: "accounts/fireworks/models/deepseek-v4-pro",
+        GENERAL_AGENT_MODEL: "accounts/fireworks/models/kimi-k2p6"
       }
     },
     openai: {
