@@ -30,7 +30,7 @@ var require_agent = __commonJS((exports, module2) => {
     let turnTokens = 0;
     try {
       store.addMessage({ role: "divider" });
-      const systemPrompt = buildSystemPrompt();
+      const systemPrompt = await buildSystemPrompt();
       let messages = [
         { role: "system", content: systemPrompt },
         ...session.conversationHistory

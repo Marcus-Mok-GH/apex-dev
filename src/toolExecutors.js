@@ -120,6 +120,34 @@ var require_toolExecutors = __commonJS((exports, module2) => {
     }
     return results;
   }
+  async function resolvePlaceholders(text, extra = {}) {
+    let gitInfo = "";
+    try {
+      gitInfo = execSync("git status --short 2>/dev/null", { encoding: "utf-8", cwd: PROJECT_ROOT }).trim() || "(clean)";
+    } catch {}
+    let projectInfo = "";
+    try {
+      const pkg = JSON.parse(fs2.readFileSync(path2.join(PROJECT_ROOT, "package.json"), "utf-8"));
+      projectInfo = `Project: ${pkg.name || "unknown"} v${pkg.version || "0.0.0"}`;
+    } catch {}
+    const currentDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+    const placeholders = {
+      CURRENT_DATE: currentDate,
+      GIT_CHANGES_PROMPT: gitInfo,
+      FILE_TREE_PROMPT: "(Project structure is available via tools)",
+      FILE_TREE_PROMPT_SMALL: "(Project structure is available via tools)",
+      KNOWLEDGE_FILES_CONTENTS: "",
+      USER_INPUT_PROMPT: "",
+      SYSTEM_INFO_PROMPT: projectInfo,
+      ...extra
+    };
+    let resolved = text;
+    for (const [key, value] of Object.entries(placeholders)) {
+      resolved = resolved.split(`\${PLACEHOLDER.${key}}`).join(value);
+    }
+    return resolved;
+  }
+
   async function executeTool(name, args, onStream) {
     try {
       switch (name) {
@@ -398,7 +426,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
             } catch {}
           }
           const pickerMessages = [
-            { role: "system", content: FILE_PICKER_SYSTEM_PROMPT },
+            { role: "system", content: await resolvePlaceholders(FILE_PICKER_SYSTEM_PROMPT) },
             {
               role: "user",
               content: `# Prompt\n${args.prompt}\n\n# Directory Tree\n${tree}\n\n# File Previews (first 8 lines each)\n${previews.join(`\n\n`)}`
@@ -504,7 +532,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
           const reviewMessages = [
             {
               role: "system",
-              content: REVIEWER_SYSTEM_PROMPT
+              content: await resolvePlaceholders(REVIEWER_SYSTEM_PROMPT, { USER_INPUT_PROMPT: args.prompt })
             },
             {
               role: "user",
@@ -528,7 +556,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
         case "Thinker": {
           const historyContext = session.conversationHistory.slice(-10).map((m2) => `[${m2.role}]: ${(m2.content || "").slice(0, 500)}`).join(`\n`);
           const thinkerMessages = [
-            { role: "system", content: THINKER_SYSTEM_PROMPT },
+            { role: "system", content: await resolvePlaceholders(THINKER_SYSTEM_PROMPT) },
             {
               role: "user",
               content: `# Recent conversation context\n${historyContext}\n\n# Task to reason about\n${args.prompt}`
@@ -557,10 +585,10 @@ var require_toolExecutors = __commonJS((exports, module2) => {
           const thinkPromises = [];
           for (let i = 0;i < n; i++) {
             const label = String.fromCharCode(65 + i);
-            thinkPromises.push(streamCompletion({
+            thinkPromises.push(resolvePlaceholders(THINKER_SYSTEM_PROMPT).then(systemPrompt => streamCompletion({
               model: currentModels.THINKER_MODEL,
               messages: [
-                { role: "system", content: THINKER_SYSTEM_PROMPT + `\n\nYou are Thinker ${label}. Approach this from a unique angle. Be creative and thorough.` },
+                { role: "system", content: systemPrompt + `\n\nYou are Thinker ${label}. Approach this from a unique angle. Be creative and thorough.` },
                 {
                   role: "user",
                   content: `# Context\n${historyCtx}\n\n# Task\n${args.prompt}`
@@ -568,7 +596,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
               ],
               max_tokens: 3072,
               temperature: 0.7 + i * 0.1
-            }, null).then((result) => ({ label, result })));
+            }, null).then((result) => ({ label, result }))));
           }
           let thoughts;
           try {
@@ -855,7 +883,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
             const result = await streamCompletion({
               model: currentModels.RESEARCHER_MODEL,
               messages: [
-                { role: "system", content: RESEARCHER_WEB_SYSTEM_PROMPT },
+                { role: "system", content: await resolvePlaceholders(RESEARCHER_WEB_SYSTEM_PROMPT) },
                 { role: "user", content: `# Question\n${args.prompt}\n\n# Web Search Results\n${searchResults}` }
               ],
               max_tokens: 4096,
@@ -918,7 +946,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
             const result = await streamCompletion({
               model: currentModels.RESEARCHER_MODEL,
               messages: [
-                { role: "system", content: RESEARCHER_DOCS_SYSTEM_PROMPT },
+                { role: "system", content: await resolvePlaceholders(RESEARCHER_DOCS_SYSTEM_PROMPT) },
                 {
                   role: "user",
                   content: `# Question\n${args.prompt}${args.library ? `\nLibrary: ${args.library}` : ""}\n\n# Documentation Search Results\n${searchResults}`
@@ -975,7 +1003,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
             const result = await streamCompletion({
               model: currentModels.GENERAL_AGENT_MODEL,
               messages: [
-                { role: "system", content: GENERAL_AGENT_SYSTEM_PROMPT },
+                { role: "system", content: await resolvePlaceholders(GENERAL_AGENT_SYSTEM_PROMPT) },
                 { role: "user", content: userContent }
               ],
               max_tokens: 4096,
@@ -993,5 +1021,5 @@ var require_toolExecutors = __commonJS((exports, module2) => {
       return `Error executing ${name}: ${err.message}`;
     }
   }
-  module2.exports = { executeTool };
+  module2.exports = { executeTool, resolvePlaceholders };
 });
