@@ -1021,5 +1021,5 @@ var require_toolExecutors = __commonJS((exports, module2) => {
       return `Error executing ${name}: ${err.message}`;
     }
   }
-  module2.exports = { executeTool };
+  module2.exports = { executeTool, resolvePlaceholders };
 });

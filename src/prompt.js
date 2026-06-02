@@ -3,7 +3,8 @@ var require_prompt = __commonJS((exports, module2) => {
   var path2 = __require("path");
   var { execSync } = __require("child_process");
   var { PROJECT_ROOT, MAX_TOOL_ITERATIONS, APEX_SYSTEM_PROMPT } = require_config();
-  function buildSystemPrompt() {
+  var { resolvePlaceholders } = require_toolExecutors();
+  async function buildSystemPrompt() {
     let gitInfo = "";
     try {
       const branch = execSync("git rev-parse --abbrev-ref HEAD 2>/dev/null", { encoding: "utf-8", cwd: PROJECT_ROOT }).trim();
@@ -30,25 +31,14 @@ Dev dependencies: ${Object.keys(pkg.devDependencies).join(", ")}`;
         projectInfo += `
 Scripts: ${Object.keys(pkg.scripts).join(", ")}`;
     } catch {}
-    const currentDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
-    // Placeholder resolution
-    const placeholders = {
-      CURRENT_DATE: currentDate,
+    // Delegate to shared resolvePlaceholders with full data set
+    const fullPlaceholderData = {
       GIT_CHANGES_PROMPT: gitInfo,
-      SYSTEM_INFO_PROMPT: projectInfo,
-      FILE_TREE_PROMPT: "(Project structure is available via tools)",
-      FILE_TREE_PROMPT_SMALL: "(Project structure is available via tools)",
-      KNOWLEDGE_FILES_CONTENTS: "",
-      USER_INPUT_PROMPT: ""
+      SYSTEM_INFO_PROMPT: projectInfo
     };
 
-    let resolvedPrompt = APEX_SYSTEM_PROMPT;
-    for (const [key, value] of Object.entries(placeholders)) {
-      resolvedPrompt = resolvedPrompt.split(`\${PLACEHOLDER.${key}}`).join(value);
-    }
-
-    return resolvedPrompt;
+    return await resolvePlaceholders(APEX_SYSTEM_PROMPT, fullPlaceholderData);
   }
   module2.exports = { buildSystemPrompt };
 });
