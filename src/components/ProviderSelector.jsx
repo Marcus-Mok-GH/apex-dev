@@ -1,1 +1,1 @@
-PLACEHOLDER_C2
+var import_react = __toESM(require_react(), 1);
