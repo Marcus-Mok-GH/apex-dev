@@ -22,6 +22,7 @@ const PROVIDERS = [
   { name: "together",  label: "Together AI",    envKey: "TOGETHER_API_KEY" },
   { name: "baseten",   label: "Baseten",        envKey: "BASETEN_API_KEY" },
   { name: "replit",    label: "Replit (Free)",  envKey: "REPLIT_API_KEY",  noKey: true },
+  { name: "apex-nova", label: "Apex Nova",      envKey: "APEX_NOVA_API_KEY", noKey: true },
 ];
 
 function readConfig() {

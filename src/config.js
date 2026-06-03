@@ -216,9 +216,25 @@ const PROVIDERS = {
       GENERAL_AGENT_MODEL: "accounts/fireworks/models/kimi-k2p6",
     },
   },
+  "apex-nova": {
+    label: "Apex Nova",
+    baseURL: "https://fireworks-ai-server--coneyparsley3h.replit.app",
+    envKey: "APEX_NOVA_API_KEY",
+    noKey: true,
+    models: {
+      NVIDIA_MODEL:        "accounts/fireworks/models/kimi-k2p6",
+      REVIEWER_MODEL:      "accounts/fireworks/models/deepseek-v4-pro",
+      FILE_PICKER_MODEL:   "accounts/fireworks/models/qwen3p6-plus",
+      THINKER_MODEL:       "accounts/fireworks/models/kimi-k2p6",
+      COMMANDER_MODEL:     "accounts/fireworks/models/qwen3p6-plus",
+      CONTEXT_PRUNER_MODEL:"accounts/fireworks/models/qwen3p6-plus",
+      RESEARCHER_MODEL:    "accounts/fireworks/models/deepseek-v4-pro",
+      GENERAL_AGENT_MODEL: "accounts/fireworks/models/kimi-k2p6",
+    },
+  },
 };
 
-// ── Detect initial provider from env ─────────────────────────────────────
+// ── Detect initial provider from env ────────────────────────────────
 function detectInitialProvider() {
   if (process.env.APEX_PROVIDER && PROVIDERS[process.env.APEX_PROVIDER]) return process.env.APEX_PROVIDER;
   if (process.env.OPENAI_API_KEY)    return "openai";
@@ -227,7 +243,9 @@ function detectInitialProvider() {
   if (process.env.GEMINI_API_KEY)    return "gemini";
   if (process.env.TOGETHER_API_KEY)  return "together";
   if (process.env.BASETEN_API_KEY)   return "baseten";
-  return "fireworks"; // default
+  if (process.env.REPLIT_API_KEY)    return "replit";
+  if (process.env.APEX_NOVA_API_KEY) return "apex-nova";
+  return "apex-nova"; // default
 }
 
 let currentProvider = detectInitialProvider();
