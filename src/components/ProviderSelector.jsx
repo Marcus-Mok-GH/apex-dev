@@ -84,7 +84,7 @@ function ProviderSelector() {
   function handleSelect() {
     var providerObj = providers[providerKey];
     if (providerObj && providerObj.noKey) {
-      finishLogin(providerKey, "no-key");
+      finishLogin(providerKey, undefined);
       return;
     }
     if (isLoggedIn(providerKey)) {
@@ -157,16 +157,18 @@ function ProviderSelector() {
                 PROVIDER_ORDER.map(function (key, idx) {
                   var focused = idx === focusedIdx;
                   var stateLabel = loginState(key);
-                  var statusFg = stateLabel === "logged-in"
+                  var statusFg = (stateLabel === "logged-in" || stateLabel === "no-key")
                     ? import_theme.colors.green
                     : stateLabel === "saved"
                       ? import_theme.colors.yellow
                       : import_theme.colors.dim;
-                  var statusText = stateLabel === "logged-in"
-                    ? (providers[key].noKey ? "Free (no key)" : "Logged in")
-                    : stateLabel === "saved"
-                      ? "Logged out"
-                      : "Needs key";
+                  var statusText = stateLabel === "no-key"
+                    ? "Free (no key)"
+                    : stateLabel === "logged-in"
+                      ? "Logged in"
+                      : stateLabel === "saved"
+                        ? "Logged out"
+                        : "Needs key";
 
                   return jsx_runtime.jsxs(
                     "box",
@@ -182,7 +184,7 @@ function ProviderSelector() {
                       onMouseDown: function () {
                         setFocusedIdx(idx);
                         if (providers[key].noKey) {
-                          finishLogin(key, "no-key");
+                          finishLogin(key, undefined);
                         } else if (stateLabel === "logged-in") {
                           handleLogout();
                         } else if (stateLabel === "saved") {

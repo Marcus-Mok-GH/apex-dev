@@ -32,7 +32,7 @@ function getSavedApiKey(providerKey) {
 function getProviderLoginState(providerKey) {
   const provider = PROVIDERS[providerKey];
   if (!provider) return "empty";
-  if (provider.noKey) return "logged-in";
+  if (provider.noKey) return "no-key";
   if (process.env[provider.envKey]) return "logged-in";
   if (getSavedApiKey(providerKey)) return "saved";
   return "empty";
@@ -755,10 +755,10 @@ const codeEditorModelVariants = {
 
 // ── Internal client holder ────────────────────────────────────────────────
 const _initialProvider = PROVIDERS[currentProvider];
-const _initialKey = process.env[_initialProvider.envKey] || "no-key";
+const _initialKey = process.env[_initialProvider.envKey];
 
 let _internalClient = new OpenAI({
-  apiKey: _initialKey,
+  ...(_initialKey ? { apiKey: _initialKey } : {}),
   baseURL: _initialProvider.baseURL,
   dangerouslyAllowBrowser: true
 });
@@ -775,7 +775,7 @@ const nvidiaClient = new Proxy({}, {
 });
 
 function _makeClient(apiKey, baseURL) {
-  return new OpenAI({ apiKey: apiKey || "no-key", baseURL, dangerouslyAllowBrowser: true });
+  return new OpenAI({ ...(apiKey ? { apiKey } : {}), baseURL, dangerouslyAllowBrowser: true });
 }
 
 function setApiKey(key) {
@@ -789,12 +789,12 @@ function setApiKey(key) {
 function setProvider(providerKey, apiKey) {
   const provider = PROVIDERS[providerKey];
   if (!provider) return;
-  
+
   // Clear all provider env vars to prevent stale login state
   for (const p of Object.values(PROVIDERS)) {
     delete process.env[p.envKey];
   }
-  
+
   currentProvider = providerKey;
   _internalClient = _makeClient(apiKey, provider.baseURL);
   Object.assign(currentModels, provider.models);
@@ -804,7 +804,7 @@ function setProvider(providerKey, apiKey) {
   }
   if (globalThis.require_server) {
     const srv = globalThis.require_server();
-    if (srv && srv.updateApiKey) srv.updateApiKey(apiKey || "no-key");
+    if (srv && srv.updateApiKey) srv.updateApiKey(apiKey || "");
   }
 }
 

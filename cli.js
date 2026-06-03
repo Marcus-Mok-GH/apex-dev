@@ -432,9 +432,9 @@ async function ensureApiKeys() {
       }
     }
     saveConfig(config);
-    const count = PROVIDERS.filter((p) => p.noKey || process.env[p.envKey]).length;
-    if (count > 0) {
-      console.error(`\n✓ ${count} API key(s) saved to ~/.apex-dev/config.json`);
+    const providersWithKeys = PROVIDERS.filter((p) => process.env[p.envKey]).length;
+    if (providersWithKeys > 0) {
+      console.error(`\n✓ ${providersWithKeys} API key(s) saved to ~/.apex-dev/config.json`);
     } else {
       console.error("\nNo keys were entered. Configuration unchanged.");
     }
