@@ -10,7 +10,7 @@ const VERSION = require("./package.json").version;
 const RELEASE_OWNER = "Marcus-Mok-GH";
 const RELEASE_REPO = "apex-dev";
 
-// ── Config ────────────────────────────────────────────────────────────────
+// ── Config ──────────────────────────────────────────────────────────────────────────
 const CONFIG_PATH = path.join(os.homedir(), ".apex-dev", "config.json");
 
 const PROVIDERS = [
@@ -20,6 +20,7 @@ const PROVIDERS = [
   { name: "groq",      label: "Groq",           envKey: "GROQ_API_KEY" },
   { name: "gemini",    label: "Google Gemini",  envKey: "GEMINI_API_KEY" },
   { name: "together",  label: "Together AI",    envKey: "TOGETHER_API_KEY" },
+  { name: "baseten",  label: "Baseten",         envKey: "BASETEN_API_KEY" },
 ];
 
 function readConfig() {
@@ -100,7 +101,7 @@ function promptKey(providerName) {
   });
 }
 
-// ── Platform detection ────────────────────────────────────────────────────
+// ── Platform detection ────────────────────────────────────────────────────────
 function detectPlatform() {
   const platformMap = {
     linux: "linux",
@@ -410,7 +411,7 @@ function runWithBun() {
   });
 }
 
-// ── API key orchestration ─────────────────────────────────────────────────
+// ── API key orchestration ────────────────────────────────────────────────────
 async function ensureApiKeys() {
   const args = process.argv.slice(2);
 
@@ -428,7 +429,7 @@ async function ensureApiKeys() {
     saveConfig(config);
     const count = PROVIDERS.filter((p) => process.env[p.envKey]).length;
     if (count > 0) {
-      console.error(`\n\u2713 ${count} API key(s) saved to ~/.apex-dev/config.json`);
+      console.error(`\n✓ ${count} API key(s) saved to ~/.apex-dev/config.json`);
     } else {
       console.error("\nNo keys were entered. Configuration unchanged.");
     }
@@ -441,12 +442,12 @@ async function ensureApiKeys() {
     let count = 0;
     for (const provider of PROVIDERS) {
       if (process.env[provider.envKey] || config[provider.name]) {
-        console.error(`\u2713 ${provider.label} (${provider.envKey})`);
+        console.error(`✓ ${provider.label} (${provider.envKey})`);
         count++;
       }
     }
     if (count === 0) {
-      console.error("\u26A0 No API keys configured. Run apex-dev --setup to add keys.");
+      console.error("⚠ No API keys configured. Run apex-dev --setup to add keys.");
     } else {
       console.error(`\n${count} provider(s) configured.`);
     }
@@ -468,9 +469,9 @@ async function ensureApiKeys() {
   // Summary
   const configured = PROVIDERS.filter((p) => process.env[p.envKey]);
   if (configured.length > 0) {
-    console.error(`\n\u2713 ${configured.length} provider(s) configured`);
+    console.error(`\n✓ ${configured.length} provider(s) configured`);
   } else {
-    console.error("\n\u26A0 No API keys configured. Launching interactive provider selection.");
+    console.error("\n⚠ No API keys configured. Launching interactive provider selection.");
     process.env.APEX_DEV_NEEDS_CONFIG = "true";
   }
 }

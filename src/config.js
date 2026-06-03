@@ -184,6 +184,21 @@ const PROVIDERS = {
       GENERAL_AGENT_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
     },
   },
+  baseten: {
+    label: "Baseten",
+    baseURL: "https://inference.baseten.co/v1",
+    envKey: "BASETEN_API_KEY",
+    models: {
+      NVIDIA_MODEL:        "moonshotai/Kimi-K2.6",
+      REVIEWER_MODEL:      "deepseek-ai/DeepSeek-V4-Pro",
+      FILE_PICKER_MODEL:   "zai-org/GLM-5.1",
+      THINKER_MODEL:       "moonshotai/Kimi-K2.6",
+      COMMANDER_MODEL:     "zai-org/GLM-5.1",
+      CONTEXT_PRUNER_MODEL:"zai-org/GLM-5.1",
+      RESEARCHER_MODEL:    "deepseek-ai/DeepSeek-V4-Pro",
+      GENERAL_AGENT_MODEL: "moonshotai/Kimi-K2.6",
+    },
+  },
 };
 
 // ── Detect initial provider from env ─────────────────────────────────────
@@ -194,6 +209,7 @@ function detectInitialProvider() {
   if (process.env.GROQ_API_KEY)      return "groq";
   if (process.env.GEMINI_API_KEY)    return "gemini";
   if (process.env.TOGETHER_API_KEY)  return "together";
+  if (process.env.BASETEN_API_KEY)   return "baseten";
   return "fireworks"; // default
 }
 
@@ -422,19 +438,19 @@ Write out what changes you would make using the format below. Use this exact for
 For editing existing files:
 --- EDIT: path/to/file ---
 OLD:
-```
+\`\`\`
 exact old code to replace
-```
+\`\`\`
 NEW:
-```
+\`\`\`
 exact new code
-```
+\`\`\`
 
 For new files:
 --- CREATE: path/to/file ---
-```
+\`\`\`
 complete file content
-```
+\`\`\`
 
 Before you start writing your implementation, you should use <think> tags to think about the best way to implement the changes.
 
@@ -448,24 +464,24 @@ You can also use <think> tags interspersed between tool calls to think about the
 
 --- EDIT: src/example.js ---
 OLD:
-```
+\`\`\`
 function oldFunction() {
   return 'old';
 }
-```
+\`\`\`
 NEW:
-```
+\`\`\`
 function newFunction() {
   return 'new';
 }
-```
+\`\`\`
 
 --- CREATE: src/newfile.js ---
-```
+\`\`\`
 export function helper() {
   return 'helper';
 }
-```
+\`\`\`
 
 <think>
 [ Thoughts about a tricky part of the implementation ]
@@ -473,14 +489,14 @@ export function helper() {
 
 --- EDIT: src/example.js ---
 OLD:
-```
+\`\`\`
 import something from 'old';
-```
+\`\`\`
 NEW:
-```
+\`\`\`
 import something from 'old';
 import { helper } from './newfile';
-```
+\`\`\`
 
 </example>
 
