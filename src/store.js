@@ -7,7 +7,7 @@ var require_store = __commonJS((exports, module2) => {
   var _detectedProvider = config.currentProvider;
   var _providerEnvKey = config.PROVIDERS[_detectedProvider].envKey;
   var _apiKey = process.env[_providerEnvKey] || "";
-  var _needsConfig = process.env.APEX_DEV_NEEDS_CONFIG === "true" || !Boolean(_apiKey);
+  var _needsConfig = process.env.APEX_DEV_NEEDS_CONFIG === "true" || (!Boolean(_apiKey) && !config.PROVIDERS[_detectedProvider].noKey);
 
   var state = {
     messages: [],

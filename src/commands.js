@@ -22,7 +22,7 @@ var require_commands = __commonJS((exports, module2) => {
           logoutProvider(provider);
           store.setState({ showHelp: false, needsConfig: true, apiKey: "" });
         } else {
-          store.setState({ showHelp: false, needsConfig: true });
+          store.setState({ showHelp: false, needsConfig: false });
         }
         break;
       }

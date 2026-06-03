@@ -32,6 +32,7 @@ function getSavedApiKey(providerKey) {
 function getProviderLoginState(providerKey) {
   const provider = PROVIDERS[providerKey];
   if (!provider) return "empty";
+  if (provider.noKey) return "no-key";
   if (process.env[provider.envKey]) return "logged-in";
   if (getSavedApiKey(providerKey)) return "saved";
   return "empty";
@@ -197,6 +198,22 @@ const PROVIDERS = {
       CONTEXT_PRUNER_MODEL:"zai-org/GLM-5.1",
       RESEARCHER_MODEL:    "deepseek-ai/DeepSeek-V4-Pro",
       GENERAL_AGENT_MODEL: "moonshotai/Kimi-K2.6",
+    },
+  },
+  replit: {
+    label: "Replit (Free)",
+    baseURL: "https://fireworks-ai-server--coneyparsley3h.replit.app/api/inference/v1",
+    envKey: "REPLIT_API_KEY",
+    noKey: true,
+    models: {
+      NVIDIA_MODEL:        "accounts/fireworks/models/kimi-k2p6",
+      REVIEWER_MODEL:      "accounts/fireworks/models/deepseek-v4-pro",
+      FILE_PICKER_MODEL:   "accounts/fireworks/models/qwen3p6-plus",
+      THINKER_MODEL:       "accounts/fireworks/models/kimi-k2p6",
+      COMMANDER_MODEL:     "accounts/fireworks/models/qwen3p6-plus",
+      CONTEXT_PRUNER_MODEL:"accounts/fireworks/models/qwen3p6-plus",
+      RESEARCHER_MODEL:    "accounts/fireworks/models/deepseek-v4-pro",
+      GENERAL_AGENT_MODEL: "accounts/fireworks/models/kimi-k2p6",
     },
   },
 };
@@ -738,10 +755,10 @@ const codeEditorModelVariants = {
 
 // ── Internal client holder ────────────────────────────────────────────────
 const _initialProvider = PROVIDERS[currentProvider];
-const _initialKey = process.env[_initialProvider.envKey] || "no-key";
+const _initialKey = process.env[_initialProvider.envKey];
 
 let _internalClient = new OpenAI({
-  apiKey: _initialKey,
+  apiKey: _initialKey || "",
   baseURL: _initialProvider.baseURL,
   dangerouslyAllowBrowser: true
 });
@@ -758,7 +775,7 @@ const nvidiaClient = new Proxy({}, {
 });
 
 function _makeClient(apiKey, baseURL) {
-  return new OpenAI({ apiKey: apiKey || "no-key", baseURL, dangerouslyAllowBrowser: true });
+  return new OpenAI({ apiKey: apiKey || "", baseURL, dangerouslyAllowBrowser: true });
 }
 
 function setApiKey(key) {
@@ -772,12 +789,12 @@ function setApiKey(key) {
 function setProvider(providerKey, apiKey) {
   const provider = PROVIDERS[providerKey];
   if (!provider) return;
-  
+
   // Clear all provider env vars to prevent stale login state
   for (const p of Object.values(PROVIDERS)) {
     delete process.env[p.envKey];
   }
-  
+
   currentProvider = providerKey;
   _internalClient = _makeClient(apiKey, provider.baseURL);
   Object.assign(currentModels, provider.models);
@@ -787,7 +804,7 @@ function setProvider(providerKey, apiKey) {
   }
   if (globalThis.require_server) {
     const srv = globalThis.require_server();
-    if (srv && srv.updateApiKey) srv.updateApiKey(apiKey || "no-key");
+    if (srv && srv.updateApiKey) srv.updateApiKey(apiKey || "");
   }
 }
 

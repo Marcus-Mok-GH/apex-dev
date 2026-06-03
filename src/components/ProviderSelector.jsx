@@ -5,7 +5,7 @@ var import_config = __toESM(require_config(), 1);
 var import_useLayout = __toESM(require_useLayout(), 1);
 var jsx_runtime = __toESM(require_jsx_runtime(), 1);
 
-var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together", "baseten"];
+var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together", "baseten", "replit"];
 
 var PROVIDER_EMOJI = {
   fireworks: "🔥",
@@ -15,6 +15,7 @@ var PROVIDER_EMOJI = {
   gemini: "💎",
   together: "🤝",
   baseten: "🔺",
+  replit: "🆓",
 };
 
 function ProviderSelector() {
@@ -81,6 +82,11 @@ function ProviderSelector() {
   }
 
   function handleSelect() {
+    var providerObj = providers[providerKey];
+    if (providerObj && providerObj.noKey) {
+      finishLogin(providerKey, undefined);
+      return;
+    }
     if (isLoggedIn(providerKey)) {
       handleLogout();
       return;
@@ -106,7 +112,7 @@ function ProviderSelector() {
       } else if (key.name === "return" || key.name === "enter") {
         handleSelect();
       } else if (key.name === "l") {
-        if (isLoggedIn(providerKey)) handleLogout();
+        if (isLoggedIn(providerKey) && !providers[providerKey].noKey) handleLogout();
       }
     } else {
       if (key.name === "escape") {
@@ -151,16 +157,18 @@ function ProviderSelector() {
                 PROVIDER_ORDER.map(function (key, idx) {
                   var focused = idx === focusedIdx;
                   var stateLabel = loginState(key);
-                  var statusFg = stateLabel === "logged-in"
+                  var statusFg = (stateLabel === "logged-in" || stateLabel === "no-key")
                     ? import_theme.colors.green
                     : stateLabel === "saved"
                       ? import_theme.colors.yellow
                       : import_theme.colors.dim;
-                  var statusText = stateLabel === "logged-in"
-                    ? "Logged in"
-                    : stateLabel === "saved"
-                      ? "Logged out"
-                      : "Needs key";
+                  var statusText = stateLabel === "no-key"
+                    ? "Free (no key)"
+                    : stateLabel === "logged-in"
+                      ? "Logged in"
+                      : stateLabel === "saved"
+                        ? "Logged out"
+                        : "Needs key";
 
                   return jsx_runtime.jsxs(
                     "box",
@@ -175,7 +183,9 @@ function ProviderSelector() {
                       },
                       onMouseDown: function () {
                         setFocusedIdx(idx);
-                        if (stateLabel === "logged-in") {
+                        if (providers[key].noKey) {
+                          finishLogin(key, undefined);
+                        } else if (stateLabel === "logged-in") {
                           handleLogout();
                         } else if (stateLabel === "saved") {
                           finishLogin(key, getStoredKey(key));
@@ -211,11 +221,13 @@ function ProviderSelector() {
                   style: { paddingLeft: 4, paddingRight: 4, marginTop: 2 },
                   children: jsx_runtime.jsx("text", {
                     fg: import_theme.colors.dim,
-                    children: selectedState === "logged-in"
-                      ? "Press Enter to log out of the selected provider."
-                      : selectedState === "saved"
-                        ? "Press Enter to log in with the saved key."
-                        : "Press Enter to log in with a new key. Keys are stored in ~/.apex-dev/config.json or can be supplied via environment variables.",
+                    children: provider.noKey
+                      ? "Press Enter to use this provider — no API key required."
+                      : selectedState === "logged-in"
+                        ? "Press Enter to log out of the selected provider."
+                        : selectedState === "saved"
+                          ? "Press Enter to log in with the saved key."
+                          : "Press Enter to log in with a new key. Keys are stored in ~/.apex-dev/config.json or can be supplied via environment variables.",
                   }),
                 }),
               ],
