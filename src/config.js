@@ -758,7 +758,7 @@ const _initialProvider = PROVIDERS[currentProvider];
 const _initialKey = process.env[_initialProvider.envKey];
 
 let _internalClient = new OpenAI({
-  ...(_initialKey ? { apiKey: _initialKey } : {}),
+  apiKey: _initialKey || "",
   baseURL: _initialProvider.baseURL,
   dangerouslyAllowBrowser: true
 });
@@ -775,7 +775,7 @@ const nvidiaClient = new Proxy({}, {
 });
 
 function _makeClient(apiKey, baseURL) {
-  return new OpenAI({ ...(apiKey ? { apiKey } : {}), baseURL, dangerouslyAllowBrowser: true });
+  return new OpenAI({ apiKey: apiKey || "", baseURL, dangerouslyAllowBrowser: true });
 }
 
 function setApiKey(key) {
