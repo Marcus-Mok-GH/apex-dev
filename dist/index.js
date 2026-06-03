@@ -1046,7 +1046,7 @@ Output JSON only, no markdown fences:
     }
   });
   function _makeClient(apiKey, baseURL) {
-    return new OpenAI({ apiKey: apiKey || "", baseURL, dangerouslyAllowBrowser: true });
+    return new OpenAI({ apiKey: apiKey || "dummy", baseURL, dangerouslyAllowBrowser: true });
   }
   function setApiKey(key) {
     _internalClient = _makeClient(key, PROVIDERS[currentProvider].baseURL);
@@ -1066,8 +1066,8 @@ Output JSON only, no markdown fences:
     currentProvider = providerKey;
     _internalClient = _makeClient(apiKey, provider.baseURL);
     Object.assign(currentModels, provider.models);
-    if (apiKey) {
-      process.env[provider.envKey] = apiKey;
+    if (apiKey || provider.noKey) {
+      process.env[provider.envKey] = apiKey || "dummy";
     }
     if (globalThis.require_server) {
       const srv = globalThis.require_server();
