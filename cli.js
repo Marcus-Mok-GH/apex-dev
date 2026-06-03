@@ -20,7 +20,8 @@ const PROVIDERS = [
   { name: "groq",      label: "Groq",           envKey: "GROQ_API_KEY" },
   { name: "gemini",    label: "Google Gemini",  envKey: "GEMINI_API_KEY" },
   { name: "together",  label: "Together AI",    envKey: "TOGETHER_API_KEY" },
-  { name: "baseten",  label: "Baseten",         envKey: "BASETEN_API_KEY" },
+  { name: "baseten",   label: "Baseten",        envKey: "BASETEN_API_KEY" },
+  { name: "replit",    label: "Replit (Free)",  envKey: "REPLIT_API_KEY",  noKey: true },
 ];
 
 function readConfig() {
@@ -420,6 +421,10 @@ async function ensureApiKeys() {
     const config = {};
     console.error("API Key Setup\n");
     for (const provider of PROVIDERS) {
+      if (provider.noKey) {
+        console.error(`  ${provider.label}: no API key required`);
+        continue;
+      }
       const key = await promptKey(provider.label);
       if (key) {
         config[provider.name] = key;
@@ -427,7 +432,7 @@ async function ensureApiKeys() {
       }
     }
     saveConfig(config);
-    const count = PROVIDERS.filter((p) => process.env[p.envKey]).length;
+    const count = PROVIDERS.filter((p) => p.noKey || process.env[p.envKey]).length;
     if (count > 0) {
       console.error(`\n✓ ${count} API key(s) saved to ~/.apex-dev/config.json`);
     } else {
@@ -441,7 +446,10 @@ async function ensureApiKeys() {
     const config = readConfig();
     let count = 0;
     for (const provider of PROVIDERS) {
-      if (process.env[provider.envKey] || config[provider.name]) {
+      if (provider.noKey) {
+        console.error(`✓ ${provider.label} (no key required)`);
+        count++;
+      } else if (process.env[provider.envKey] || config[provider.name]) {
         console.error(`✓ ${provider.label} (${provider.envKey})`);
         count++;
       }
