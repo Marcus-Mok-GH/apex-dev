@@ -54,7 +54,7 @@ var require_store = __commonJS((exports, module2) => {
   var _detectedProvider = config.currentProvider;
   var _providerEnvKey = config.PROVIDERS[_detectedProvider].envKey;
   var _apiKey = process.env[_providerEnvKey] || "";
-  var _needsConfig = process.env.APEX_DEV_NEEDS_CONFIG === "true" || !Boolean(_apiKey);
+  var _needsConfig = process.env.APEX_DEV_NEEDS_CONFIG === "true" || !Boolean(_apiKey) && !config.PROVIDERS[_detectedProvider].noKey;
   var state = {
     messages: [],
     streamingContent: "",
@@ -333,6 +333,8 @@ var require_config = __commonJS((exports, module) => {
     const provider = PROVIDERS[providerKey];
     if (!provider)
       return "empty";
+    if (provider.noKey)
+      return "no-key";
     if (process.env[provider.envKey])
       return "logged-in";
     if (getSavedApiKey(providerKey))
@@ -494,6 +496,22 @@ var require_config = __commonJS((exports, module) => {
         RESEARCHER_MODEL: "deepseek-ai/DeepSeek-V4-Pro",
         GENERAL_AGENT_MODEL: "moonshotai/Kimi-K2.6"
       }
+    },
+    replit: {
+      label: "Replit (Free)",
+      baseURL: "https://fireworks-ai-server--coneyparsley3h.replit.app/api/inference/v1",
+      envKey: "REPLIT_API_KEY",
+      noKey: true,
+      models: {
+        NVIDIA_MODEL: "accounts/fireworks/models/kimi-k2p6",
+        REVIEWER_MODEL: "accounts/fireworks/models/deepseek-v4-pro",
+        FILE_PICKER_MODEL: "accounts/fireworks/models/qwen3p6-plus",
+        THINKER_MODEL: "accounts/fireworks/models/kimi-k2p6",
+        COMMANDER_MODEL: "accounts/fireworks/models/qwen3p6-plus",
+        CONTEXT_PRUNER_MODEL: "accounts/fireworks/models/qwen3p6-plus",
+        RESEARCHER_MODEL: "accounts/fireworks/models/deepseek-v4-pro",
+        GENERAL_AGENT_MODEL: "accounts/fireworks/models/kimi-k2p6"
+      }
     }
   };
   function detectInitialProvider() {
@@ -543,7 +561,7 @@ Current date: \${PLACEHOLDER.CURRENT_DATE}.
 - **Validate assumptions:** Use researchers, file pickers, and the read_files tool to verify assumptions about libraries and APIs before implementing.
 - **Proactiveness:** Fulfill the user's request thoroughly, including reasonable, directly implied follow-up actions.
 - **Confirm Ambiguity/Expansion:** Do not take significant actions beyond the clear scope of the request without confirming with the user. If asked *how* to do something, explain first, don't just do it.
-- **Ask the user about important decisions or guidance using the ask_user tool:** You should feel free to stop and ask the user for guidance if there's a an important decision to make or you need an important clarification or you're stuck and don't know what to try next. Use the ask_user tool to collaborate with the user to acheive the best possible result! Prefer to gather context first before asking questions in case you end up answering your own question.
+- **Ask the user about important decisions or guidance using the AskUserQuestion tool:** You should feel free to stop and ask the user for guidance if there's a an important decision to make or you need an important clarification or you're stuck and don't know what to try next. Use the AskUserQuestion tool to collaborate with the user to acheive the best possible result! Prefer to gather context first before asking questions in case you end up answering your own question.
 - **Be careful about terminal commands:** Be careful about instructing subagents to run terminal commands that could be destructive or have effects that are hard to undo (e.g. git push, git commit, running any scripts -- especially ones that could alter production environments (!), installing packages globally, etc). Don't run any of these effectful commands unless the user explicitly asks you to.
 - **Do what the user asks:** If the user asks you to do something, even running a risky terminal command, do it.
 - **Don't use set_output:** The set_output tool is for spawned subagents to report results. Don't use it yourself.
@@ -573,11 +591,11 @@ Current date: \${PLACEHOLDER.CURRENT_DATE}.
 
 # Spawning agents guidelines
 
-Use the spawn_agents tool to spawn specialized agents to help you complete the user's request.
+Use the Task tool to spawn specialized agents to help you complete the user's request.
 
 - **Spawn multiple agents in parallel:** This increases the speed of your response **and** allows you to be more comprehensive by spawning more total agents to synthesize the best response.
 - **Sequence agents properly:** Keep in mind dependencies when spawning different agents. Don't spawn agents in parallel that depend on each other.
-- Spawn context-gathering agents (file pickers, code searchers, and web/docs researchers) before making edits. Use the list_directory and glob tools directly for searching and exploring the codebase.
+- Spawn context-gathering agents (file pickers, code searchers, and web/docs researchers) before making edits. Use the Glob and Bash tools directly for searching and exploring the codebase.
 - Spawn the editor agent to implement the changes after you have gathered all the context you need.
 - Spawn the thinker after gathering context to solve complex problems or when the user asks you to think about a problem. (gpt-5-agent is a last resort for complex problems)
 - Spawn bashers sequentially if the second command depends on the the first.
@@ -591,7 +609,7 @@ Users send prompts to you in one of a few user-selected modes, like DEFAULT, MAX
 
 Every prompt sent consumes the user's credits, which is calculated based on the API cost of the models used.
 
-The user can use the "/usage" command to see how many credits they have used and have left, so you can tell them to check their usage this way.
+The user can use the "/cost" or "/status" commands to see how many credits they have used and have left, so you can tell them to check their usage this way.
 
 For other questions, you can direct them to apex-dev.com, or especially apex-dev.com/docs for detailed information about the product. (Note: Although we are Apex, we are powered by Apex technology).
 
@@ -611,15 +629,15 @@ For other questions, you can direct them to apex-dev.com, or especially apex-dev
 <user>please implement [a complex new feature]</user>
 
 <response>
-[ You spawn 3 file-pickers, 2 code-searchers, and a docs researcher in parallel to find relevant files and do research online. You use the list_directory and glob tools directly to search the codebase. ]
+[ You spawn 3 file-pickers, 2 code-searchers, and a docs researcher in parallel to find relevant files and do research online. You use the Glob and Bash tools directly to search the codebase. ]
 
-[ You read a few of the relevant files using the read_files tool in two separate tool calls ]
+[ You read a few of the relevant files using the Read tool in two separate tool calls ]
 
-[ You spawn another file-picker and code-searcher to find more relevant files, and use glob tools ]
+[ You spawn another file-picker and code-searcher to find more relevant files, and use Glob tools ]
 
-[ You read a few other relevant files using the read_files tool ]
+[ You read a few other relevant files using the Read tool ]
 
-[ You ask the user for important clarifications on their request or alternate implementation strategies using the ask_user tool ]
+[ You ask the user for important clarifications on their request or alternate implementation strategies using the AskUserQuestion tool ]
 
 [ You implement the changes using the editor agent ]
 
@@ -658,11 +676,11 @@ The following is the state of the git repository at the start of the conversatio
 
 The user asks you to implement a new feature. You respond in multiple steps:
 
-- Iteratively spawn file pickers, code searchers, bashers, and web/docs researchers to gather context as needed. Use the list_directory and glob tools directly for searching and exploring the codebase. The file-picker and code-searcher agents are very useful to find relevant files -- try spawning multiple in parallel (say, 2-5 file-pickers and 1-3 code-searchers) to explore different parts of the codebase. Use read_subtree if you need to grok a particular part of the codebase. Read all the relevant files using the read_files tool.
+- Iteratively spawn file pickers, code searchers, bashers, and web/docs researchers to gather context as needed. Use the Glob and Bash tools directly for searching and exploring the codebase. The file-picker and code-searcher agents are very useful to find relevant files -- try spawning multiple in parallel (say, 2-5 file-pickers and 1-3 code-searchers) to explore different parts of the codebase. Use read_subtree if you need to grok a particular part of the codebase. Read all the relevant files using the Read tool.
 
-- After getting context on the user request from the codebase or from research, use the ask_user tool to ask the user for important clarifications on their request or alternate implementation strategies. You should skip this step if the choice is obvious -- only ask the user if you need their help making the best choice.
+- After getting context on the user request from the codebase or from research, use the AskUserQuestion tool to ask the user for important clarifications on their request or alternate implementation strategies. You should skip this step if the choice is obvious -- only ask the user if you need their help making the best choice.
 
-- For any task requiring 3+ steps, use the write_todos tool to write out your step-by-step implementation plan. Include ALL of the applicable tasks in the list. You should include a step to review the changes after you have implemented the changes.: You should include at least one step to validate/test your changes: be specific about whether to typecheck, run tests, run lints, etc. You may be able to do reviewing and validation in parallel in the same step. Skip write_todos for simple tasks like quick edits or answering questions.
+- For any task requiring 3+ steps, use the TodoWrite tool to write out your step-by-step implementation plan. Include ALL of the applicable tasks in the list. You should include a step to review the changes after you have implemented the changes.: You should include at least one step to validate/test your changes: be specific about whether to typecheck, run tests, run lints, etc. You may be able to do reviewing and validation in parallel in the same step. Skip TodoWrite for simple tasks like quick edits or answering questions.
 
 - For quick problems, briefly explain your reasoning to the user. If you need to think longer, write your thoughts within the <think> tags. Finally, for complex problems, spawn the thinker agent to help find the best solution. (gpt-5-agent is a last resort for complex problems)
 
@@ -674,7 +692,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
 
 - Inform the user that you have completed the task in one sentence or a few short bullet points.
 
-- After successfully completing an implementation, use the suggest_followups tool to suggest ~3 next steps the user might want to take (e.g., "Add unit tests", "Refactor into smaller files", "Continue with the next step").`;
+- After successfully completing an implementation, you can suggest ~3 next steps the user might want to take (e.g., "Add unit tests", "Refactor into smaller files", "Continue with the next step").`;
   const THEO_SYSTEM_PROMPT = ``;
   const THEO_INSTRUCTIONS_PROMPT = `You are a thinker agent. Use the <think> tag to think deeply about the user request.
 
@@ -716,35 +734,24 @@ Your task is to write out ALL the code changes needed to complete the user's req
 
 Important: You can not make any other tool calls besides editing files. You cannot read more files, write todos, spawn agents, or set output. set_output in particular should not be used. Do not call any of these tools!
 
-Write out what changes you would make using the tool call format below. Use this exact format for each file change:
+Write out what changes you would make using the format below. Use this exact format for each file change:
 
-<apex_tool_call>
-{
-  "cb_tool_name": "Edit",
-  "path": "path/to/file",
-  "replacements": [
-    {
-      "old_str": "exact old code",
-      "new_str": "exact new code"
-    },
-    {
-      "old_str": "exact old code 2",
-      "new_str": "exact new code 2"
-    }
-  ]
-}
-</apex_tool_call>
+For editing existing files:
+--- EDIT: path/to/file ---
+OLD:
+\`\`\`
+exact old code to replace
+\`\`\`
+NEW:
+\`\`\`
+exact new code
+\`\`\`
 
-OR for new files or major rewrites:
-
-<apex_tool_call>
-{
-  "cb_tool_name": "Write",
-  "path": "path/to/file",
-  "instructions": "What the change does",
-  "content": "Complete file content"
-}
-</apex_tool_call>
+For new files:
+--- CREATE: path/to/file ---
+\`\`\`
+complete file content
+\`\`\`
 
 Before you start writing your implementation, you should use <think> tags to think about the best way to implement the changes.
 
@@ -756,21 +763,41 @@ You can also use <think> tags interspersed between tool calls to think about the
 [ Long think about the best way to implement the changes ]
 </think>
 
-<apex_tool_call>
-[ First tool call to implement the feature ]
-</apex_tool_call>
+--- EDIT: src/example.js ---
+OLD:
+\`\`\`
+function oldFunction() {
+  return 'old';
+}
+\`\`\`
+NEW:
+\`\`\`
+function newFunction() {
+  return 'new';
+}
+\`\`\`
 
-<apex_tool_call>
-[ Second tool call to implement the feature ]
-</apex_tool_call>
+--- CREATE: src/newfile.js ---
+\`\`\`
+export function helper() {
+  return 'helper';
+}
+\`\`\`
 
 <think>
 [ Thoughts about a tricky part of the implementation ]
 </think>
 
-<apex_tool_call>
-[ Third tool call to implement the feature ]
-</apex_tool_call>
+--- EDIT: src/example.js ---
+OLD:
+\`\`\`
+import something from 'old';
+\`\`\`
+NEW:
+\`\`\`
+import something from 'old';
+import { helper } from './newfile';
+\`\`\`
 
 </example>
 
@@ -787,7 +814,7 @@ More style notes:
 - Optional arguments are code smell and worse than required arguments.
 - New components often should be added to a new file, not added to an existing file.
 
-Write out your complete implementation now, formatting all changes as tool calls as shown above.`;
+Write out your complete implementation now, formatting all changes using the --- EDIT: --- and --- CREATE: --- format shown above.`;
   const WEEB_SYSTEM_PROMPT = `You are an expert researcher who can search the web to find relevant information. Your goal is to answer the user's question from current search results and useful source pages. Use web_search to get Serper JSON search results. Use read_url to fetch and extract readable text from pages that would help answer the user's question.`;
   const WEEB_INSTRUCTIONS_PROMPT = `Provide comprehensive research on the user's prompt.
 
@@ -982,9 +1009,9 @@ Output JSON only, no markdown fences:
     qwen: { model: "accounts/fireworks/models/qwen3p6-plus", temperature: 0.1, maxTokens: 8192 }
   };
   const _initialProvider = PROVIDERS[currentProvider];
-  const _initialKey = process.env[_initialProvider.envKey] || "no-key";
+  const _initialKey = process.env[_initialProvider.envKey];
   let _internalClient = new OpenAI({
-    apiKey: _initialKey,
+    apiKey: _initialKey || "",
     baseURL: _initialProvider.baseURL,
     dangerouslyAllowBrowser: true
   });
@@ -999,7 +1026,7 @@ Output JSON only, no markdown fences:
     }
   });
   function _makeClient(apiKey, baseURL) {
-    return new OpenAI({ apiKey: apiKey || "no-key", baseURL, dangerouslyAllowBrowser: true });
+    return new OpenAI({ apiKey: apiKey || "", baseURL, dangerouslyAllowBrowser: true });
   }
   function setApiKey(key) {
     _internalClient = _makeClient(key, PROVIDERS[currentProvider].baseURL);
@@ -1025,7 +1052,7 @@ Output JSON only, no markdown fences:
     if (globalThis.require_server) {
       const srv = globalThis.require_server();
       if (srv && srv.updateApiKey)
-        srv.updateApiKey(apiKey || "no-key");
+        srv.updateApiKey(apiKey || "");
     }
   }
   function resolveAgentConfig(agentName, mode = currentMode) {
@@ -1577,7 +1604,8 @@ var require_prompt = __commonJS((exports, module2) => {
   var path2 = __require2("path");
   var { execSync } = __require2("child_process");
   var { PROJECT_ROOT, MAX_TOOL_ITERATIONS, APEX_SYSTEM_PROMPT } = require_config();
-  function buildSystemPrompt() {
+  var { resolvePlaceholders } = require_toolExecutors();
+  async function buildSystemPrompt() {
     let gitInfo = "";
     try {
       const branch = execSync("git rev-parse --abbrev-ref HEAD 2>/dev/null", { encoding: "utf-8", cwd: PROJECT_ROOT }).trim();
@@ -1604,21 +1632,11 @@ Dev dependencies: ${Object.keys(pkg.devDependencies).join(", ")}`;
         projectInfo += `
 Scripts: ${Object.keys(pkg.scripts).join(", ")}`;
     } catch {}
-    const currentDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-    const placeholders = {
-      CURRENT_DATE: currentDate,
+    const fullPlaceholderData = {
       GIT_CHANGES_PROMPT: gitInfo,
-      SYSTEM_INFO_PROMPT: projectInfo,
-      FILE_TREE_PROMPT: "(Project structure is available via tools)",
-      FILE_TREE_PROMPT_SMALL: "(Project structure is available via tools)",
-      KNOWLEDGE_FILES_CONTENTS: "",
-      USER_INPUT_PROMPT: ""
+      SYSTEM_INFO_PROMPT: projectInfo
     };
-    let resolvedPrompt = APEX_SYSTEM_PROMPT;
-    for (const [key, value] of Object.entries(placeholders)) {
-      resolvedPrompt = resolvedPrompt.split(`\${PLACEHOLDER.${key}}`).join(value);
-    }
-    return resolvedPrompt;
+    return await resolvePlaceholders(APEX_SYSTEM_PROMPT, fullPlaceholderData);
   }
   module2.exports = { buildSystemPrompt };
 });
@@ -2957,7 +2975,7 @@ ${historyCtx}` : ""
       return `Error executing ${name}: ${err.message}`;
     }
   }
-  module2.exports = { executeTool };
+  module2.exports = { executeTool, resolvePlaceholders };
 });
 var require_agent = __commonJS((exports, module2) => {
   var {
@@ -2991,7 +3009,7 @@ var require_agent = __commonJS((exports, module2) => {
     let turnTokens = 0;
     try {
       store.addMessage({ role: "divider" });
-      const systemPrompt = buildSystemPrompt();
+      const systemPrompt = await buildSystemPrompt();
       let messages = [
         { role: "system", content: systemPrompt },
         ...session.conversationHistory
@@ -3342,7 +3360,7 @@ var require_commands = __commonJS((exports, module2) => {
           logoutProvider(provider);
           store.setState({ showHelp: false, needsConfig: true, apiKey: "" });
         } else {
-          store.setState({ showHelp: false, needsConfig: true });
+          store.setState({ showHelp: false, needsConfig: false });
         }
         break;
       }
@@ -4393,7 +4411,7 @@ var import_store = __toESM(require_store(), 1);
 var import_config = __toESM(require_config(), 1);
 var import_useLayout = __toESM(require_useLayout(), 1);
 var jsx_runtime = __toESM(require_jsx_runtime(), 1);
-var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together", "baseten"];
+var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together", "baseten", "replit"];
 var PROVIDER_EMOJI = {
   fireworks: "\uD83D\uDD25",
   openai: "\uD83E\uDD16",
@@ -4401,7 +4419,8 @@ var PROVIDER_EMOJI = {
   groq: "\u26A1",
   gemini: "\uD83D\uDC8E",
   together: "\uD83E\uDD1D",
-  baseten: "\uD83D\uDD3A"
+  baseten: "\uD83D\uDD3A",
+  replit: "\uD83C\uDD93"
 };
 function ProviderSelector() {
   var state = useStore();
@@ -4459,6 +4478,11 @@ function ProviderSelector() {
     setStep("select");
   }
   function handleSelect() {
+    var providerObj = providers[providerKey];
+    if (providerObj && providerObj.noKey) {
+      finishLogin(providerKey, undefined);
+      return;
+    }
     if (isLoggedIn(providerKey)) {
       handleLogout();
       return;
@@ -4482,7 +4506,7 @@ function ProviderSelector() {
       } else if (key.name === "return" || key.name === "enter") {
         handleSelect();
       } else if (key.name === "l") {
-        if (isLoggedIn(providerKey))
+        if (isLoggedIn(providerKey) && !providers[providerKey].noKey)
           handleLogout();
       }
     } else {
@@ -4520,8 +4544,8 @@ function ProviderSelector() {
         PROVIDER_ORDER.map(function(key, idx) {
           var focused = idx === focusedIdx;
           var stateLabel = loginState(key);
-          var statusFg = stateLabel === "logged-in" ? import_theme.colors.green : stateLabel === "saved" ? import_theme.colors.yellow : import_theme.colors.dim;
-          var statusText = stateLabel === "logged-in" ? "Logged in" : stateLabel === "saved" ? "Logged out" : "Needs key";
+          var statusFg = stateLabel === "logged-in" || stateLabel === "no-key" ? import_theme.colors.green : stateLabel === "saved" ? import_theme.colors.yellow : import_theme.colors.dim;
+          var statusText = stateLabel === "no-key" ? "Free (no key)" : stateLabel === "logged-in" ? "Logged in" : stateLabel === "saved" ? "Logged out" : "Needs key";
           return jsx_runtime.jsxs("box", {
             style: {
               flexDirection: "row",
@@ -4533,7 +4557,9 @@ function ProviderSelector() {
             },
             onMouseDown: function() {
               setFocusedIdx(idx);
-              if (stateLabel === "logged-in") {
+              if (providers[key].noKey) {
+                finishLogin(key, undefined);
+              } else if (stateLabel === "logged-in") {
                 handleLogout();
               } else if (stateLabel === "saved") {
                 finishLogin(key, getStoredKey(key));
@@ -4567,7 +4593,7 @@ function ProviderSelector() {
           style: { paddingLeft: 4, paddingRight: 4, marginTop: 2 },
           children: jsx_runtime.jsx("text", {
             fg: import_theme.colors.dim,
-            children: selectedState === "logged-in" ? "Press Enter to log out of the selected provider." : selectedState === "saved" ? "Press Enter to log in with the saved key." : "Press Enter to log in with a new key. Keys are stored in ~/.apex-dev/config.json or can be supplied via environment variables."
+            children: provider.noKey ? "Press Enter to use this provider \u2014 no API key required." : selectedState === "logged-in" ? "Press Enter to log out of the selected provider." : selectedState === "saved" ? "Press Enter to log in with the saved key." : "Press Enter to log in with a new key. Keys are stored in ~/.apex-dev/config.json or can be supplied via environment variables."
           })
         })
       ]
@@ -4636,7 +4662,7 @@ var import_store = __toESM(require_store(), 1);
 var import_config = __toESM(require_config(), 1);
 var import_useLayout = __toESM(require_useLayout(), 1);
 var jsx_runtime = __toESM(require_jsx_runtime(), 1);
-var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together", "baseten"];
+var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together"];
 function ApiKeyModal() {
   var [input, setInput] = import_react2.useState("");
   var [selectedIdx, setSelectedIdx] = import_react2.useState(0);

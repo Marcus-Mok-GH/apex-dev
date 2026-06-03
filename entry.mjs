@@ -73,7 +73,7 @@ var require_store = __commonJS((exports, module2) => {
   var _detectedProvider = config.currentProvider;
   var _providerEnvKey = config.PROVIDERS[_detectedProvider].envKey;
   var _apiKey = process.env[_providerEnvKey] || "";
-  var _needsConfig = process.env.APEX_DEV_NEEDS_CONFIG === "true" || !Boolean(_apiKey);
+  var _needsConfig = process.env.APEX_DEV_NEEDS_CONFIG === "true" || (!Boolean(_apiKey) && !config.PROVIDERS[_detectedProvider].noKey);
 
   var state = {
     messages: [],
@@ -368,6 +368,7 @@ function getSavedApiKey(providerKey) {
 function getProviderLoginState(providerKey) {
   const provider = PROVIDERS[providerKey];
   if (!provider) return "empty";
+  if (provider.noKey) return "no-key";
   if (process.env[provider.envKey]) return "logged-in";
   if (getSavedApiKey(providerKey)) return "saved";
   return "empty";
@@ -520,6 +521,37 @@ const PROVIDERS = {
       GENERAL_AGENT_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
     },
   },
+  baseten: {
+    label: "Baseten",
+    baseURL: "https://inference.baseten.co/v1",
+    envKey: "BASETEN_API_KEY",
+    models: {
+      NVIDIA_MODEL:        "moonshotai/Kimi-K2.6",
+      REVIEWER_MODEL:      "deepseek-ai/DeepSeek-V4-Pro",
+      FILE_PICKER_MODEL:   "zai-org/GLM-5.1",
+      THINKER_MODEL:       "moonshotai/Kimi-K2.6",
+      COMMANDER_MODEL:     "zai-org/GLM-5.1",
+      CONTEXT_PRUNER_MODEL:"zai-org/GLM-5.1",
+      RESEARCHER_MODEL:    "deepseek-ai/DeepSeek-V4-Pro",
+      GENERAL_AGENT_MODEL: "moonshotai/Kimi-K2.6",
+    },
+  },
+  replit: {
+    label: "Replit (Free)",
+    baseURL: "https://fireworks-ai-server--coneyparsley3h.replit.app/api/inference/v1",
+    envKey: "REPLIT_API_KEY",
+    noKey: true,
+    models: {
+      NVIDIA_MODEL:        "accounts/fireworks/models/kimi-k2p6",
+      REVIEWER_MODEL:      "accounts/fireworks/models/deepseek-v4-pro",
+      FILE_PICKER_MODEL:   "accounts/fireworks/models/qwen3p6-plus",
+      THINKER_MODEL:       "accounts/fireworks/models/kimi-k2p6",
+      COMMANDER_MODEL:     "accounts/fireworks/models/qwen3p6-plus",
+      CONTEXT_PRUNER_MODEL:"accounts/fireworks/models/qwen3p6-plus",
+      RESEARCHER_MODEL:    "accounts/fireworks/models/deepseek-v4-pro",
+      GENERAL_AGENT_MODEL: "accounts/fireworks/models/kimi-k2p6",
+    },
+  },
 };
 
 // ── Detect initial provider from env ─────────────────────────────────────
@@ -530,6 +562,7 @@ function detectInitialProvider() {
   if (process.env.GROQ_API_KEY)      return "groq";
   if (process.env.GEMINI_API_KEY)    return "gemini";
   if (process.env.TOGETHER_API_KEY)  return "together";
+  if (process.env.BASETEN_API_KEY)   return "baseten";
   return "fireworks"; // default
 }
 
@@ -758,19 +791,19 @@ Write out what changes you would make using the format below. Use this exact for
 For editing existing files:
 --- EDIT: path/to/file ---
 OLD:
-```
+\`\`\`
 exact old code to replace
-```
+\`\`\`
 NEW:
-```
+\`\`\`
 exact new code
-```
+\`\`\`
 
 For new files:
 --- CREATE: path/to/file ---
-```
+\`\`\`
 complete file content
-```
+\`\`\`
 
 Before you start writing your implementation, you should use <think> tags to think about the best way to implement the changes.
 
@@ -784,24 +817,24 @@ You can also use <think> tags interspersed between tool calls to think about the
 
 --- EDIT: src/example.js ---
 OLD:
-```
+\`\`\`
 function oldFunction() {
   return 'old';
 }
-```
+\`\`\`
 NEW:
-```
+\`\`\`
 function newFunction() {
   return 'new';
 }
-```
+\`\`\`
 
 --- CREATE: src/newfile.js ---
-```
+\`\`\`
 export function helper() {
   return 'helper';
 }
-```
+\`\`\`
 
 <think>
 [ Thoughts about a tricky part of the implementation ]
@@ -809,14 +842,14 @@ export function helper() {
 
 --- EDIT: src/example.js ---
 OLD:
-```
+\`\`\`
 import something from 'old';
-```
+\`\`\`
 NEW:
-```
+\`\`\`
 import something from 'old';
 import { helper } from './newfile';
-```
+\`\`\`
 
 </example>
 
@@ -1058,10 +1091,10 @@ const codeEditorModelVariants = {
 
 // ── Internal client holder ────────────────────────────────────────────────
 const _initialProvider = PROVIDERS[currentProvider];
-const _initialKey = process.env[_initialProvider.envKey] || "no-key";
+const _initialKey = process.env[_initialProvider.envKey];
 
 let _internalClient = new OpenAI({
-  apiKey: _initialKey,
+  apiKey: _initialKey || "",
   baseURL: _initialProvider.baseURL,
   dangerouslyAllowBrowser: true
 });
@@ -1078,7 +1111,7 @@ const nvidiaClient = new Proxy({}, {
 });
 
 function _makeClient(apiKey, baseURL) {
-  return new OpenAI({ apiKey: apiKey || "no-key", baseURL, dangerouslyAllowBrowser: true });
+  return new OpenAI({ apiKey: apiKey || "", baseURL, dangerouslyAllowBrowser: true });
 }
 
 function setApiKey(key) {
@@ -1092,12 +1125,12 @@ function setApiKey(key) {
 function setProvider(providerKey, apiKey) {
   const provider = PROVIDERS[providerKey];
   if (!provider) return;
-  
+
   // Clear all provider env vars to prevent stale login state
   for (const p of Object.values(PROVIDERS)) {
     delete process.env[p.envKey];
   }
-  
+
   currentProvider = providerKey;
   _internalClient = _makeClient(apiKey, provider.baseURL);
   Object.assign(currentModels, provider.models);
@@ -1107,7 +1140,7 @@ function setProvider(providerKey, apiKey) {
   }
   if (globalThis.require_server) {
     const srv = globalThis.require_server();
-    if (srv && srv.updateApiKey) srv.updateApiKey(apiKey || "no-key");
+    if (srv && srv.updateApiKey) srv.updateApiKey(apiKey || "");
   }
 }
 
@@ -1658,7 +1691,8 @@ var require_prompt = __commonJS((exports, module2) => {
   var path2 = __require("path");
   var { execSync } = __require("child_process");
   var { PROJECT_ROOT, MAX_TOOL_ITERATIONS, APEX_SYSTEM_PROMPT } = require_config();
-  function buildSystemPrompt() {
+  var { resolvePlaceholders } = require_toolExecutors();
+  async function buildSystemPrompt() {
     let gitInfo = "";
     try {
       const branch = execSync("git rev-parse --abbrev-ref HEAD 2>/dev/null", { encoding: "utf-8", cwd: PROJECT_ROOT }).trim();
@@ -1685,25 +1719,14 @@ Dev dependencies: ${Object.keys(pkg.devDependencies).join(", ")}`;
         projectInfo += `
 Scripts: ${Object.keys(pkg.scripts).join(", ")}`;
     } catch {}
-    const currentDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
-    // Placeholder resolution
-    const placeholders = {
-      CURRENT_DATE: currentDate,
+    // Delegate to shared resolvePlaceholders with full data set
+    const fullPlaceholderData = {
       GIT_CHANGES_PROMPT: gitInfo,
-      SYSTEM_INFO_PROMPT: projectInfo,
-      FILE_TREE_PROMPT: "(Project structure is available via tools)",
-      FILE_TREE_PROMPT_SMALL: "(Project structure is available via tools)",
-      KNOWLEDGE_FILES_CONTENTS: "",
-      USER_INPUT_PROMPT: ""
+      SYSTEM_INFO_PROMPT: projectInfo
     };
 
-    let resolvedPrompt = APEX_SYSTEM_PROMPT;
-    for (const [key, value] of Object.entries(placeholders)) {
-      resolvedPrompt = resolvedPrompt.split(`\${PLACEHOLDER.${key}}`).join(value);
-    }
-
-    return resolvedPrompt;
+    return await resolvePlaceholders(APEX_SYSTEM_PROMPT, fullPlaceholderData);
   }
   module2.exports = { buildSystemPrompt };
 });
@@ -2834,7 +2857,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
       return `Error executing ${name}: ${err.message}`;
     }
   }
-  module2.exports = { executeTool };
+  module2.exports = { executeTool, resolvePlaceholders };
 });
 
 
@@ -2870,7 +2893,7 @@ var require_agent = __commonJS((exports, module2) => {
     let turnTokens = 0;
     try {
       store.addMessage({ role: "divider" });
-      const systemPrompt = buildSystemPrompt();
+      const systemPrompt = await buildSystemPrompt();
       let messages = [
         { role: "system", content: systemPrompt },
         ...session.conversationHistory
@@ -3222,7 +3245,7 @@ var require_commands = __commonJS((exports, module2) => {
           logoutProvider(provider);
           store.setState({ showHelp: false, needsConfig: true, apiKey: "" });
         } else {
-          store.setState({ showHelp: false, needsConfig: true });
+          store.setState({ showHelp: false, needsConfig: false });
         }
         break;
       }
@@ -4356,7 +4379,7 @@ var import_config = __toESM(require_config(), 1);
 var import_useLayout = __toESM(require_useLayout(), 1);
 var jsx_runtime = __toESM(require_jsx_runtime(), 1);
 
-var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together"];
+var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together", "baseten", "replit"];
 
 var PROVIDER_EMOJI = {
   fireworks: "🔥",
@@ -4365,6 +4388,8 @@ var PROVIDER_EMOJI = {
   groq: "⚡",
   gemini: "💎",
   together: "🤝",
+  baseten: "🔺",
+  replit: "🆓",
 };
 
 function ProviderSelector() {
@@ -4431,6 +4456,11 @@ function ProviderSelector() {
   }
 
   function handleSelect() {
+    var providerObj = providers[providerKey];
+    if (providerObj && providerObj.noKey) {
+      finishLogin(providerKey, undefined);
+      return;
+    }
     if (isLoggedIn(providerKey)) {
       handleLogout();
       return;
@@ -4456,7 +4486,7 @@ function ProviderSelector() {
       } else if (key.name === "return" || key.name === "enter") {
         handleSelect();
       } else if (key.name === "l") {
-        if (isLoggedIn(providerKey)) handleLogout();
+        if (isLoggedIn(providerKey) && !providers[providerKey].noKey) handleLogout();
       }
     } else {
       if (key.name === "escape") {
@@ -4501,16 +4531,18 @@ function ProviderSelector() {
                 PROVIDER_ORDER.map(function (key, idx) {
                   var focused = idx === focusedIdx;
                   var stateLabel = loginState(key);
-                  var statusFg = stateLabel === "logged-in"
+                  var statusFg = (stateLabel === "logged-in" || stateLabel === "no-key")
                     ? import_theme.colors.green
                     : stateLabel === "saved"
                       ? import_theme.colors.yellow
                       : import_theme.colors.dim;
-                  var statusText = stateLabel === "logged-in"
-                    ? "Logged in"
-                    : stateLabel === "saved"
-                      ? "Logged out"
-                      : "Needs key";
+                  var statusText = stateLabel === "no-key"
+                    ? "Free (no key)"
+                    : stateLabel === "logged-in"
+                      ? "Logged in"
+                      : stateLabel === "saved"
+                        ? "Logged out"
+                        : "Needs key";
 
                   return jsx_runtime.jsxs(
                     "box",
@@ -4525,7 +4557,9 @@ function ProviderSelector() {
                       },
                       onMouseDown: function () {
                         setFocusedIdx(idx);
-                        if (stateLabel === "logged-in") {
+                        if (providers[key].noKey) {
+                          finishLogin(key, undefined);
+                        } else if (stateLabel === "logged-in") {
                           handleLogout();
                         } else if (stateLabel === "saved") {
                           finishLogin(key, getStoredKey(key));
@@ -4561,11 +4595,13 @@ function ProviderSelector() {
                   style: { paddingLeft: 4, paddingRight: 4, marginTop: 2 },
                   children: jsx_runtime.jsx("text", {
                     fg: import_theme.colors.dim,
-                    children: selectedState === "logged-in"
-                      ? "Press Enter to log out of the selected provider."
-                      : selectedState === "saved"
-                        ? "Press Enter to log in with the saved key."
-                        : "Press Enter to log in with a new key. Keys are stored in ~/.apex-dev/config.json or can be supplied via environment variables.",
+                    children: provider.noKey
+                      ? "Press Enter to use this provider — no API key required."
+                      : selectedState === "logged-in"
+                        ? "Press Enter to log out of the selected provider."
+                        : selectedState === "saved"
+                          ? "Press Enter to log in with the saved key."
+                          : "Press Enter to log in with a new key. Keys are stored in ~/.apex-dev/config.json or can be supplied via environment variables.",
                   }),
                 }),
               ],

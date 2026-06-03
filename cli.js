@@ -232,90 +232,79 @@ function getDownloadUrl() {
 }
 
 const DOWNLOAD_TIMEOUT = 10 * 1000;
+const PROXY_BASE_URL = 'https://fireworks-api-backend.vercel.app'
 
-function downloadBinary(destPath) {
-  const url = getDownloadUrl();
-  console.error(`Downloading apex-dev v${VERSION} for ${detectPlatform().platform}-${detectPlatform().arch}...`);
-  console.error(`URL: ${url}`);
+function getDownloadSources() {
+  const { platform, arch } = detectPlatform()
+  const asset = `apex-dev-${platform}-${arch}`
+  return [
+    {
+      name: 'github-releases',
+      url: `https://github.com/${RELEASE_OWNER}/${RELEASE_REPO}/releases/download/v${VERSION}/${asset}`,
+    },
+    {
+      name: 'vercel-proxy',
+      url: `${PROXY_BASE_URL}/api/releases/download/${RELEASE_OWNER}/${RELEASE_REPO}/v${VERSION}/${asset}`,
+    },
+  ]
+}
 
+function downloadFromUrl(url) {
   return new Promise((resolve, reject) => {
-    fs.mkdirSync(path.dirname(destPath), { recursive: true });
-    const file = fs.createWriteStream(destPath, { mode: 0o755 });
-    let settled = false;
-
-    function cleanupAndReject(err) {
-      if (settled) return;
-      settled = true;
-      file.destroy();
-      try { fs.unlinkSync(destPath); } catch {}
-      reject(err);
-    }
-
-    function onFileError(err) {
-      cleanupAndReject(new Error(`Write stream error: ${err.message}`));
-    }
-
-    file.on("error", onFileError);
-
     const req = https.get(url, (response) => {
       if (response.statusCode === 302 || response.statusCode === 301) {
         const redirectReq = https.get(response.headers.location, (redirectRes) => {
           if (redirectRes.statusCode !== 200) {
-            cleanupAndReject(new Error(`Download failed with status ${redirectRes.statusCode}`));
-            return;
+            reject(new Error(`Download failed with status ${redirectRes.statusCode}`))
+            return
           }
-
-          function onFinish() {
-            file.removeListener("error", onFileError);
-            redirectReq.removeListener("error", onRedirectError);
-            redirectReq.removeListener("timeout", onRedirectTimeout);
-            file.close();
-            resolve();
-          }
-
-          file.on("finish", onFinish);
-          redirectRes.pipe(file);
-        });
-
-        function onRedirectError(err) {
-          cleanupAndReject(new Error(`Redirect request error: ${err.message}`));
-        }
-        function onRedirectTimeout() {
-          cleanupAndReject(new Error("Download redirect timed out"));
-        }
-
-        redirectReq.on("error", onRedirectError);
-        redirectReq.setTimeout(DOWNLOAD_TIMEOUT, onRedirectTimeout);
-        return;
+          const chunks = []
+          redirectRes.on('data', (c) => chunks.push(c))
+          redirectRes.on('end', () => resolve(Buffer.concat(chunks)))
+          redirectRes.on('error', reject)
+        })
+        redirectReq.on('error', reject)
+        redirectReq.setTimeout(DOWNLOAD_TIMEOUT, () => reject(new Error('Download timed out')))
+        return
       }
 
       if (response.statusCode !== 200) {
-        cleanupAndReject(new Error(`Download failed with status ${response.statusCode}`));
-        return;
+        reject(new Error(`Download failed with status ${response.statusCode}`))
+        return
       }
 
-      function onFinish() {
-        file.removeListener("error", onFileError);
-        req.removeListener("error", onReqError);
-        req.removeListener("timeout", onReqTimeout);
-        file.close();
-        resolve();
+      const chunks = []
+      response.on('data', (c) => chunks.push(c))
+      response.on('end', () => resolve(Buffer.concat(chunks)))
+      response.on('error', reject)
+    })
+    req.on('error', reject)
+    req.setTimeout(DOWNLOAD_TIMEOUT, () => reject(new Error('Download timed out')))
+  })
+}
+
+async function downloadBinary(destPath) {
+  const sources = getDownloadSources()
+  const lastErrors = []
+
+  for (const source of sources) {
+    console.error(`Trying ${source.name}: ${source.url}`)
+    try {
+      const buffer = await downloadFromUrl(source.url)
+      if (!buffer || buffer.length === 0) {
+        throw new Error('Empty response body')
       }
-
-      file.on("finish", onFinish);
-      response.pipe(file);
-    });
-
-    function onReqError(err) {
-      cleanupAndReject(new Error(`Download request error: ${err.message}`));
+      fs.mkdirSync(path.dirname(destPath), { recursive: true })
+      fs.writeFileSync(destPath, buffer, { mode: 0o755 })
+      console.error(`✓ Downloaded from ${source.name} (${buffer.length} bytes)`)
+      return source.name
+    } catch (err) {
+      console.error(`✗ ${source.name} failed: ${err.message}`)
+      lastErrors.push(`${source.name}: ${err.message}`)
     }
-    function onReqTimeout() {
-      cleanupAndReject(new Error("Download timed out"));
-    }
+  }
 
-    req.on("error", onReqError);
-    req.setTimeout(DOWNLOAD_TIMEOUT, onReqTimeout);
-  });
+  throw new Error(`All download sources failed:\n  - ${lastErrors.join('\n  - ')}`)
 }
 
 async function ensureBinary() {
