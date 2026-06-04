@@ -515,7 +515,7 @@ var require_config = __commonJS((exports, module) => {
     },
     "apex-nova": {
       label: "Apex Nova",
-      baseURL: "https://fireworks-ai-server--coneyparsley3h.replit.app",
+      baseURL: "https://fireworks-ai-server--coneyparsley3h.replit.app/api/inference/v1",
       envKey: "APEX_NOVA_API_KEY",
       noKey: true,
       models: {
@@ -4440,7 +4440,8 @@ var PROVIDER_EMOJI = {
   gemini: "\uD83D\uDC8E",
   together: "\uD83E\uDD1D",
   baseten: "\uD83D\uDD3A",
-  replit: "\uD83C\uDD93"
+  replit: "\uD83C\uDD93",
+  "apex-nova": "\uD83C\uDF1F"
 };
 function ProviderSelector() {
   var state = useStore();
