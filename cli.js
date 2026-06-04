@@ -232,7 +232,8 @@ function getDownloadUrl() {
   return `https://github.com/Marcus-Mok-GH/apex-dev/releases/download/v${VERSION}/apex-dev-${platform}-${arch}`;
 }
 
-const DOWNLOAD_TIMEOUT = 10 * 1000;
+const DOWNLOAD_TIMEOUT = 120 * 1000;
+const CONNECT_TIMEOUT = 15 * 1000;
 const PROXY_BASE_URL = 'https://fireworks-api-backend.vercel.app'
 
 function getDownloadSources() {
@@ -263,9 +264,10 @@ function downloadFromUrl(url) {
           redirectRes.on('data', (c) => chunks.push(c))
           redirectRes.on('end', () => resolve(Buffer.concat(chunks)))
           redirectRes.on('error', reject)
+          redirectRes.setTimeout(DOWNLOAD_TIMEOUT, () => reject(new Error('Download timed out')))
         })
         redirectReq.on('error', reject)
-        redirectReq.setTimeout(DOWNLOAD_TIMEOUT, () => reject(new Error('Download timed out')))
+        redirectReq.setTimeout(CONNECT_TIMEOUT, () => redirectReq.destroy(new Error('Connection timed out')))
         return
       }
 
@@ -280,7 +282,7 @@ function downloadFromUrl(url) {
       response.on('error', reject)
     })
     req.on('error', reject)
-    req.setTimeout(DOWNLOAD_TIMEOUT, () => reject(new Error('Download timed out')))
+    req.setTimeout(CONNECT_TIMEOUT, () => req.destroy(new Error('Connection timed out')))
   })
 }
 
