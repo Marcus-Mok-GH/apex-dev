@@ -1,2 +1,4 @@
 node_modules/
 *.bak
+release-tmp/
+dist/
