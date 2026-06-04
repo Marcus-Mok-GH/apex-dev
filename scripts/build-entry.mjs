@@ -18,6 +18,9 @@ import {
   createCliRenderer,
 } from "@opentui/core";
 import { createRoot, useTerminalDimensions, useKeyboard } from "@opentui/react";
+import React from "react";
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+import { OpenAI } from "openai";
 var __create = Object.create;
 var __getProtoOf = Object.getPrototypeOf;
 var __defProp = Object.defineProperty;
@@ -64,16 +67,10 @@ var __export = (target, all) => {
 };
 var __require = import.meta.require;
 
-// External package CJS wrappers
-var require_react = __commonJS((exports, module) => {
-  module.exports = __require("react");
-});
-var require_jsx_runtime = __commonJS((exports, module) => {
-  module.exports = __require("react/jsx-runtime");
-});
-var require_openai = __commonJS((exports, module) => {
-  module.exports = __require("openai");
-});
+// External package re-exports (resolved at build time via static imports above)
+var require_react = () => React;
+var require_jsx_runtime = () => ({ jsx: _jsx, jsxs: _jsxs, Fragment: _Fragment });
+var require_openai = () => ({ OpenAI });
 
 `;
 

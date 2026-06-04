@@ -773,7 +773,7 @@ const codeEditorModelVariants = {
 
 // ── Internal client holder ──────────────────────────────────────────────────────────
 const _initialProvider = PROVIDERS[currentProvider];
-const _initialKey = process.env[_initialProvider.envKey];
+const _initialKey = process.env[_initialProvider.envKey] || (_initialProvider.noKey ? "dummy" : "");
 
 let _internalClient = new OpenAI({
   apiKey: _initialKey || "",
