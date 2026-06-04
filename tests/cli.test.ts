@@ -43,3 +43,12 @@ test("apex shows version in help output", async ({ $ }) => {
   expect(result.code).toBe(0);
   expect(result.output).toMatch(/v\d+\.\d+\.\d+/);
 });
+
+test("package exposes npm bin aliases", async () => {
+  const pkg = JSON.parse(await Bun.file(join(projectRoot, "package.json")).text());
+
+  expect(pkg.bin.apex).toBe("./cli.js");
+  expect(pkg.bin["apex-dev"]).toBe("./cli.js");
+  expect(pkg.files).toContain("dist/index.js");
+  expect(pkg.files).toContain("cli.js");
+});

@@ -440,7 +440,6 @@ async function ensureApiKeys() {
     for (const provider of PROVIDERS) {
       if (provider.noKey) {
         console.error(`✓ ${provider.label} (no key required)`);
-        count++;
       } else if (process.env[provider.envKey] || config[provider.name]) {
         console.error(`✓ ${provider.label} (${provider.envKey})`);
         count++;

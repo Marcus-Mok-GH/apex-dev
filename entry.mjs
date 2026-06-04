@@ -1,5 +1,4 @@
-#!/usr/bin/env node
-// @bun
+#!/usr/bin/env bun
 // Proper entry for Apex AI
 
 import {
