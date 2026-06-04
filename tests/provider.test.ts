@@ -20,7 +20,7 @@ test("provider list includes known services", async ({ $ }) => {
   expect(result.code).toBe(0);
 
   const output = result.output;
-  const knownProviders = ["Fireworks", "OpenAI", "Groq", "Gemini", "Together", "OpenRouter", "Replit"];
+  const knownProviders = ["Fireworks", "OpenAI", "Groq", "Gemini", "Together", "OpenRouter", "Replit", "Apex Nova"];
   const foundProviders = knownProviders.filter(p => output.includes(p));
 
   const hasOutput = foundProviders.length > 0 || output.includes("No API keys");

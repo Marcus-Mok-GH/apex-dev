@@ -93,7 +93,7 @@ function getFirstSavedProvider() {
   return null;
 }
 
-// ── Provider registry ────────────────────────────────────────────────────
+// ── Provider registry ────────────────────────────────────────────────
 const PROVIDERS = {
   fireworks: {
     label: "Fireworks AI",
@@ -218,7 +218,7 @@ const PROVIDERS = {
   },
   "apex-nova": {
     label: "Apex Nova",
-    baseURL: "https://fireworks-ai-server--coneyparsley3h.replit.app",
+    baseURL: "https://fireworks-ai-server--coneyparsley3h.replit.app/api/inference/v1",
     envKey: "APEX_NOVA_API_KEY",
     noKey: true,
     models: {
@@ -234,7 +234,7 @@ const PROVIDERS = {
   },
 };
 
-// ── Detect initial provider from env ────────────────────────────────
+// ── Detect initial provider from env ───────────────────────────────────
 function detectInitialProvider() {
   if (process.env.APEX_PROVIDER && PROVIDERS[process.env.APEX_PROVIDER]) return process.env.APEX_PROVIDER;
   if (process.env.OPENAI_API_KEY)    return "openai";
@@ -271,10 +271,10 @@ const PROJECT_ROOT = process.cwd();
 let currentMode = "max";
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ═══ Apex Agent System Prompts ════════════════════════════════════════
+// ═══ Apex Agent System Prompts ════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════════════════
 
-// ── 1. Apex (base2.ts) ── Orchestrator ──────────────────────────────────
+// ── 1. Apex (base2.ts) ── Orchestrator ──────────────────────────────────────────
 const APEX_SYSTEM_PROMPT = `You are Apex, a strategic assistant that orchestrates complex coding tasks through specialized sub-agents. You are the AI agent behind the product, Apex, a CLI tool where users can chat with you to code with AI.
 
 Current date: \${PLACEHOLDER.CURRENT_DATE}.
@@ -422,7 +422,7 @@ The user asks you to implement a new feature. You respond in multiple steps:
 
 - After successfully completing an implementation, you can suggest ~3 next steps the user might want to take (e.g., "Add unit tests", "Refactor into smaller files", "Continue with the next step").`;
 
-// ── 2. ApexThinker (thinker.ts) ── Thinker ──────────────────────────────────────
+// ── 2. ApexThinker (thinker.ts) ── Thinker ──────────────────────────────────────────────
 const THEO_SYSTEM_PROMPT = ``;
 const THEO_INSTRUCTIONS_PROMPT = `You are a thinker agent. Use the <think> tag to think deeply about the user request.
 
@@ -460,7 +460,7 @@ Before providing your review, use <think></think> tags to think through the code
 
 Be extremely concise.`;
 
-// ── 4. CodeEditor (editor.ts) ── Code Editor ────────────────────────────
+// ── 4. CodeEditor (editor.ts) ── Code Editor ────────────────────────────────────────
 const CODE_EDITOR_SYSTEM_PROMPT = ``;
 const CODE_EDITOR_INSTRUCTIONS_PROMPT = `You are an expert code editor with deep understanding of software engineering principles. You were spawned to generate an implementation for the user's request. Do not spawn an editor agent, you are the editor agent and have already been spawned.
 
@@ -550,7 +550,7 @@ More style notes:
 
 Write out your complete implementation now, formatting all changes using the --- EDIT: --- and --- CREATE: --- format shown above.`;
 
-// ── 5. Weeb (researcher-web.ts) ── Web Researcher ─────────────────────────
+// ── 5. Weeb (researcher-web.ts) ── Web Researcher ───────────────────────────────────────
 const WEEB_SYSTEM_PROMPT = `You are an expert researcher who can search the web to find relevant information. Your goal is to answer the user's question from current search results and useful source pages. Use web_search to get Serper JSON search results. Use read_url to fetch and extract readable text from pages that would help answer the user's question.`;
 const WEEB_INSTRUCTIONS_PROMPT = `Provide comprehensive research on the user's prompt.
 
@@ -562,7 +562,7 @@ If read_url cannot handle a source, choose a different result or explain the lim
 
 Then, write up a concise answer that includes key findings for the user's prompt and cites source URLs when useful.`;
 
-// ── 6. Doc (researcher-docs.ts) ── Doc Researcher ─────────────────────────
+// ── 6. Doc (researcher-docs.ts) ── Doc Researcher ───────────────────────────────────────
 const DOC_SYSTEM_PROMPT = `You are an expert researcher who can read documentation to find relevant information. Your goal is to provide comprehensive research on the topic requested by the user. Use read_docs to get detailed documentation.`;
 const DOC_INSTRUCTIONS_PROMPT = `Instructions:
 1. Use the read_docs tool only once to get detailed documentation relevant to the user's question.
@@ -588,12 +588,12 @@ Run the command and then describe the relevant information from the output, foll
 
 Do not use any tools! Only analyze the output of the command.`;
 
-// ── 8. ContextPruner (context-pruner.ts) ── Context Pruner ────────────────
+// ── 8. ContextPruner (context-pruner.ts) ── Context Pruner ────────────────────────
 const CONTEXT_PRUNER_SYSTEM_PROMPT = ``;
 const CONTEXT_PRUNER_INSTRUCTIONS_PROMPT = ``;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ═══ Legacy system prompts (kept for backward compatibility) ════════════════
+// ═══ Legacy system prompts (kept for backward compatibility) ══════════════════════
 // ═══════════════════════════════════════════════════════════════════════════
 
 const REVIEWER_SYSTEM_PROMPT = NIT_PICK_NICK_INSTRUCTIONS_PROMPT;
@@ -643,7 +643,7 @@ const RESEARCHER_DOCS_SYSTEM_PROMPT = DOC_SYSTEM_PROMPT;
 const GENERAL_AGENT_SYSTEM_PROMPT = APEX_SYSTEM_PROMPT;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ═══ Apex Agent Configurations ════════════════════════════════════════
+// ═══ Apex Agent Configurations ══════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════════════════
 
 const agentConfigs = {
@@ -730,7 +730,7 @@ const agentConfigs = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ═══ Mode variants for apex (default, fast, max, free, lite) ═════════════
+// ═══ Mode variants for apex (default, fast, max, free, lite) ════════════════════
 // ═══════════════════════════════════════════════════════════════════════════
 
 const agentModes = {
@@ -762,7 +762,7 @@ const agentModes = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ═══ Model variants for codeEditor (kimi, deepseek, qwen) ═════════════════
+// ═══ Model variants for codeEditor (kimi, deepseek, qwen) ═══════════════════════
 // ═══════════════════════════════════════════════════════════════════════════
 
 const codeEditorModelVariants = {
@@ -771,7 +771,7 @@ const codeEditorModelVariants = {
   "qwen":     { model: "accounts/fireworks/models/qwen3p6-plus", temperature: 0.1, maxTokens: 8192 },
 };
 
-// ── Internal client holder ────────────────────────────────────────────────
+// ── Internal client holder ──────────────────────────────────────────────────────────
 const _initialProvider = PROVIDERS[currentProvider];
 const _initialKey = process.env[_initialProvider.envKey];
 
@@ -826,7 +826,7 @@ function setProvider(providerKey, apiKey) {
   }
 }
 
-// ── Helper: resolve agent config with mode overrides ────────────────────
+// ── Helper: resolve agent config with mode overrides ──────────────────────────────────
 function resolveAgentConfig(agentName, mode = currentMode) {
   const config = agentConfigs[agentName];
   if (!config) return null;
@@ -837,7 +837,7 @@ function resolveAgentConfig(agentName, mode = currentMode) {
   };
 }
 
-// ── Helper: resolve code editor with model variant ──────────────────────
+// ── Helper: resolve code editor with model variant ──────────────────────────────────
 function resolveCodeEditorConfig(variant = "opus") {
   const config = agentConfigs.codeEditor;
   if (!config) return null;
