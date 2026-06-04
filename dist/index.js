@@ -8,6 +8,9 @@ import {
   createCliRenderer
 } from "@opentui/core";
 import { createRoot, useTerminalDimensions, useKeyboard } from "@opentui/react";
+import React from "react";
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+import { OpenAI } from "openai";
 var __create = Object.create;
 var __getProtoOf = Object.getPrototypeOf;
 var __defProp = Object.defineProperty;
@@ -40,15 +43,9 @@ var __toESM = (mod, isNodeMode, target) => {
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
 var __require2 = import.meta.require;
-var require_react = __commonJS((exports, module) => {
-  module.exports = __require2("react");
-});
-var require_jsx_runtime = __commonJS((exports, module) => {
-  module.exports = __require2("react/jsx-runtime");
-});
-var require_openai = __commonJS((exports, module) => {
-  module.exports = __require2("openai");
-});
+var require_react = () => React;
+var require_jsx_runtime = () => ({ jsx: _jsx, jsxs: _jsxs, Fragment: _Fragment });
+var require_openai = () => ({ OpenAI });
 var require_store = __commonJS((exports, module2) => {
   var config = require_config();
   var _detectedProvider = config.currentProvider;
@@ -302,7 +299,7 @@ var require_utils3 = __commonJS((exports, module2) => {
   module2.exports = { toolDetailStr };
 });
 var require_config = __commonJS((exports, module) => {
-  const OpenAI = __require("openai");
+  const OpenAI2 = __require("openai");
   const fs = __require("fs");
   const path = __require("path");
   const os = __require("os");
@@ -1029,8 +1026,8 @@ Output JSON only, no markdown fences:
     qwen: { model: "accounts/fireworks/models/qwen3p6-plus", temperature: 0.1, maxTokens: 8192 }
   };
   const _initialProvider = PROVIDERS[currentProvider];
-  const _initialKey = process.env[_initialProvider.envKey];
-  let _internalClient = new OpenAI({
+  const _initialKey = process.env[_initialProvider.envKey] || (_initialProvider.noKey ? "dummy" : "");
+  let _internalClient = new OpenAI2({
     apiKey: _initialKey || "",
     baseURL: _initialProvider.baseURL,
     dangerouslyAllowBrowser: true
@@ -1046,7 +1043,7 @@ Output JSON only, no markdown fences:
     }
   });
   function _makeClient(apiKey, baseURL) {
-    return new OpenAI({ apiKey: apiKey || "dummy", baseURL, dangerouslyAllowBrowser: true });
+    return new OpenAI2({ apiKey: apiKey || "dummy", baseURL, dangerouslyAllowBrowser: true });
   }
   function setApiKey(key) {
     _internalClient = _makeClient(key, PROVIDERS[currentProvider].baseURL);
@@ -1661,7 +1658,7 @@ Scripts: ${Object.keys(pkg.scripts).join(", ")}`;
   module2.exports = { buildSystemPrompt };
 });
 var require_server = __commonJS((exports, module2) => {
-  var OpenAI = require_openai();
+  var OpenAI2 = require_openai();
   var NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
   var PORT = process.env.APEX_SERVER_PORT || 3579;
   var serverInstance = null;
@@ -1669,7 +1666,7 @@ var require_server = __commonJS((exports, module2) => {
     if (serverInstance)
       return serverInstance;
     const apiKey = process.env.NVIDIA_API_KEY || "";
-    const upstream = new OpenAI({ apiKey, baseURL: NVIDIA_BASE_URL });
+    const upstream = new OpenAI2({ apiKey, baseURL: NVIDIA_BASE_URL });
     globalThis._upstream = upstream;
     serverInstance = Bun.serve({
       port: PORT,
@@ -4014,7 +4011,7 @@ function SystemMessage({ message }) {
     ]
   });
 }
-var import_react2 = __toESM(require_react(), 1);
+var import_react3 = __toESM(require_react(), 1);
 var import_theme11 = __toESM(require_theme(), 1);
 var import_store4 = __toESM(require_store(), 1);
 var jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
@@ -4071,7 +4068,7 @@ function MessageItem({ message }) {
 }
 function ChatArea({ messages, streamingContent, streamingThinking, isProcessing }) {
   const { indent } = useLayout();
-  const renderedMessages = import_react2.useMemo(() => messages.map((msg) => /* @__PURE__ */ jsx_runtime11.jsx(MessageItem, {
+  const renderedMessages = import_react3.useMemo(() => messages.map((msg) => /* @__PURE__ */ jsx_runtime11.jsx(MessageItem, {
     message: msg
   }, msg.id)), [messages]);
   return /* @__PURE__ */ jsx_runtime11.jsx("scrollbox", {
@@ -4425,7 +4422,7 @@ function HelpModal({ onClose, onCommand }) {
     ]
   });
 }
-var import_react2 = __toESM(require_react(), 1);
+var import_react3 = __toESM(require_react(), 1);
 var import_theme = __toESM(require_theme(), 1);
 var import_store = __toESM(require_store(), 1);
 var import_config = __toESM(require_config(), 1);
@@ -4445,9 +4442,9 @@ var PROVIDER_EMOJI = {
 };
 function ProviderSelector() {
   var state = useStore();
-  var [input, setInput] = import_react2.useState("");
-  var [focusedIdx, setFocusedIdx] = import_react2.useState(0);
-  var [step, setStep] = import_react2.useState("select");
+  var [input, setInput] = import_react3.useState("");
+  var [focusedIdx, setFocusedIdx] = import_react3.useState(0);
+  var [step, setStep] = import_react3.useState("select");
   var { width } = import_useLayout.useLayout();
   var providers = import_config.PROVIDERS;
   var providerKey = PROVIDER_ORDER[focusedIdx];
@@ -4677,7 +4674,7 @@ function ProviderSelector() {
   });
 }
 globalThis._ProviderSelector = ProviderSelector;
-var import_react2 = __toESM(require_react(), 1);
+var import_react3 = __toESM(require_react(), 1);
 var import_theme = __toESM(require_theme(), 1);
 var import_store = __toESM(require_store(), 1);
 var import_config = __toESM(require_config(), 1);
@@ -4685,9 +4682,9 @@ var import_useLayout = __toESM(require_useLayout(), 1);
 var jsx_runtime = __toESM(require_jsx_runtime(), 1);
 var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together"];
 function ApiKeyModal() {
-  var [input, setInput] = import_react2.useState("");
-  var [selectedIdx, setSelectedIdx] = import_react2.useState(0);
-  var [step, setStep] = import_react2.useState("provider");
+  var [input, setInput] = import_react3.useState("");
+  var [selectedIdx, setSelectedIdx] = import_react3.useState(0);
+  var [step, setStep] = import_react3.useState("provider");
   var { width, height } = import_useLayout.useLayout();
   var providers = import_config.PROVIDERS;
   var providerKey = PROVIDER_ORDER[selectedIdx];
