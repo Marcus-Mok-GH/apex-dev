@@ -16,6 +16,7 @@ var PROVIDER_EMOJI = {
   together: "🤝",
   baseten: "🔺",
   replit: "🆓",
+  "apex-nova": "🌟",
 };
 
 function ProviderSelector() {
