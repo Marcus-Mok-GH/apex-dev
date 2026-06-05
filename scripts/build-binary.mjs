@@ -21,11 +21,11 @@ const TMP = resolve(ROOT, "release-tmp");
 const PLATFORM_MAP = { linux: "linux", darwin: "macos", win32: "windows" };
 const ARCH_MAP = { x64: "amd64", arm64: "arm64" };
 
-const platformName = PLATFORM_MAP[platform()];
-const archName = ARCH_MAP[arch()];
+const platformName = process.env.PLATFORM_NAME || PLATFORM_MAP[platform()];
+const archName = process.env.ARCH_NAME || ARCH_MAP[arch()];
 
 if (!platformName || !archName) {
-  console.error(`Unsupported platform: ${platform()}/${arch()}`);
+  console.error(`Unsupported platform: ${process.env.PLATFORM_NAME || platform()}/${process.env.ARCH_NAME || arch()}`);
   process.exit(1);
 }
 
