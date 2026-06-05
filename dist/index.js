@@ -4139,8 +4139,9 @@ function ChatArea({ messages, streamingContent, streamingThinking, isProcessing 
 var import_react15 = __toESM(require_react(), 1);
 var import_theme12 = __toESM(require_theme(), 1);
 var jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
-function InputBar({ disabled, onSubmit }) {
-  const inputRef = import_react15.useRef(null);
+function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
+  const internalInputRef = import_react15.useRef(null);
+  const inputRef = externalInputRef || internalInputRef;
   const { isNarrow, width } = useLayout();
   const handleSubmit = (value) => {
     const trimmed = value.trim();
@@ -4840,6 +4841,7 @@ function exitApp() {
 }
 function App() {
   const state = useStore();
+  const chatInputRef = import_react17.useRef(null);
   useKeyboard((key) => {
     if (key.ctrl && key.name === "c") {
       exitApp();
@@ -4871,8 +4873,16 @@ function App() {
     }
   }, []);
   const shouldShowSetup = process.env.APEX_DEV_NEEDS_CONFIG === "true" || state.needsConfig;
+  const inputDisabled = state.isProcessing || state.showHelp || shouldShowSetup;
+  const keepChatInputFocused = import_react17.useCallback((event) => {
+    if (inputDisabled)
+      return;
+    event?.preventDefault?.();
+    chatInputRef.current?.focus?.();
+  }, [inputDisabled]);
   return /* @__PURE__ */ jsx_runtime15.jsxs("box", {
     style: { flexDirection: "column", flexGrow: 1 },
+    onMouseDown: keepChatInputFocused,
     children: [
       shouldShowSetup ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ProviderSelector, {}) : /* @__PURE__ */ jsx_runtime15.jsxs(jsx_runtime15.Fragment, {
         children: [
@@ -4889,7 +4899,8 @@ function App() {
             isProcessing: state.isProcessing
           }),
           /* @__PURE__ */ jsx_runtime15.jsx(InputBar, {
-            disabled: state.isProcessing || state.showHelp || shouldShowSetup,
+            inputRef: chatInputRef,
+            disabled: inputDisabled,
             onSubmit: handleInput
           }),
           state.showHelp ? /* @__PURE__ */ jsx_runtime15.jsx(HelpModal, {
