@@ -9,6 +9,7 @@ const { spawnSync, spawn } = require("child_process");
 const VERSION = require("./package.json").version;
 const RELEASE_OWNER = "Marcus-Mok-GH";
 const RELEASE_REPO = "apex-dev";
+const RELEASE_TAG = `v${VERSION}`;
 
 // ── Config ──────────────────────────────────────────────────────────────────────────
 const CONFIG_PATH = path.join(os.homedir(), ".apex-dev", "config.json");
@@ -127,9 +128,12 @@ function detectPlatform() {
   return { platform, arch };
 }
 
-function getBinaryName() {
-  const { platform, arch } = detectPlatform();
+function getReleaseAssetName({ platform, arch } = detectPlatform()) {
   return `apex-dev-${platform}-${arch}`;
+}
+
+function getBinaryName() {
+  return getReleaseAssetName();
 }
 
 function getCacheDir() {
@@ -170,7 +174,7 @@ function clearBinaryMetadata() {
 }
 
 function fetchReleaseAssetInfo() {
-  const apiUrl = `https://api.github.com/repos/${RELEASE_OWNER}/${RELEASE_REPO}/releases/tags/v${VERSION}`;
+  const apiUrl = `https://api.github.com/repos/${RELEASE_OWNER}/${RELEASE_REPO}/releases/tags/${RELEASE_TAG}`;
   return new Promise((resolve, reject) => {
     const req = https.get(apiUrl, {
       headers: {
@@ -201,7 +205,7 @@ function fetchReleaseAssetInfo() {
             name: asset.name,
             size: asset.size,
             updatedAt: asset.updated_at,
-            downloadUrl: asset.browser_download_url || getDownloadUrl()
+            downloadUrl: assertValidHttpsUrl(asset.browser_download_url || getDownloadUrl())
           });
         } catch (err) {
           reject(new Error(`Invalid release metadata: ${err.message}`));
@@ -227,51 +231,88 @@ function getLocalBinaryPath() {
   return path.join(getBinaryCacheDir(), getBinaryName());
 }
 
+function assertValidHttpsUrl(url) {
+  const parsed = new URL(url);
+  if (parsed.protocol !== "https:") {
+    throw new Error(`Download URL must use HTTPS: ${url}`);
+  }
+  return parsed.toString();
+}
+
+function getGitHubReleaseAssetUrl(assetName = getBinaryName()) {
+  return assertValidHttpsUrl(
+    `https://github.com/${RELEASE_OWNER}/${RELEASE_REPO}/releases/download/${RELEASE_TAG}/${assetName}`
+  );
+}
+
+function getProxyReleaseAssetUrl(assetName = getBinaryName()) {
+  return assertValidHttpsUrl(
+    `${PROXY_BASE_URL}/api/releases/download/${RELEASE_OWNER}/${RELEASE_REPO}/${RELEASE_TAG}/${assetName}`
+  );
+}
+
 function getDownloadUrl() {
-  const { platform, arch } = detectPlatform();
-  return `https://github.com/Marcus-Mok-GH/apex-dev/releases/download/v${VERSION}/apex-dev-${platform}-${arch}`;
+  return getGitHubReleaseAssetUrl();
 }
 
 const DOWNLOAD_TIMEOUT = 120 * 1000;
 const CONNECT_TIMEOUT = 15 * 1000;
 const PROXY_BASE_URL = 'https://fireworks-api-backend.vercel.app'
+const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308])
 
-function getDownloadSources() {
-  const { platform, arch } = detectPlatform()
-  const asset = `apex-dev-${platform}-${arch}`
+function getDownloadSources(primaryUrl = getDownloadUrl()) {
+  const asset = getBinaryName()
   return [
     {
       name: 'github-releases',
-      url: `https://github.com/${RELEASE_OWNER}/${RELEASE_REPO}/releases/download/v${VERSION}/${asset}`,
+      url: assertValidHttpsUrl(primaryUrl),
     },
     {
       name: 'vercel-proxy',
-      url: `${PROXY_BASE_URL}/api/releases/download/${RELEASE_OWNER}/${RELEASE_REPO}/v${VERSION}/${asset}`,
+      url: getProxyReleaseAssetUrl(asset),
     },
   ]
 }
 
-function downloadFromUrl(url) {
+function downloadFromUrl(url, redirectCount = 0) {
   return new Promise((resolve, reject) => {
-    const req = https.get(url, (response) => {
-      if (response.statusCode === 302 || response.statusCode === 301) {
-        const redirectReq = https.get(response.headers.location, (redirectRes) => {
-          if (redirectRes.statusCode !== 200) {
-            reject(new Error(`Download failed with status ${redirectRes.statusCode}`))
-            return
-          }
-          const chunks = []
-          redirectRes.on('data', (c) => chunks.push(c))
-          redirectRes.on('end', () => resolve(Buffer.concat(chunks)))
-          redirectRes.on('error', reject)
-          redirectRes.setTimeout(DOWNLOAD_TIMEOUT, () => reject(new Error('Download timed out')))
-        })
-        redirectReq.on('error', reject)
-        redirectReq.setTimeout(CONNECT_TIMEOUT, () => redirectReq.destroy(new Error('Connection timed out')))
+    let safeUrl
+    try {
+      safeUrl = assertValidHttpsUrl(url)
+    } catch (err) {
+      reject(err)
+      return
+    }
+
+    const req = https.get(safeUrl, (response) => {
+      req.setTimeout(0)
+      response.on('error', reject)
+      response.setTimeout(DOWNLOAD_TIMEOUT, () => {
+        response.destroy(new Error('Download timed out'))
+      })
+
+      if (REDIRECT_STATUS_CODES.has(response.statusCode)) {
+        response.resume()
+        if (redirectCount >= 5) {
+          reject(new Error('Too many redirects'))
+          return
+        }
+        if (!response.headers.location) {
+          reject(new Error(`Redirect response missing Location header (${response.statusCode})`))
+          return
+        }
+
+        try {
+          const redirectUrl = assertValidHttpsUrl(new URL(response.headers.location, safeUrl).toString())
+          downloadFromUrl(redirectUrl, redirectCount + 1).then(resolve, reject)
+        } catch (err) {
+          reject(err)
+        }
         return
       }
 
       if (response.statusCode !== 200) {
+        response.resume()
         reject(new Error(`Download failed with status ${response.statusCode}`))
         return
       }
@@ -279,15 +320,14 @@ function downloadFromUrl(url) {
       const chunks = []
       response.on('data', (c) => chunks.push(c))
       response.on('end', () => resolve(Buffer.concat(chunks)))
-      response.on('error', reject)
     })
     req.on('error', reject)
     req.setTimeout(CONNECT_TIMEOUT, () => req.destroy(new Error('Connection timed out')))
   })
 }
 
-async function downloadBinary(destPath) {
-  const sources = getDownloadSources()
+async function downloadBinary(destPath, primaryUrl) {
+  const sources = getDownloadSources(primaryUrl)
   const lastErrors = []
 
   for (const source of sources) {
@@ -342,7 +382,7 @@ async function ensureBinary() {
   }
 
   try {
-    await downloadBinary(localPath);
+    await downloadBinary(localPath, releaseMetadata?.downloadUrl);
     if (releaseMetadata) {
       saveBinaryMetadata({
         assetId: releaseMetadata.id,
@@ -523,4 +563,20 @@ async function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  RELEASE_OWNER,
+  RELEASE_REPO,
+  RELEASE_TAG,
+  assertValidHttpsUrl,
+  detectPlatform,
+  getBinaryName,
+  getDownloadSources,
+  getDownloadUrl,
+  getGitHubReleaseAssetUrl,
+  getProxyReleaseAssetUrl,
+  getReleaseAssetName,
+};

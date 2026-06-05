@@ -17,7 +17,8 @@
     "start": "bun apex.mjs",
     "test": "bunx repterm tests/",
     "test:record": "bunx repterm --record tests/",
-    "test:verbose": "bunx repterm -v tests/"
+    "test:verbose": "bunx repterm -v tests/",
+    "lint": "find cli.js apex.mjs entry.mjs src scripts tests -type f \\( -name '*.js' -o -name '*.mjs' \\) -print0 | xargs -0 -n1 node --check && bun build index.jsx --target=bun --outfile=/tmp/apex-dev-lint-check.js --packages=external >/dev/null && rm -f /tmp/apex-dev-lint-check.js"
   },
   "keywords": [],
   "author": "",
