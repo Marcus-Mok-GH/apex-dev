@@ -2,7 +2,7 @@ name: Publish on push to main
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     # Avoid double-running on tag-only pushes (releases are cut by this workflow)
     tags-ignore: ['v*']
   workflow_dispatch:
