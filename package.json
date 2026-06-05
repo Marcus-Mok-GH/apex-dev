@@ -24,6 +24,10 @@
     "test:verbose": "bunx repterm -v tests/",
     "lint": "find cli.js apex.mjs entry.mjs src scripts tests -type f \\( -name '*.js' -o -name '*.mjs' \\) -print0 | xargs -0 -n1 node --check && bun build index.jsx --target=bun --outfile=/tmp/apex-dev-lint-check.js --packages=external >/dev/null && rm -f /tmp/apex-dev-lint-check.js"
   },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
