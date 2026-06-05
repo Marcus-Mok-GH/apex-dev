@@ -14,12 +14,12 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
     onSubmit(trimmed);
   };
 
-  const hint = isNarrow ? "Ctrl+C · /" : "Ctrl+C exit · /help · /files";
+  const hint = isNarrow ? "/help" : "/help  /files  ctrl+c";
   const placeholder = disabled
-    ? "setup in progress..."
+    ? "setting up…"
     : isNarrow
-      ? "Message or /cmd"
-      : "Ask Apex anything, or use /commands";
+      ? "message apex…"
+      : "message apex, or /command";
 
   return /* @__PURE__ */ jsx_runtime12.jsx("box", {
     style: { flexDirection: "column", paddingLeft: 1, paddingRight: 1, paddingBottom: 1 },
@@ -28,15 +28,14 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
         flexDirection: "row",
         paddingLeft: 1,
         paddingRight: 1,
-        borderStyle: "rounded",
-        borderColor: disabled ? import_theme12.colors.dim : import_theme12.colors.border,
-        backgroundColor: disabled ? import_theme12.colors.surface : undefined
+        borderStyle: "single",
+        borderColor: disabled ? import_theme12.colors.border : import_theme12.colors.dim,
       },
       children: [
         /* @__PURE__ */ jsx_runtime12.jsx("text", {
           fg: disabled ? import_theme12.colors.dim : import_theme12.colors.primary,
           attributes: disabled ? 0 : TextAttributes.BOLD,
-          content: "❯ "
+          content: "> "
         }),
         /* @__PURE__ */ jsx_runtime12.jsx("input", {
           ref: inputRef,

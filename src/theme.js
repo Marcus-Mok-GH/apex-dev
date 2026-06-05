@@ -1,19 +1,18 @@
 var require_theme = __commonJS((exports, module2) => {
   var colors = {
-    primary: "#6366f1",
-    accent: "#818cf8",
-    dim: "#666666",
-    muted: "#888888",
-    text: "#e0e0e0",
+    primary: "#f97316",
+    accent: "#fdba74",
+    dim: "#525252",
+    muted: "#737373",
+    text: "#e5e5e5",
     white: "#ffffff",
-    green: "#22c55e",
-    yellow: "#eab308",
-    red: "#ef4444",
-    blue: "#3b82f6",
-    cyan: "#06b6d4",
-    surface: "#1e1e2e",
-    border: "#333355"
+    green: "#4ade80",
+    yellow: "#fbbf24",
+    red: "#f87171",
+    blue: "#60a5fa",
+    cyan: "#22d3ee",
+    surface: "#0c0c0c",
+    border: "#262626"
   };
   module2.exports = { colors };
 });
-

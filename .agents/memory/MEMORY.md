@@ -1,0 +1,1 @@
+- [Entry build process](entry-build.md) — src/ changes don't auto-apply; must run `bun scripts/build-entry.mjs` to regenerate entry.mjs, then restart workflow.

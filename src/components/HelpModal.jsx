@@ -2,7 +2,7 @@ var import_theme14 = __toESM(require_theme(), 1);
 var jsx_runtime14 = __toESM(require_jsx_runtime(), 1);
 var COMMANDS = [
   { cmd: "/help", desc: "Show this menu" },
-  { cmd: "/compact", desc: "Compact/summarize conversation context" },
+  { cmd: "/compact", desc: "Summarize conversation context" },
   { cmd: "/files", desc: "Show project file tree" },
   { cmd: "/clear", desc: "Clear conversation" },
   { cmd: "/cost", desc: "Show session stats" },
@@ -13,8 +13,9 @@ var COMMANDS = [
 ];
 const QUICK_TIPS = [
   "Ctrl+C exits the app",
-  "Esc closes overlays and thinking blocks",
-  "On first launch, choose a provider and paste your API key",
+  "Esc closes overlays",
+  "Ask to run npm, bun, pnpm, or yarn commands — all supported",
+  "On first launch, choose a provider and enter your API key",
 ];
 var TOOLS = [
   "Read",
@@ -29,6 +30,7 @@ var TOOLS = [
   "Task",
   "CodeReview"
 ];
+var PACKAGE_MANAGERS = ["npm", "bun", "pnpm", "yarn"];
 var SUBAGENTS = [
   "FilePickerMax",
   "Thinker",
@@ -49,8 +51,8 @@ function HelpModal({ onClose, onCommand }) {
     zIndex: 100,
     border: true,
     borderColor: import_theme14.colors.primary,
-    backgroundColor: "#0d0d1a",
-    title: " Help ",
+    backgroundColor: "#0c0c0c",
+    title: " apex help ",
     titleAlignment: "center",
     style: {
       position: "absolute",
@@ -63,9 +65,9 @@ function HelpModal({ onClose, onCommand }) {
     },
     children: [
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
-        fg: import_theme14.colors.white,
+        fg: import_theme14.colors.accent,
         attributes: TextAttributes.BOLD,
-        content: "Commands"
+        content: "commands"
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("box", {
         style: { flexDirection: "column", marginTop: 0 },
@@ -80,11 +82,11 @@ function HelpModal({ onClose, onCommand }) {
           children: /* @__PURE__ */ jsx_runtime14.jsxs("text", {
             children: [
               /* @__PURE__ */ jsx_runtime14.jsx("span", {
-                fg: import_theme14.colors.accent,
-                children: cmd.padEnd(isNarrow ? 10 : 14)
+                fg: import_theme14.colors.primary,
+                children: cmd.padEnd(isNarrow ? 12 : 16)
               }),
               /* @__PURE__ */ jsx_runtime14.jsx("span", {
-                fg: import_theme14.colors.text,
+                fg: import_theme14.colors.muted,
                 children: desc
               })
             ]
@@ -92,48 +94,57 @@ function HelpModal({ onClose, onCommand }) {
         }, cmd))
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
-        fg: import_theme14.colors.white,
+        fg: import_theme14.colors.accent,
         attributes: TextAttributes.BOLD,
         style: { marginTop: 1 },
-        content: "Quick Tips"
-      }),
-      /* @__PURE__ */ jsx_runtime14.jsx("box", {
-        style: { flexDirection: "column", marginTop: 0 },
-        children: QUICK_TIPS.map((tip) => /* @__PURE__ */ jsx_runtime14.jsx("text", {
-          fg: import_theme14.colors.dim,
-          content: `• ${tip}`
-        }, tip))
+        content: "package managers"
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
-        fg: import_theme14.colors.white,
+        fg: import_theme14.colors.muted,
+        content: PACKAGE_MANAGERS.join("  ·  ")
+      }),
+      /* @__PURE__ */ jsx_runtime14.jsx("text", {
+        fg: import_theme14.colors.accent,
         attributes: TextAttributes.BOLD,
         style: { marginTop: 1 },
-        content: "Tools"
+        content: "tools"
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
-        fg: import_theme14.colors.dim,
-        content: TOOLS.join(", ")
+        fg: import_theme14.colors.muted,
+        content: TOOLS.join("  ·  ")
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
-        fg: import_theme14.colors.white,
+        fg: import_theme14.colors.accent,
         attributes: TextAttributes.BOLD,
         style: { marginTop: 1 },
-        content: "Sub-Agents"
+        content: "sub-agents"
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
-        fg: import_theme14.colors.dim,
-        content: SUBAGENTS.join(", ")
+        fg: import_theme14.colors.muted,
+        content: SUBAGENTS.join("  ·  ")
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
         fg: import_theme14.colors.dim,
         content: "  * = MAX mode only"
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
+        fg: import_theme14.colors.accent,
+        attributes: TextAttributes.BOLD,
+        style: { marginTop: 1 },
+        content: "tips"
+      }),
+      /* @__PURE__ */ jsx_runtime14.jsx("box", {
+        style: { flexDirection: "column" },
+        children: QUICK_TIPS.map((tip) => /* @__PURE__ */ jsx_runtime14.jsx("text", {
+          fg: import_theme14.colors.dim,
+          content: `· ${tip}`
+        }, tip))
+      }),
+      /* @__PURE__ */ jsx_runtime14.jsx("text", {
         fg: import_theme14.colors.dim,
         style: { marginTop: 1 },
-        content: "Press ESC or q to close"
+        content: "esc or q to close"
       })
     ]
   });
 }
-

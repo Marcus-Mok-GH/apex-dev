@@ -23,7 +23,7 @@ function truncate(str, len) {
 }
 function ToolCallItem({ message }) {
   const { indent, isNarrow } = useLayout();
-  const truncLen = isNarrow ? 30 : 50;
+  const truncLen = isNarrow ? 32 : 56;
   const { id, name, detail, status, success, elapsed, output, expanded } = message;
   const isRunning = status === "running" || status === "pending";
   const isSubagent = SUBAGENT_TOOLS.has(name);
@@ -34,36 +34,33 @@ function ToolCallItem({ message }) {
       /* @__PURE__ */ jsx_runtime8.jsx("box", {
         style: { flexDirection: "row" },
         children: isRunning ? /* @__PURE__ */ jsx_runtime8.jsx(Spinner, {
-          label: `[${name}] ${truncate(detail || "...", truncLen)}`
+          label: `${name}  ${truncate(detail || "…", truncLen)}`
         }) : /* @__PURE__ */ jsx_runtime8.jsxs("text", {
           children: [
             /* @__PURE__ */ jsx_runtime8.jsx("span", {
               fg: success ? import_theme8.colors.green : import_theme8.colors.red,
               children: success ? "\u2713" : "\u2717"
             }),
-            isSubagent ? /* @__PURE__ */ jsx_runtime8.jsx("span", {
-              fg: import_theme8.colors.dim,
-              children: expanded ? " \u25BE" : " \u25B8"
-            }) : null,
             /* @__PURE__ */ jsx_runtime8.jsx("span", {
               fg: import_theme8.colors.dim,
-              children: " ["
+              children: "  "
             }),
             /* @__PURE__ */ jsx_runtime8.jsx("span", {
               fg: import_theme8.colors.accent,
+              attributes: TextAttributes.BOLD,
               children: name
             }),
             /* @__PURE__ */ jsx_runtime8.jsx("span", {
-              fg: import_theme8.colors.dim,
-              children: "] "
-            }),
-            /* @__PURE__ */ jsx_runtime8.jsx("span", {
-              fg: import_theme8.colors.dim,
-              children: truncate(detail || "", truncLen)
+              fg: import_theme8.colors.muted,
+              children: "  " + truncate(detail || "", truncLen)
             }),
             elapsed != null ? /* @__PURE__ */ jsx_runtime8.jsx("span", {
               fg: import_theme8.colors.dim,
               children: "  " + formatElapsed(elapsed)
+            }) : null,
+            isSubagent ? /* @__PURE__ */ jsx_runtime8.jsx("span", {
+              fg: import_theme8.colors.dim,
+              children: expanded ? "  ▾" : "  ▸"
             }) : null
           ]
         })
@@ -72,33 +69,28 @@ function ToolCallItem({ message }) {
         const lines = output.split("\n");
         const maxLines = 20;
         const isTruncated = lines.length > maxLines;
-        const displayOutput = isTruncated ? lines.slice(0, maxLines).join("\n") + "\n..." : output;
-        
-        return isSubagent ? /* @__PURE__ */ jsx_runtime8.jsxs("box", {
-          style: { flexDirection: "column", paddingLeft: indent, marginTop: 0, borderStyle: "single", borderColor: import_theme8.colors.border, paddingRight: 1 },
+        const displayOutput = isTruncated ? lines.slice(0, maxLines).join("\n") + "\n…" : output;
+
+        return /* @__PURE__ */ jsx_runtime8.jsxs("box", {
+          style: { flexDirection: "column", paddingLeft: 2, marginTop: 0 },
           children: [
             /* @__PURE__ */ jsx_runtime8.jsx("text", {
-              fg: import_theme8.colors.dim,
-              attributes: TextAttributes.ITALIC,
-              style: { marginBottom: 0 },
-              children: `\u2500\u2500 ${name} output ${isTruncated ? `(${lines.length} lines, showing ${maxLines})` : ""} \u2500\u2500`
+              fg: import_theme8.colors.border,
+              content: "\u2500".repeat(36)
             }),
             /* @__PURE__ */ jsx_runtime8.jsx("text", {
-              fg: import_theme8.colors.text,
+              fg: import_theme8.colors.dim,
+              content: isTruncated ? `${lines.length} lines — showing first ${maxLines}` : "",
+              style: { marginBottom: 0 }
+            }),
+            /* @__PURE__ */ jsx_runtime8.jsx("text", {
+              fg: import_theme8.colors.muted,
               content: displayOutput,
               wrapMode: "char"
             })
           ]
-        }) : /* @__PURE__ */ jsx_runtime8.jsx("box", {
-          style: { paddingLeft: indent, marginTop: 0 },
-          children: /* @__PURE__ */ jsx_runtime8.jsx("text", {
-            fg: import_theme8.colors.dim,
-            content: truncate(displayOutput, 1000),
-            wrapMode: "char"
-          })
         });
       })() : null
     ]
   });
 }
-

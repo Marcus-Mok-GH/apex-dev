@@ -4,7 +4,6 @@ var jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
 function AssistantMessage({ content, isStreaming }) {
   const { indent, isNarrow, width } = useLayout();
   const codeIndent = isNarrow ? 1 : 2;
-  // Minimum width guard to prevent negative repeat counts
   const codeAreaWidth = Math.max(width - indent - codeIndent, 10);
   const separatorWidth = Math.min(codeAreaWidth, isNarrow ? 44 : 72);
 
@@ -25,26 +24,21 @@ function AssistantMessage({ content, isStreaming }) {
       codeLines = [];
     } else if (line.startsWith("```") && inCodeBlock) {
       inCodeBlock = false;
-      // Header: ╭─ language ──────── 
-      const langTag = ` ${codeLang} `;
-      const headerFill = "─".repeat(Math.max(separatorWidth - langTag.length - 2, 2));
+      // Header: lang label + thin rule
+      const langLabel = codeLang;
+      const ruleFill = "\u2500".repeat(Math.max(separatorWidth - langLabel.length - 3, 4));
       rendered.push(/* @__PURE__ */ jsx_runtime5.jsxs("box", {
         style: { flexDirection: "column", paddingLeft: codeIndent, marginTop: 1 },
         children: [
           /* @__PURE__ */ jsx_runtime5.jsxs("text", {
             children: [
               /* @__PURE__ */ jsx_runtime5.jsx("span", {
-                fg: import_theme5.colors.accent,
-                children: "╭─"
+                fg: import_theme5.colors.primary,
+                children: langLabel
               }),
               /* @__PURE__ */ jsx_runtime5.jsx("span", {
-                fg: import_theme5.colors.accent,
-                attributes: TextAttributes.BOLD,
-                children: langTag
-              }),
-              /* @__PURE__ */ jsx_runtime5.jsx("span", {
-                fg: import_theme5.colors.dim,
-                children: headerFill
+                fg: import_theme5.colors.border,
+                children: "  " + ruleFill
               })
             ]
           }),
@@ -52,7 +46,7 @@ function AssistantMessage({ content, isStreaming }) {
             children: [
               /* @__PURE__ */ jsx_runtime5.jsx("span", {
                 fg: import_theme5.colors.dim,
-                children: String(j2 + 1).padStart(isNarrow ? 2 : 3) + " │ "
+                children: String(j2 + 1).padStart(isNarrow ? 2 : 3) + "  "
               }),
               /* @__PURE__ */ jsx_runtime5.jsx("span", {
                 fg: import_theme5.colors.text,
@@ -61,15 +55,15 @@ function AssistantMessage({ content, isStreaming }) {
             ]
           }, j2)),
           /* @__PURE__ */ jsx_runtime5.jsx("text", {
-            fg: import_theme5.colors.dim,
-            content: "╰" + "─".repeat(Math.max(separatorWidth - 1, 9))
+            fg: import_theme5.colors.border,
+            content: "\u2500".repeat(Math.max(separatorWidth, 9))
           })
         ]
       }, `code-${i}`));
     } else if (inCodeBlock) {
       codeLines.push(line);
     } else {
-      // Inline code: `backtick` → cyan
+      // Inline code: `backtick` → accent color
       const processed = line.replace(/`([^`]+)`/g, "\xAB$1\xBB");
       if (processed.includes("\xAB")) {
         const parts = processed.split(/«|»/);
@@ -77,7 +71,7 @@ function AssistantMessage({ content, isStreaming }) {
           children: parts.map((part, j2) =>
             j2 % 2 === 0
               ? /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.text, children: part }, j2)
-              : /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.cyan, children: part }, j2)
+              : /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.accent, children: part }, j2)
           )
         }, `line-${i}`));
       } else {
@@ -93,27 +87,22 @@ function AssistantMessage({ content, isStreaming }) {
 
   // Unclosed code block (streaming mid-block)
   if (inCodeBlock && codeLines.length > 0) {
-    const langTag = ` ${codeLang} `;
-    const headerFill = "─".repeat(Math.max(separatorWidth - langTag.length - 2, 2));
+    const langLabel = codeLang;
+    const ruleFill = "\u2500".repeat(Math.max(separatorWidth - langLabel.length - 3, 4));
     rendered.push(/* @__PURE__ */ jsx_runtime5.jsxs("box", {
       style: { flexDirection: "column", paddingLeft: codeIndent, marginTop: 1 },
       children: [
         /* @__PURE__ */ jsx_runtime5.jsxs("text", {
           children: [
-            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.accent, children: "╭─" }),
-            /* @__PURE__ */ jsx_runtime5.jsx("span", {
-              fg: import_theme5.colors.accent,
-              attributes: TextAttributes.BOLD,
-              children: langTag
-            }),
-            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.dim, children: headerFill })
+            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.primary, children: langLabel }),
+            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.border, children: "  " + ruleFill })
           ]
         }),
         codeLines.map((cl, j2) => /* @__PURE__ */ jsx_runtime5.jsxs("text", {
           children: [
             /* @__PURE__ */ jsx_runtime5.jsx("span", {
               fg: import_theme5.colors.dim,
-              children: String(j2 + 1).padStart(isNarrow ? 2 : 3) + " │ "
+              children: String(j2 + 1).padStart(isNarrow ? 2 : 3) + "  "
             }),
             /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.text, children: cl })
           ]
@@ -127,8 +116,8 @@ function AssistantMessage({ content, isStreaming }) {
     children: [
       rendered,
       isStreaming ? /* @__PURE__ */ jsx_runtime5.jsx("text", {
-        fg: import_theme5.colors.accent,
-        content: "▊"
+        fg: import_theme5.colors.primary,
+        content: "▌"
       }) : null
     ]
   });

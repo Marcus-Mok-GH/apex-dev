@@ -31,25 +31,17 @@ function Header() {
     style: { flexDirection: "row", paddingLeft: 1, paddingRight: 1, paddingTop: 1, paddingBottom: 0 },
     children: [
       /* @__PURE__ */ jsx_runtime.jsx("box", {
-        style: { flexGrow: 1, flexDirection: "column" },
+        style: { flexGrow: 1 },
         children: /* @__PURE__ */ jsx_runtime.jsxs("text", {
           children: [
             /* @__PURE__ */ jsx_runtime.jsx("span", {
               fg: import_theme.colors.primary,
               attributes: TextAttributes.BOLD,
-              children: "⚡ Apex"
+              children: "◆ apex"
             }),
             /* @__PURE__ */ jsx_runtime.jsx("span", {
-              fg: import_theme.colors.dim,
-              children: "  "
-            }),
-            /* @__PURE__ */ jsx_runtime.jsx("span", {
-              fg: import_theme.colors.accent,
-              children: "[max]"
-            }),
-            /* @__PURE__ */ jsx_runtime.jsx("span", {
-              fg: import_theme.colors.dim,
-              children: "  "
+              fg: import_theme.colors.border,
+              children: "  ·  "
             }),
             /* @__PURE__ */ jsx_runtime.jsx("span", {
               fg: import_theme.colors.muted,
@@ -58,11 +50,11 @@ function Header() {
             branch && !isNarrow ? /* @__PURE__ */ jsx_runtime.jsxs(jsx_runtime.Fragment, {
               children: [
                 /* @__PURE__ */ jsx_runtime.jsx("span", {
-                  fg: import_theme.colors.dim,
-                  children: "  on "
+                  fg: import_theme.colors.border,
+                  children: "  ·  "
                 }),
                 /* @__PURE__ */ jsx_runtime.jsx("span", {
-                  fg: import_theme.colors.text,
+                  fg: import_theme.colors.dim,
                   children: branch
                 })
               ]
@@ -70,36 +62,19 @@ function Header() {
           ]
         })
       }),
-      !isNarrow ? /* @__PURE__ */ jsx_runtime.jsxs("box", {
-        style: { flexDirection: "column", alignItems: "flex-end" },
+      !isNarrow ? /* @__PURE__ */ jsx_runtime.jsxs("text", {
         children: [
-          /* @__PURE__ */ jsx_runtime.jsxs("text", {
-            children: [
-              /* @__PURE__ */ jsx_runtime.jsx("span", {
-                fg: configReady ? import_theme.colors.green : import_theme.colors.yellow,
-                children: configReady ? "●" : "○"
-              }),
-              /* @__PURE__ */ jsx_runtime.jsx("span", {
-                fg: import_theme.colors.dim,
-                children: " "
-              }),
-              /* @__PURE__ */ jsx_runtime.jsx("span", {
-                fg: import_theme.colors.muted,
-                children: configReady ? "ready" : "needs setup"
-              })
-            ]
+          /* @__PURE__ */ jsx_runtime.jsx("span", {
+            fg: import_theme.colors.dim,
+            children: providerLabel
           }),
-          /* @__PURE__ */ jsx_runtime.jsxs("text", {
-            children: [
-              /* @__PURE__ */ jsx_runtime.jsx("span", {
-                fg: import_theme.colors.dim,
-                children: "provider "
-              }),
-              /* @__PURE__ */ jsx_runtime.jsx("span", {
-                fg: import_theme.colors.primary,
-                children: providerLabel
-              })
-            ]
+          /* @__PURE__ */ jsx_runtime.jsx("span", {
+            fg: import_theme.colors.border,
+            children: "  "
+          }),
+          /* @__PURE__ */ jsx_runtime.jsx("span", {
+            fg: configReady ? import_theme.colors.green : import_theme.colors.yellow,
+            children: "●"
           })
         ]
       }) : null

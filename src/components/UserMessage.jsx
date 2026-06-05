@@ -8,18 +8,17 @@ function UserMessage({ content }) {
   return /* @__PURE__ */ jsx_runtime4.jsxs("box", {
     style: { flexDirection: "row", marginTop: 1 },
     children: [
-      // Left accent bar (Codebuff-style visual anchor)
       /* @__PURE__ */ jsx_runtime4.jsx("text", {
-        fg: import_theme4.colors.blue,
+        fg: import_theme4.colors.primary,
         content: "▎"
       }),
       /* @__PURE__ */ jsx_runtime4.jsxs("box", {
         style: { flexDirection: "column", paddingLeft: 1 },
         children: [
           /* @__PURE__ */ jsx_runtime4.jsx("text", {
-            fg: import_theme4.colors.blue,
+            fg: import_theme4.colors.primary,
             attributes: TextAttributes.BOLD,
-            content: "You"
+            content: "you"
           }),
           msgLines.map((line, i) => /* @__PURE__ */ jsx_runtime4.jsx("text", {
             fg: import_theme4.colors.text,
