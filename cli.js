@@ -331,7 +331,7 @@ async function downloadBinary(destPath, primaryUrl) {
   const lastErrors = []
 
   for (const source of sources) {
-    console.error(`Trying ${source.name}: ${source.url}`)
+    console.error(`Trying ${source.name}`)
     try {
       const buffer = await downloadFromUrl(source.url)
       if (!buffer || buffer.length === 0) {
@@ -525,7 +525,6 @@ async function main() {
     console.log(`Binary name: ${getBinaryName()}`);
     console.log(`Cache directory: ${getCacheDir()}`);
     console.log(`Local binary path: ${getLocalBinaryPath()}`);
-    console.log(`Download URL: ${getDownloadUrl()}`);
     console.log(`Binary exists locally: ${fs.existsSync(getLocalBinaryPath())}`);
     console.log("");
     console.log("Apex AI - a friendly agentic coding assistant for the terminal");
@@ -557,8 +556,7 @@ async function main() {
     runWithBun();
   } else {
     console.error("No binary available and bun is not installed.");
-    console.error("Please install bun (https://bun.sh) or download the binary manually:");
-    console.error(`  ${getDownloadUrl()}`);
+    console.error("Please install bun (https://bun.sh) or download the binary manually from the latest GitHub release.");
     process.exit(1);
   }
 }

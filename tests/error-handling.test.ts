@@ -27,11 +27,11 @@ test("platform detection shows correct info", async ({ $ }) => {
   expect(result.output).toMatch(/Cache directory:/);
 });
 
-test("binary download URL is shown", async ({ $ }) => {
+test("help does not expose binary download URLs", async ({ $ }) => {
   const result = await $`node ${cliPath} --help`;
   
-  expect(result.output).toMatch(/Download URL:/);
-  expect(result.output).toContain("github.com");
+  expect(result.output).not.toMatch(/Download URL:/);
+  expect(result.output).not.toContain("github.com");
 });
 
 test("handles missing API keys gracefully", async ({ $ }) => {
