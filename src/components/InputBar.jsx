@@ -2,8 +2,9 @@ var import_react15 = __toESM(require_react(), 1);
 var import_theme12 = __toESM(require_theme(), 1);
 var jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
 
-function InputBar({ disabled, onSubmit }) {
-  const inputRef = import_react15.useRef(null);
+function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
+  const internalInputRef = import_react15.useRef(null);
+  const inputRef = externalInputRef || internalInputRef;
   const { isNarrow, width } = useLayout();
 
   const handleSubmit = (value) => {

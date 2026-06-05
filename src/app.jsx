@@ -31,6 +31,7 @@ function exitApp() {
 }
 function App() {
   const state = useStore();
+  const chatInputRef = import_react17.useRef(null);
   useKeyboard((key) => {
     if (key.ctrl && key.name === "c") {
       exitApp();
@@ -62,8 +63,16 @@ function App() {
     }
   }, []);
   const shouldShowSetup = process.env.APEX_DEV_NEEDS_CONFIG === "true" || state.needsConfig;
+  const inputDisabled = state.isProcessing || state.showHelp || shouldShowSetup;
+  const keepChatInputFocused = import_react17.useCallback((event) => {
+    if (inputDisabled)
+      return;
+    event?.preventDefault?.();
+    chatInputRef.current?.focus?.();
+  }, [inputDisabled]);
   return /* @__PURE__ */ jsx_runtime15.jsxs("box", {
     style: { flexDirection: "column", flexGrow: 1 },
+    onMouseDown: keepChatInputFocused,
     children: [
       shouldShowSetup ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ProviderSelector, {}) : /* @__PURE__ */ jsx_runtime15.jsxs(jsx_runtime15.Fragment, {
         children: [
@@ -80,7 +89,8 @@ function App() {
             isProcessing: state.isProcessing
           }),
           /* @__PURE__ */ jsx_runtime15.jsx(InputBar, {
-            disabled: state.isProcessing || state.showHelp || shouldShowSetup,
+            inputRef: chatInputRef,
+            disabled: inputDisabled,
             onSubmit: handleInput
           }),
           state.showHelp ? /* @__PURE__ */ jsx_runtime15.jsx(HelpModal, {
