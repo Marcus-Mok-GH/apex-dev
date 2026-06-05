@@ -285,7 +285,14 @@ function downloadFromUrl(url, redirectCount = 0) {
     }
 
     const req = https.get(safeUrl, (response) => {
+      req.setTimeout(0)
+      response.on('error', reject)
+      response.setTimeout(DOWNLOAD_TIMEOUT, () => {
+        response.destroy(new Error('Download timed out'))
+      })
+
       if (REDIRECT_STATUS_CODES.has(response.statusCode)) {
+        response.resume()
         if (redirectCount >= 5) {
           reject(new Error('Too many redirects'))
           return
@@ -305,6 +312,7 @@ function downloadFromUrl(url, redirectCount = 0) {
       }
 
       if (response.statusCode !== 200) {
+        response.resume()
         reject(new Error(`Download failed with status ${response.statusCode}`))
         return
       }
@@ -312,7 +320,6 @@ function downloadFromUrl(url, redirectCount = 0) {
       const chunks = []
       response.on('data', (c) => chunks.push(c))
       response.on('end', () => resolve(Buffer.concat(chunks)))
-      response.on('error', reject)
     })
     req.on('error', reject)
     req.setTimeout(CONNECT_TIMEOUT, () => req.destroy(new Error('Connection timed out')))
