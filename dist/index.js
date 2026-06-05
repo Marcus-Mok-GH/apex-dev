@@ -156,19 +156,19 @@ var require_store = __commonJS((exports, module2) => {
 });
 var require_theme = __commonJS((exports, module2) => {
   var colors = {
-    primary: "#6366f1",
-    accent: "#818cf8",
-    dim: "#666666",
-    muted: "#888888",
-    text: "#e0e0e0",
+    primary: "#f97316",
+    accent: "#fdba74",
+    dim: "#525252",
+    muted: "#737373",
+    text: "#e5e5e5",
     white: "#ffffff",
-    green: "#22c55e",
-    yellow: "#eab308",
-    red: "#ef4444",
-    blue: "#3b82f6",
-    cyan: "#06b6d4",
-    surface: "#1e1e2e",
-    border: "#333355"
+    green: "#4ade80",
+    yellow: "#fbbf24",
+    red: "#f87171",
+    blue: "#60a5fa",
+    cyan: "#22d3ee",
+    surface: "#0c0c0c",
+    border: "#262626"
   };
   module2.exports = { colors };
 });
@@ -1760,6 +1760,22 @@ var require_toolExecutors = __commonJS((exports, module2) => {
   var path2 = __require2("path");
   var https = __require2("https");
   var { execSync } = __require2("child_process");
+  function detectNodeBinPath() {
+    try {
+      const socketNpmPath = execSync("which socket-npm 2>/dev/null", { encoding: "utf-8", timeout: 3000 }).trim();
+      if (!socketNpmPath)
+        return null;
+      const resolved = fs2.realpathSync(socketNpmPath);
+      const firstLine = fs2.readFileSync(resolved, "utf-8").split(`
+`)[0];
+      const match = firstLine.match(/^#!(.+\/bin)\/node/);
+      if (match)
+        return match[1];
+    } catch {}
+    return null;
+  }
+  const NODE_BIN_PATH = detectNodeBinPath();
+  const AUGMENTED_PATH = NODE_BIN_PATH ? `${NODE_BIN_PATH}:${process.env.PATH || ""}` : process.env.PATH;
   var {
     PROJECT_ROOT,
     TOOL_TIMEOUT,
@@ -2001,6 +2017,7 @@ ${results.join(`
               encoding: "utf-8",
               timeout: TOOL_TIMEOUT,
               cwd,
+              env: { ...process.env, PATH: AUGMENTED_PATH },
               maxBuffer: 1024 * 1024 * 5,
               stdio: ["pipe", "pipe", "pipe"]
             });
@@ -3516,25 +3533,17 @@ function Header() {
     style: { flexDirection: "row", paddingLeft: 1, paddingRight: 1, paddingTop: 1, paddingBottom: 0 },
     children: [
       /* @__PURE__ */ jsx_runtime.jsx("box", {
-        style: { flexGrow: 1, flexDirection: "column" },
+        style: { flexGrow: 1 },
         children: /* @__PURE__ */ jsx_runtime.jsxs("text", {
           children: [
             /* @__PURE__ */ jsx_runtime.jsx("span", {
               fg: import_theme.colors.primary,
               attributes: TextAttributes.BOLD,
-              children: "\u26A1 Apex"
+              children: "\u25C6 apex"
             }),
             /* @__PURE__ */ jsx_runtime.jsx("span", {
-              fg: import_theme.colors.dim,
-              children: "  "
-            }),
-            /* @__PURE__ */ jsx_runtime.jsx("span", {
-              fg: import_theme.colors.accent,
-              children: "[max]"
-            }),
-            /* @__PURE__ */ jsx_runtime.jsx("span", {
-              fg: import_theme.colors.dim,
-              children: "  "
+              fg: import_theme.colors.border,
+              children: "  \xB7  "
             }),
             /* @__PURE__ */ jsx_runtime.jsx("span", {
               fg: import_theme.colors.muted,
@@ -3543,11 +3552,11 @@ function Header() {
             branch && !isNarrow ? /* @__PURE__ */ jsx_runtime.jsxs(jsx_runtime.Fragment, {
               children: [
                 /* @__PURE__ */ jsx_runtime.jsx("span", {
-                  fg: import_theme.colors.dim,
-                  children: "  on "
+                  fg: import_theme.colors.border,
+                  children: "  \xB7  "
                 }),
                 /* @__PURE__ */ jsx_runtime.jsx("span", {
-                  fg: import_theme.colors.text,
+                  fg: import_theme.colors.dim,
                   children: branch
                 })
               ]
@@ -3555,36 +3564,19 @@ function Header() {
           ]
         })
       }),
-      !isNarrow ? /* @__PURE__ */ jsx_runtime.jsxs("box", {
-        style: { flexDirection: "column", alignItems: "flex-end" },
+      !isNarrow ? /* @__PURE__ */ jsx_runtime.jsxs("text", {
         children: [
-          /* @__PURE__ */ jsx_runtime.jsxs("text", {
-            children: [
-              /* @__PURE__ */ jsx_runtime.jsx("span", {
-                fg: configReady ? import_theme.colors.green : import_theme.colors.yellow,
-                children: configReady ? "\u25CF" : "\u25CB"
-              }),
-              /* @__PURE__ */ jsx_runtime.jsx("span", {
-                fg: import_theme.colors.dim,
-                children: " "
-              }),
-              /* @__PURE__ */ jsx_runtime.jsx("span", {
-                fg: import_theme.colors.muted,
-                children: configReady ? "ready" : "needs setup"
-              })
-            ]
+          /* @__PURE__ */ jsx_runtime.jsx("span", {
+            fg: import_theme.colors.dim,
+            children: providerLabel
           }),
-          /* @__PURE__ */ jsx_runtime.jsxs("text", {
-            children: [
-              /* @__PURE__ */ jsx_runtime.jsx("span", {
-                fg: import_theme.colors.dim,
-                children: "provider "
-              }),
-              /* @__PURE__ */ jsx_runtime.jsx("span", {
-                fg: import_theme.colors.primary,
-                children: providerLabel
-              })
-            ]
+          /* @__PURE__ */ jsx_runtime.jsx("span", {
+            fg: import_theme.colors.border,
+            children: "  "
+          }),
+          /* @__PURE__ */ jsx_runtime.jsx("span", {
+            fg: configReady ? import_theme.colors.green : import_theme.colors.yellow,
+            children: "\u25CF"
           })
         ]
       }) : null
@@ -3597,7 +3589,7 @@ function Divider() {
   const { width } = useLayout();
   const cols = Math.min(width, 120);
   return /* @__PURE__ */ jsx_runtime2.jsx("text", {
-    fg: import_theme2.colors.dim,
+    fg: import_theme2.colors.border,
     content: "\u2500".repeat(cols)
   });
 }
@@ -3607,21 +3599,22 @@ var jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
 function Welcome() {
   const { isNarrow } = useLayout();
   return /* @__PURE__ */ jsx_runtime3.jsxs("box", {
-    style: { flexDirection: "column", paddingLeft: 1, marginTop: 1, marginBottom: 1 },
+    style: { flexDirection: "column", paddingLeft: 2, marginTop: 1, marginBottom: 1 },
     children: [
       /* @__PURE__ */ jsx_runtime3.jsx("text", {
         fg: import_theme3.colors.white,
         attributes: TextAttributes.BOLD,
-        content: "How can I help?"
+        content: "What are we building?"
       }),
       /* @__PURE__ */ jsx_runtime3.jsx("text", {
         fg: import_theme3.colors.dim,
-        content: isNarrow ? `Type a message or /help` : `Apex can read, edit, run commands, and review your code. Use /help to see shortcuts.`
+        style: { marginTop: 0 },
+        content: isNarrow ? "Type a message or /help" : "Read, edit, run shell commands, npm, and review code \u2014 just describe what you need."
       }),
       !isNarrow ? /* @__PURE__ */ jsx_runtime3.jsx("text", {
         fg: import_theme3.colors.dim,
         style: { marginTop: 0 },
-        content: `Shortcuts \xB7 /help \xB7 /files \xB7 /diff \xB7 /cost \xB7 /quit \xB7 Max ${import_config2.MAX_TOOL_ITERATIONS} iterations`
+        content: "/help  /files  /diff  /cost  /quit"
       }) : null
     ]
   });
@@ -3636,16 +3629,16 @@ function UserMessage({ content }) {
     style: { flexDirection: "row", marginTop: 1 },
     children: [
       /* @__PURE__ */ jsx_runtime4.jsx("text", {
-        fg: import_theme4.colors.blue,
+        fg: import_theme4.colors.primary,
         content: "\u258E"
       }),
       /* @__PURE__ */ jsx_runtime4.jsxs("box", {
         style: { flexDirection: "column", paddingLeft: 1 },
         children: [
           /* @__PURE__ */ jsx_runtime4.jsx("text", {
-            fg: import_theme4.colors.blue,
+            fg: import_theme4.colors.primary,
             attributes: TextAttributes.BOLD,
-            content: "You"
+            content: "you"
           }),
           msgLines.map((line, i) => /* @__PURE__ */ jsx_runtime4.jsx("text", {
             fg: import_theme4.colors.text,
@@ -3679,25 +3672,20 @@ function AssistantMessage({ content, isStreaming }) {
       codeLines = [];
     } else if (line.startsWith("```") && inCodeBlock) {
       inCodeBlock = false;
-      const langTag = ` ${codeLang} `;
-      const headerFill = "\u2500".repeat(Math.max(separatorWidth - langTag.length - 2, 2));
+      const langLabel = codeLang;
+      const ruleFill = "\u2500".repeat(Math.max(separatorWidth - langLabel.length - 3, 4));
       rendered.push(/* @__PURE__ */ jsx_runtime5.jsxs("box", {
         style: { flexDirection: "column", paddingLeft: codeIndent, marginTop: 1 },
         children: [
           /* @__PURE__ */ jsx_runtime5.jsxs("text", {
             children: [
               /* @__PURE__ */ jsx_runtime5.jsx("span", {
-                fg: import_theme5.colors.accent,
-                children: "\u256D\u2500"
+                fg: import_theme5.colors.primary,
+                children: langLabel
               }),
               /* @__PURE__ */ jsx_runtime5.jsx("span", {
-                fg: import_theme5.colors.accent,
-                attributes: TextAttributes.BOLD,
-                children: langTag
-              }),
-              /* @__PURE__ */ jsx_runtime5.jsx("span", {
-                fg: import_theme5.colors.dim,
-                children: headerFill
+                fg: import_theme5.colors.border,
+                children: "  " + ruleFill
               })
             ]
           }),
@@ -3705,7 +3693,7 @@ function AssistantMessage({ content, isStreaming }) {
             children: [
               /* @__PURE__ */ jsx_runtime5.jsx("span", {
                 fg: import_theme5.colors.dim,
-                children: String(j2 + 1).padStart(isNarrow ? 2 : 3) + " \u2502 "
+                children: String(j2 + 1).padStart(isNarrow ? 2 : 3) + "  "
               }),
               /* @__PURE__ */ jsx_runtime5.jsx("span", {
                 fg: import_theme5.colors.text,
@@ -3714,8 +3702,8 @@ function AssistantMessage({ content, isStreaming }) {
             ]
           }, j2)),
           /* @__PURE__ */ jsx_runtime5.jsx("text", {
-            fg: import_theme5.colors.dim,
-            content: "\u2570" + "\u2500".repeat(Math.max(separatorWidth - 1, 9))
+            fg: import_theme5.colors.border,
+            content: "\u2500".repeat(Math.max(separatorWidth, 9))
           })
         ]
       }, `code-${i}`));
@@ -3726,7 +3714,7 @@ function AssistantMessage({ content, isStreaming }) {
       if (processed.includes("\xAB")) {
         const parts = processed.split(/\u00AB|\u00BB/);
         rendered.push(/* @__PURE__ */ jsx_runtime5.jsx("text", {
-          children: parts.map((part, j2) => j2 % 2 === 0 ? /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.text, children: part }, j2) : /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.cyan, children: part }, j2))
+          children: parts.map((part, j2) => j2 % 2 === 0 ? /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.text, children: part }, j2) : /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.accent, children: part }, j2))
         }, `line-${i}`));
       } else {
         rendered.push(/* @__PURE__ */ jsx_runtime5.jsx("text", {
@@ -3739,27 +3727,22 @@ function AssistantMessage({ content, isStreaming }) {
     }
   }
   if (inCodeBlock && codeLines.length > 0) {
-    const langTag = ` ${codeLang} `;
-    const headerFill = "\u2500".repeat(Math.max(separatorWidth - langTag.length - 2, 2));
+    const langLabel = codeLang;
+    const ruleFill = "\u2500".repeat(Math.max(separatorWidth - langLabel.length - 3, 4));
     rendered.push(/* @__PURE__ */ jsx_runtime5.jsxs("box", {
       style: { flexDirection: "column", paddingLeft: codeIndent, marginTop: 1 },
       children: [
         /* @__PURE__ */ jsx_runtime5.jsxs("text", {
           children: [
-            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.accent, children: "\u256D\u2500" }),
-            /* @__PURE__ */ jsx_runtime5.jsx("span", {
-              fg: import_theme5.colors.accent,
-              attributes: TextAttributes.BOLD,
-              children: langTag
-            }),
-            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.dim, children: headerFill })
+            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.primary, children: langLabel }),
+            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.border, children: "  " + ruleFill })
           ]
         }),
         codeLines.map((cl, j2) => /* @__PURE__ */ jsx_runtime5.jsxs("text", {
           children: [
             /* @__PURE__ */ jsx_runtime5.jsx("span", {
               fg: import_theme5.colors.dim,
-              children: String(j2 + 1).padStart(isNarrow ? 2 : 3) + " \u2502 "
+              children: String(j2 + 1).padStart(isNarrow ? 2 : 3) + "  "
             }),
             /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.text, children: cl })
           ]
@@ -3772,8 +3755,8 @@ function AssistantMessage({ content, isStreaming }) {
     children: [
       rendered,
       isStreaming ? /* @__PURE__ */ jsx_runtime5.jsx("text", {
-        fg: import_theme5.colors.accent,
-        content: "\u258A"
+        fg: import_theme5.colors.primary,
+        content: "\u258C"
       }) : null
     ]
   });
@@ -3837,7 +3820,7 @@ function truncate(str, len) {
 }
 function ToolCallItem({ message }) {
   const { indent, isNarrow } = useLayout();
-  const truncLen = isNarrow ? 30 : 50;
+  const truncLen = isNarrow ? 32 : 56;
   const { id, name, detail, status, success, elapsed, output, expanded } = message;
   const isRunning = status === "running" || status === "pending";
   const isSubagent = SUBAGENT_TOOLS.has(name);
@@ -3848,36 +3831,33 @@ function ToolCallItem({ message }) {
       /* @__PURE__ */ jsx_runtime8.jsx("box", {
         style: { flexDirection: "row" },
         children: isRunning ? /* @__PURE__ */ jsx_runtime8.jsx(Spinner, {
-          label: `[${name}] ${truncate(detail || "...", truncLen)}`
+          label: `${name}  ${truncate(detail || "\u2026", truncLen)}`
         }) : /* @__PURE__ */ jsx_runtime8.jsxs("text", {
           children: [
             /* @__PURE__ */ jsx_runtime8.jsx("span", {
               fg: success ? import_theme8.colors.green : import_theme8.colors.red,
               children: success ? "\u2713" : "\u2717"
             }),
-            isSubagent ? /* @__PURE__ */ jsx_runtime8.jsx("span", {
-              fg: import_theme8.colors.dim,
-              children: expanded ? " \u25BE" : " \u25B8"
-            }) : null,
             /* @__PURE__ */ jsx_runtime8.jsx("span", {
               fg: import_theme8.colors.dim,
-              children: " ["
+              children: "  "
             }),
             /* @__PURE__ */ jsx_runtime8.jsx("span", {
               fg: import_theme8.colors.accent,
+              attributes: TextAttributes.BOLD,
               children: name
             }),
             /* @__PURE__ */ jsx_runtime8.jsx("span", {
-              fg: import_theme8.colors.dim,
-              children: "] "
-            }),
-            /* @__PURE__ */ jsx_runtime8.jsx("span", {
-              fg: import_theme8.colors.dim,
-              children: truncate(detail || "", truncLen)
+              fg: import_theme8.colors.muted,
+              children: "  " + truncate(detail || "", truncLen)
             }),
             elapsed != null ? /* @__PURE__ */ jsx_runtime8.jsx("span", {
               fg: import_theme8.colors.dim,
               children: "  " + formatElapsed(elapsed)
+            }) : null,
+            isSubagent ? /* @__PURE__ */ jsx_runtime8.jsx("span", {
+              fg: import_theme8.colors.dim,
+              children: expanded ? "  \u25BE" : "  \u25B8"
             }) : null
           ]
         })
@@ -3889,29 +3869,25 @@ function ToolCallItem({ message }) {
         const isTruncated = lines.length > maxLines;
         const displayOutput = isTruncated ? lines.slice(0, maxLines).join(`
 `) + `
-...` : output;
-        return isSubagent ? /* @__PURE__ */ jsx_runtime8.jsxs("box", {
-          style: { flexDirection: "column", paddingLeft: indent, marginTop: 0, borderStyle: "single", borderColor: import_theme8.colors.border, paddingRight: 1 },
+\u2026` : output;
+        return /* @__PURE__ */ jsx_runtime8.jsxs("box", {
+          style: { flexDirection: "column", paddingLeft: 2, marginTop: 0 },
           children: [
             /* @__PURE__ */ jsx_runtime8.jsx("text", {
-              fg: import_theme8.colors.dim,
-              attributes: TextAttributes.ITALIC,
-              style: { marginBottom: 0 },
-              children: `\u2500\u2500 ${name} output ${isTruncated ? `(${lines.length} lines, showing ${maxLines})` : ""} \u2500\u2500`
+              fg: import_theme8.colors.border,
+              content: "\u2500".repeat(36)
             }),
             /* @__PURE__ */ jsx_runtime8.jsx("text", {
-              fg: import_theme8.colors.text,
+              fg: import_theme8.colors.dim,
+              content: isTruncated ? `${lines.length} lines \u2014 showing first ${maxLines}` : "",
+              style: { marginBottom: 0 }
+            }),
+            /* @__PURE__ */ jsx_runtime8.jsx("text", {
+              fg: import_theme8.colors.muted,
               content: displayOutput,
               wrapMode: "char"
             })
           ]
-        }) : /* @__PURE__ */ jsx_runtime8.jsx("box", {
-          style: { paddingLeft: indent, marginTop: 0 },
-          children: /* @__PURE__ */ jsx_runtime8.jsx("text", {
-            fg: import_theme8.colors.dim,
-            content: truncate(displayOutput, 1000),
-            wrapMode: "char"
-          })
         });
       })() : null
     ]
@@ -4139,51 +4115,153 @@ function ChatArea({ messages, streamingContent, streamingThinking, isProcessing 
 var import_react15 = __toESM(require_react(), 1);
 var import_theme12 = __toESM(require_theme(), 1);
 var jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
+var CMD_LIST = [
+  { cmd: "/help", desc: "Show help menu" },
+  { cmd: "/compact", desc: "Summarize context" },
+  { cmd: "/files", desc: "Show file tree" },
+  { cmd: "/clear", desc: "Clear conversation" },
+  { cmd: "/cost", desc: "Show session stats" },
+  { cmd: "/undo", desc: "Undo last edit" },
+  { cmd: "/diff", desc: "Show git diff" },
+  { cmd: "/git", desc: "Run a git command" },
+  { cmd: "/quit", desc: "Exit" }
+];
+function fuzzyScore(cmdStr, query) {
+  const c = cmdStr.slice(1).toLowerCase();
+  const q = query.toLowerCase();
+  if (!q)
+    return 1;
+  if (c.startsWith(q))
+    return 3;
+  if (c.includes(q))
+    return 2;
+  let ci = 0;
+  for (const ch of q) {
+    const found = c.indexOf(ch, ci);
+    if (found === -1)
+      return 0;
+    ci = found + 1;
+  }
+  return 1;
+}
 function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
   const internalInputRef = import_react15.useRef(null);
   const inputRef = externalInputRef || internalInputRef;
-  const { isNarrow, width } = useLayout();
+  const { isNarrow } = useLayout();
+  const [inputValue, setInputValue] = import_react15.useState("");
+  const [selectedIdx, setSelectedIdx] = import_react15.useState(0);
+  const showPicker = !disabled && inputValue.startsWith("/");
+  const query = showPicker ? inputValue.slice(1) : "";
+  const filtered = import_react15.useMemo(() => {
+    if (!showPicker)
+      return [];
+    return CMD_LIST.map((c) => ({ ...c, score: fuzzyScore(c.cmd, query) })).filter((c) => c.score > 0).sort((a, b) => b.score - a.score);
+  }, [showPicker, query]);
+  import_react15.useEffect(() => {
+    setSelectedIdx(0);
+  }, [filtered.length, query]);
+  function selectCommand(cmd) {
+    if (!cmd)
+      return;
+    const fill = cmd.cmd + " ";
+    setInputValue(fill);
+  }
+  useKeyboard((key) => {
+    if (!showPicker || filtered.length === 0)
+      return;
+    if (key.name === "down") {
+      setSelectedIdx((i) => Math.min(i + 1, filtered.length - 1));
+    } else if (key.name === "up") {
+      setSelectedIdx((i) => Math.max(i - 1, 0));
+    } else if (key.name === "tab") {
+      selectCommand(filtered[selectedIdx]);
+    }
+  });
+  const handleChange = (val) => {
+    setInputValue(val);
+  };
   const handleSubmit = (value) => {
     const trimmed = value.trim();
     if (!trimmed)
       return;
-    if (inputRef.current)
-      inputRef.current.value = "";
+    setInputValue("");
     onSubmit(trimmed);
   };
-  const hint = isNarrow ? "Ctrl+C \xB7 /" : "Ctrl+C exit \xB7 /help \xB7 /files";
-  const placeholder = disabled ? "setup in progress..." : isNarrow ? "Message or /cmd" : "Ask Apex anything, or use /commands";
-  return /* @__PURE__ */ jsx_runtime12.jsx("box", {
+  const hint = isNarrow ? "/help" : "/help  /files  ctrl+c";
+  const placeholder = disabled ? "setting up\u2026" : isNarrow ? "message apex\u2026" : "message apex, or /command";
+  const colors = import_theme12.colors;
+  return /* @__PURE__ */ jsx_runtime12.jsxs("box", {
     style: { flexDirection: "column", paddingLeft: 1, paddingRight: 1, paddingBottom: 1 },
-    children: /* @__PURE__ */ jsx_runtime12.jsxs("box", {
-      style: {
-        flexDirection: "row",
-        paddingLeft: 1,
-        paddingRight: 1,
-        borderStyle: "rounded",
-        borderColor: disabled ? import_theme12.colors.dim : import_theme12.colors.border,
-        backgroundColor: disabled ? import_theme12.colors.surface : undefined
-      },
-      children: [
-        /* @__PURE__ */ jsx_runtime12.jsx("text", {
-          fg: disabled ? import_theme12.colors.dim : import_theme12.colors.primary,
-          attributes: disabled ? 0 : TextAttributes.BOLD,
-          content: "\u276F "
-        }),
-        /* @__PURE__ */ jsx_runtime12.jsx("input", {
-          ref: inputRef,
-          focused: !disabled,
-          placeholder,
-          onSubmit: handleSubmit,
-          fg: import_theme12.colors.text,
-          style: { flexGrow: 1 }
-        }),
-        /* @__PURE__ */ jsx_runtime12.jsx("text", {
-          fg: import_theme12.colors.dim,
-          content: "  " + hint
-        })
-      ]
-    })
+    children: [
+      showPicker && filtered.length > 0 ? /* @__PURE__ */ jsx_runtime12.jsxs("box", {
+        style: {
+          flexDirection: "column",
+          paddingLeft: 1,
+          paddingRight: 1,
+          marginBottom: 0,
+          borderStyle: "single",
+          borderColor: colors.border
+        },
+        children: [
+          /* @__PURE__ */ jsx_runtime12.jsx("text", {
+            fg: colors.dim,
+            content: "commands"
+          }),
+          filtered.map((item, idx) => {
+            const isActive = idx === selectedIdx;
+            return /* @__PURE__ */ jsx_runtime12.jsxs("box", {
+              style: { flexDirection: "row" },
+              onMouseDown: () => selectCommand(item),
+              children: [
+                /* @__PURE__ */ jsx_runtime12.jsx("text", {
+                  fg: isActive ? colors.primary : colors.border,
+                  content: isActive ? "\u25B6 " : "  "
+                }),
+                /* @__PURE__ */ jsx_runtime12.jsx("text", {
+                  fg: isActive ? colors.primary : colors.muted,
+                  attributes: isActive ? TextAttributes.BOLD : 0,
+                  content: item.cmd
+                }),
+                /* @__PURE__ */ jsx_runtime12.jsx("text", {
+                  fg: colors.dim,
+                  content: "  " + item.desc
+                })
+              ]
+            }, item.cmd);
+          })
+        ]
+      }) : null,
+      /* @__PURE__ */ jsx_runtime12.jsxs("box", {
+        style: {
+          flexDirection: "row",
+          paddingLeft: 1,
+          paddingRight: 1,
+          borderStyle: "single",
+          borderColor: disabled ? colors.border : showPicker ? colors.primary : colors.dim
+        },
+        children: [
+          /* @__PURE__ */ jsx_runtime12.jsx("text", {
+            fg: disabled ? colors.dim : colors.primary,
+            attributes: disabled ? 0 : TextAttributes.BOLD,
+            content: "> "
+          }),
+          /* @__PURE__ */ jsx_runtime12.jsx("input", {
+            ref: inputRef,
+            focused: !disabled,
+            value: inputValue,
+            onChange: handleChange,
+            placeholder,
+            onSubmit: handleSubmit,
+            fg: colors.text,
+            style: { flexGrow: 1 }
+          }),
+          /* @__PURE__ */ jsx_runtime12.jsx("text", {
+            fg: colors.dim,
+            content: showPicker && filtered.length > 0 ? "  \u2191\u2193 navigate  tab select" : "  " + hint
+          })
+        ]
+      })
+    ]
   });
 }
 var import_react_sb = __toESM(require_react(), 1);
@@ -4217,69 +4295,63 @@ function StatusBar({ isProcessing }) {
     children: [
       /* @__PURE__ */ jsx_runtime13.jsx("box", {
         style: { flexGrow: 1 },
-        children: /* @__PURE__ */ jsx_runtime13.jsxs("text", {
+        children: isProcessing ? /* @__PURE__ */ jsx_runtime13.jsxs("text", {
+          children: [
+            /* @__PURE__ */ jsx_runtime13.jsx("span", {
+              fg: import_theme13.colors.primary,
+              children: SPINNER_FRAMES[spinFrame]
+            }),
+            /* @__PURE__ */ jsx_runtime13.jsx("span", {
+              fg: import_theme13.colors.muted,
+              children: isNarrow ? " working\u2026" : " working"
+            }),
+            !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsx("span", {
+              fg: import_theme13.colors.dim,
+              children: "  esc to cancel"
+            }) : null
+          ]
+        }) : /* @__PURE__ */ jsx_runtime13.jsxs("text", {
           children: [
             /* @__PURE__ */ jsx_runtime13.jsxs("span", {
               fg: import_theme13.colors.dim,
-              children: [elapsed, "min"]
+              children: [elapsed, "m"]
             }),
-            /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.dim, children: " \xB7 " }),
+            /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.border, children: "  \xB7  " }),
             /* @__PURE__ */ jsx_runtime13.jsxs("span", {
               fg: import_theme13.colors.dim,
               children: [snapshot.turnCount, " turns"]
             }),
             !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs(jsx_runtime13.Fragment, {
               children: [
-                /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.dim, children: " \xB7 " }),
-                /* @__PURE__ */ jsx_runtime13.jsxs("span", {
-                  fg: import_theme13.colors.dim,
-                  children: [snapshot.toolCallCount, " tools"]
-                }),
-                /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.dim, children: " \xB7 " }),
+                /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.border, children: "  \xB7  " }),
                 /* @__PURE__ */ jsx_runtime13.jsxs("span", {
                   fg: import_theme13.colors.dim,
                   children: [tokStr, " tok"]
+                }),
+                /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.border, children: "  \xB7  " }),
+                /* @__PURE__ */ jsx_runtime13.jsxs("span", {
+                  fg: import_theme13.colors.dim,
+                  children: ["$", snapshot.totalCost.toFixed(4)]
                 })
               ]
-            }) : null,
-            /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.dim, children: " \xB7 " }),
-            /* @__PURE__ */ jsx_runtime13.jsxs("span", {
-              fg: import_theme13.colors.dim,
-              children: ["$", snapshot.totalCost.toFixed(4)]
-            })
+            }) : null
           ]
         })
       }),
-      !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs("text", {
+      !isNarrow && !isProcessing ? /* @__PURE__ */ jsx_runtime13.jsxs("text", {
         children: [
+          /* @__PURE__ */ jsx_runtime13.jsx("span", {
+            fg: import_theme13.colors.dim,
+            children: providerLabel
+          }),
+          /* @__PURE__ */ jsx_runtime13.jsx("span", {
+            fg: import_theme13.colors.border,
+            children: "  "
+          }),
           /* @__PURE__ */ jsx_runtime13.jsx("span", {
             fg: configReady ? import_theme13.colors.green : import_theme13.colors.yellow,
-            children: configReady ? "\u25CF" : "\u25CB"
-          }),
-          /* @__PURE__ */ jsx_runtime13.jsx("span", {
-            fg: import_theme13.colors.dim,
-            children: " "
-          }),
-          /* @__PURE__ */ jsx_runtime13.jsx("span", {
-            fg: import_theme13.colors.muted,
-            children: configReady ? providerLabel : "setup required"
+            children: "\u25CF"
           })
-        ]
-      }) : null,
-      isProcessing ? /* @__PURE__ */ jsx_runtime13.jsxs("text", {
-        children: [
-          /* @__PURE__ */ jsx_runtime13.jsx("span", {
-            fg: import_theme13.colors.accent,
-            children: SPINNER_FRAMES[spinFrame]
-          }),
-          /* @__PURE__ */ jsx_runtime13.jsx("span", {
-            fg: import_theme13.colors.accent,
-            children: isNarrow ? " \u2026" : " thinking"
-          }),
-          !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsx("span", {
-            fg: import_theme13.colors.dim,
-            children: " \xB7 Esc"
-          }) : null
         ]
       }) : null
     ]
@@ -4289,7 +4361,7 @@ var import_theme14 = __toESM(require_theme(), 1);
 var jsx_runtime14 = __toESM(require_jsx_runtime(), 1);
 var COMMANDS = [
   { cmd: "/help", desc: "Show this menu" },
-  { cmd: "/compact", desc: "Compact/summarize conversation context" },
+  { cmd: "/compact", desc: "Summarize conversation context" },
   { cmd: "/files", desc: "Show project file tree" },
   { cmd: "/clear", desc: "Clear conversation" },
   { cmd: "/cost", desc: "Show session stats" },
@@ -4300,8 +4372,9 @@ var COMMANDS = [
 ];
 var QUICK_TIPS = [
   "Ctrl+C exits the app",
-  "Esc closes overlays and thinking blocks",
-  "On first launch, choose a provider and paste your API key"
+  "Esc closes overlays",
+  "Ask to run npm, bun, pnpm, or yarn commands \u2014 all supported",
+  "On first launch, choose a provider and enter your API key"
 ];
 var TOOLS = [
   "Read",
@@ -4316,6 +4389,7 @@ var TOOLS = [
   "Task",
   "CodeReview"
 ];
+var PACKAGE_MANAGERS = ["npm", "bun", "pnpm", "yarn"];
 var SUBAGENTS = [
   "FilePickerMax",
   "Thinker",
@@ -4336,8 +4410,8 @@ function HelpModal({ onClose, onCommand }) {
     zIndex: 100,
     border: true,
     borderColor: import_theme14.colors.primary,
-    backgroundColor: "#0d0d1a",
-    title: " Help ",
+    backgroundColor: "#0c0c0c",
+    title: " apex help ",
     titleAlignment: "center",
     style: {
       position: "absolute",
@@ -4350,9 +4424,9 @@ function HelpModal({ onClose, onCommand }) {
     },
     children: [
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
-        fg: import_theme14.colors.white,
+        fg: import_theme14.colors.accent,
         attributes: TextAttributes.BOLD,
-        content: "Commands"
+        content: "commands"
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("box", {
         style: { flexDirection: "column", marginTop: 0 },
@@ -4367,11 +4441,11 @@ function HelpModal({ onClose, onCommand }) {
           children: /* @__PURE__ */ jsx_runtime14.jsxs("text", {
             children: [
               /* @__PURE__ */ jsx_runtime14.jsx("span", {
-                fg: import_theme14.colors.accent,
-                children: cmd.padEnd(isNarrow ? 10 : 14)
+                fg: import_theme14.colors.primary,
+                children: cmd.padEnd(isNarrow ? 12 : 16)
               }),
               /* @__PURE__ */ jsx_runtime14.jsx("span", {
-                fg: import_theme14.colors.text,
+                fg: import_theme14.colors.muted,
                 children: desc
               })
             ]
@@ -4379,46 +4453,56 @@ function HelpModal({ onClose, onCommand }) {
         }, cmd))
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
-        fg: import_theme14.colors.white,
+        fg: import_theme14.colors.accent,
         attributes: TextAttributes.BOLD,
         style: { marginTop: 1 },
-        content: "Quick Tips"
-      }),
-      /* @__PURE__ */ jsx_runtime14.jsx("box", {
-        style: { flexDirection: "column", marginTop: 0 },
-        children: QUICK_TIPS.map((tip) => /* @__PURE__ */ jsx_runtime14.jsx("text", {
-          fg: import_theme14.colors.dim,
-          content: `\u2022 ${tip}`
-        }, tip))
+        content: "package managers"
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
-        fg: import_theme14.colors.white,
+        fg: import_theme14.colors.muted,
+        content: PACKAGE_MANAGERS.join("  \xB7  ")
+      }),
+      /* @__PURE__ */ jsx_runtime14.jsx("text", {
+        fg: import_theme14.colors.accent,
         attributes: TextAttributes.BOLD,
         style: { marginTop: 1 },
-        content: "Tools"
+        content: "tools"
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
-        fg: import_theme14.colors.dim,
-        content: TOOLS.join(", ")
+        fg: import_theme14.colors.muted,
+        content: TOOLS.join("  \xB7  ")
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
-        fg: import_theme14.colors.white,
+        fg: import_theme14.colors.accent,
         attributes: TextAttributes.BOLD,
         style: { marginTop: 1 },
-        content: "Sub-Agents"
+        content: "sub-agents"
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
-        fg: import_theme14.colors.dim,
-        content: SUBAGENTS.join(", ")
+        fg: import_theme14.colors.muted,
+        content: SUBAGENTS.join("  \xB7  ")
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
         fg: import_theme14.colors.dim,
         content: "  * = MAX mode only"
       }),
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
+        fg: import_theme14.colors.accent,
+        attributes: TextAttributes.BOLD,
+        style: { marginTop: 1 },
+        content: "tips"
+      }),
+      /* @__PURE__ */ jsx_runtime14.jsx("box", {
+        style: { flexDirection: "column" },
+        children: QUICK_TIPS.map((tip) => /* @__PURE__ */ jsx_runtime14.jsx("text", {
+          fg: import_theme14.colors.dim,
+          content: `\xB7 ${tip}`
+        }, tip))
+      }),
+      /* @__PURE__ */ jsx_runtime14.jsx("text", {
         fg: import_theme14.colors.dim,
         style: { marginTop: 1 },
-        content: "Press ESC or q to close"
+        content: "esc or q to close"
       })
     ]
   });

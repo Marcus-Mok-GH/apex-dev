@@ -9,6 +9,10 @@
   },
   "files": [
     "dist/index.js",
+    "dist/*.wasm",
+    "dist/*.scm",
+    "dist/apex-dev",
+    "dist/apex.js",
     "cli.js"
   ],
   "scripts": {

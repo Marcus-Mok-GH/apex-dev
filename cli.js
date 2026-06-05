@@ -227,6 +227,26 @@ function looksValidBinary(pathToBinary) {
   }
 }
 
+function getLocalDistBinary() {
+  const { platform, arch } = detectPlatform();
+  const candidates = [
+    path.join(__dirname, "dist", `apex-dev-${platform}-${arch}`),
+    path.join(__dirname, "dist", `apex-${platform}-${arch}`),
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    if (looksValidBinary(candidate)) {
+      try {
+        fs.accessSync(candidate, fs.constants.X_OK);
+        return candidate;
+      } catch {
+        fs.chmodSync(candidate, 0o755);
+        return candidate;
+      }
+    }
+  }
+  return null;
+}
+
 function getLocalBinaryPath() {
   return path.join(getBinaryCacheDir(), getBinaryName());
 }
@@ -538,6 +558,25 @@ async function main() {
 
   await ensureApiKeys();
 
+  // 1. Check for a locally bundled platform binary in dist/ (no network needed)
+  const distBinary = getLocalDistBinary();
+  if (distBinary) {
+    const child = spawn(distBinary, args, { stdio: "inherit" });
+    child.on("error", (err) => {
+      console.error(`Failed to launch binary: ${err.message}`);
+      process.exit(1);
+    });
+    child.on("exit", (code) => process.exit(code || 0));
+    return;
+  }
+
+  // 2. Use bun if available (fastest path, no network download required)
+  if (tryBun()) {
+    runWithBun();
+    return;
+  }
+
+  // 3. Download pre-built binary as last resort (for environments without bun)
   const binaryPath = await ensureBinary();
 
   if (binaryPath && fs.existsSync(binaryPath)) {
@@ -551,9 +590,6 @@ async function main() {
     child.on("exit", (code) => {
       process.exit(code || 0);
     });
-  } else if (tryBun()) {
-    console.error("Binary not available, falling back to bun runtime.");
-    runWithBun();
   } else {
     console.error("No binary available and bun is not installed.");
     console.error("Please install bun (https://bun.sh) or download the binary manually from the latest GitHub release.");
