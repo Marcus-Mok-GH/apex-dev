@@ -4,10 +4,11 @@
   "description": "Apex AI - a friendly agentic coding assistant for the terminal",
   "main": "dist/index.js",
   "bin": {
-    "apex": "./cli.js"
+    "apex": "./cli.js",
+    "apex-dev": "./cli.js"
   },
   "files": [
-    "dist/",
+    "dist/index.js",
     "cli.js"
   ],
   "scripts": {

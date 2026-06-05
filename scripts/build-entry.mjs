@@ -9,8 +9,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 const SRC = resolve(ROOT, "src");
 
-const HEADER = `#!/usr/bin/env node
-// @bun
+const HEADER = `#!/usr/bin/env bun
 // Proper entry for Apex AI
 
 import {
