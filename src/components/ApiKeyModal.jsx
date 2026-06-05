@@ -5,7 +5,7 @@ var import_config = __toESM(require_config(), 1);
 var import_useLayout = __toESM(require_useLayout(), 1);
 var jsx_runtime = __toESM(require_jsx_runtime(), 1);
 
-var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together"];
+var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together", "baseten", "replit", "apex-nova"];
 
 function ApiKeyModal() {
   var [input, setInput] = import_react.useState("");
@@ -24,7 +24,12 @@ function ApiKeyModal() {
       } else if (key.name === "down" || key.name === "j") {
         setSelectedIdx(function(i) { return (i + 1) % PROVIDER_ORDER.length; });
       } else if (key.name === "return" || key.name === "enter") {
-        setStep("key");
+        if (provider && provider.noKey) {
+          import_config.setProvider(providerKey, undefined);
+          import_store.setState({ apiKey: "", provider: providerKey, needsConfig: false });
+        } else {
+          setStep("key");
+        }
       }
     } else {
       if (key.name === "escape") {
@@ -38,7 +43,7 @@ function ApiKeyModal() {
 
   var handleSubmit = function() {
     var key = input.trim();
-    if (!key) return;
+    if (!key && !provider.noKey) return;
     import_config.setProvider(providerKey, key);
     import_store.setState({ apiKey: key, provider: providerKey, needsConfig: false });
   };
@@ -86,7 +91,7 @@ function ApiKeyModal() {
         jsx_runtime.jsx("text", {
           style: { marginBottom: 1 },
           fg: import_theme.colors.dim,
-          children: "Env var: " + provider.envKey + "  \xB7  Esc to go back"
+          children: provider.noKey ? "No API key required  \xB7  Esc to go back" : "Env var: " + provider.envKey + "  \xB7  Esc to go back"
         }),
         jsx_runtime.jsx("box", {
           style: {
@@ -101,13 +106,13 @@ function ApiKeyModal() {
             value: input,
             onChange: setInput,
             onSubmit: handleSubmit,
-            placeholder: "Paste your API key here...",
+            placeholder: provider.noKey ? "No API key required" : "Paste your API key here...",
             fg: import_theme.colors.text
           })
         }),
         jsx_runtime.jsx("text", {
           fg: import_theme.colors.dim,
-          children: "Press Enter to confirm"
+          children: provider.noKey ? "Press Enter to confirm no-key provider" : "Press Enter to confirm"
         })
       ]
     });
