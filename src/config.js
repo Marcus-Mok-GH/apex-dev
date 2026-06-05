@@ -882,6 +882,23 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+async function validateApiKey(providerKey, apiKey) {
+  const provider = PROVIDERS[providerKey];
+  if (!provider || provider.noKey) return { valid: true };
+  if (!apiKey) return { valid: false, error: "No API key provided" };
+  try {
+    const client = _makeClient(apiKey, provider.baseURL);
+    await client.models.list();
+    return { valid: true };
+  } catch (err) {
+    const status = err?.status;
+    if (status === 401 || status === 403) {
+      return { valid: false, error: `${provider.label} key is invalid or expired` };
+    }
+    return { valid: true };
+  }
+}
+
 function getMode() {
   return currentMode;
 }
@@ -949,6 +966,7 @@ module.exports = {
   PROJECT_ROOT,
   nvidiaClient,
   setApiKey,
+  validateApiKey,
   session,
   truncateOutput,
   resolvePath,

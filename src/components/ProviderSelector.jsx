@@ -52,6 +52,7 @@ function ProviderSelector() {
       apiKey: key,
       provider: providerKey2,
       needsConfig: false,
+      keyValidationError: null,
     });
   }
 
@@ -155,6 +156,15 @@ function ProviderSelector() {
                       "Use ↑↓ or j/k to navigate. Enter logs in or out depending on the selected provider's state.",
                   }),
                 }),
+                state.keyValidationError
+                  ? jsx_runtime.jsx("box", {
+                      style: { paddingLeft: 4, paddingRight: 4, marginBottom: 1 },
+                      children: jsx_runtime.jsx("text", {
+                        fg: import_theme.colors.red,
+                        children: "⚠  " + state.keyValidationError + " — please enter a new key.",
+                      }),
+                    })
+                  : null,
                 PROVIDER_ORDER.map(function (key, idx) {
                   var focused = idx === focusedIdx;
                   var stateLabel = loginState(key);

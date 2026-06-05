@@ -18,7 +18,8 @@ var require_store = __commonJS((exports, module2) => {
     showSummary: false,
     apiKey: _apiKey,
     provider: _detectedProvider,
-    needsConfig: _needsConfig
+    needsConfig: _needsConfig,
+    keyValidationError: null,
   };
   var nextId = 1;
   var listeners = new Set;

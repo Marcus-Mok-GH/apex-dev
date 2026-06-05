@@ -80,7 +80,8 @@ var require_store = __commonJS((exports, module2) => {
     showSummary: false,
     apiKey: _apiKey,
     provider: _detectedProvider,
-    needsConfig: _needsConfig
+    needsConfig: _needsConfig,
+    keyValidationError: null,
   };
   var nextId = 1;
   var listeners = new Set;
@@ -1213,6 +1214,23 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+async function validateApiKey(providerKey, apiKey) {
+  const provider = PROVIDERS[providerKey];
+  if (!provider || provider.noKey) return { valid: true };
+  if (!apiKey) return { valid: false, error: "No API key provided" };
+  try {
+    const client = _makeClient(apiKey, provider.baseURL);
+    await client.models.list();
+    return { valid: true };
+  } catch (err) {
+    const status = err?.status;
+    if (status === 401 || status === 403) {
+      return { valid: false, error: `${provider.label} key is invalid or expired` };
+    }
+    return { valid: true };
+  }
+}
+
 function getMode() {
   return currentMode;
 }
@@ -1280,6 +1298,7 @@ module.exports = {
   PROJECT_ROOT,
   nvidiaClient,
   setApiKey,
+  validateApiKey,
   session,
   truncateOutput,
   resolvePath,
@@ -4537,6 +4556,7 @@ function ProviderSelector() {
       apiKey: key,
       provider: providerKey2,
       needsConfig: false,
+      keyValidationError: null,
     });
   }
 
@@ -4640,6 +4660,15 @@ function ProviderSelector() {
                       "Use ↑↓ or j/k to navigate. Enter logs in or out depending on the selected provider's state.",
                   }),
                 }),
+                state.keyValidationError
+                  ? jsx_runtime.jsx("box", {
+                      style: { paddingLeft: 4, paddingRight: 4, marginBottom: 1 },
+                      children: jsx_runtime.jsx("text", {
+                        fg: import_theme.colors.red,
+                        children: "⚠  " + state.keyValidationError + " — please enter a new key.",
+                      }),
+                    })
+                  : null,
                 PROVIDER_ORDER.map(function (key, idx) {
                   var focused = idx === focusedIdx;
                   var stateLabel = loginState(key);
@@ -4963,6 +4992,20 @@ function App() {
       exitApp();
     }
   });
+  import_react17.useEffect(() => {
+    const snap = import_store5.getSnapshot();
+    if (!snap.needsConfig && snap.apiKey) {
+      import_config4.validateApiKey(snap.provider, snap.apiKey).then((result) => {
+        if (!result.valid) {
+          import_store5.setState({
+            needsConfig: true,
+            keyValidationError: result.error || "API key is invalid or expired",
+          });
+        }
+      }).catch(() => {});
+    }
+  }, []);
+
   const handleInput = import_react17.useCallback(async (value) => {
     if (value === "exit" || value === "quit") {
       exitApp();
