@@ -1,2 +1,4 @@
 - [Entry build process](entry-build.md) — src/ changes don't auto-apply; must run `bun scripts/build-entry.mjs` to regenerate entry.mjs, then restart workflow.
 - [npm PATH fix](npm-path.md) — npm/node/npx are not in PATH by default; Bash executor detects Node.js bin dir from socket-npm shebang and injects it into PATH at runtime.
+- [OpenAI SDK v6 empty key](openai-v6-key.md) — OpenAI SDK v6.42.0 throws on startup if apiKey is empty string; always use "dummy" as fallback so client initializes without throwing.
+- [Apex Nova backend suspended](apex-nova-suspended.md) — apex-nova and replit free backends share a suspended Fireworks AI account; default provider changed to openai to force config screen.

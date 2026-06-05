@@ -532,7 +532,7 @@ const PROVIDERS = {
     },
   },
   replit: {
-    label: "Replit (Free)",
+    label: "Replit (Unavailable)",
     baseURL: "https://fireworks-ai-server--coneyparsley3h.replit.app/api/inference/v1",
     envKey: "REPLIT_API_KEY",
     noKey: true,
@@ -548,7 +548,7 @@ const PROVIDERS = {
     },
   },
   "apex-nova": {
-    label: "Apex Nova",
+    label: "Apex Nova (Unavailable)",
     baseURL: "https://fireworks-ai-server--coneyparsley3h.replit.app/api/inference/v1",
     envKey: "APEX_NOVA_API_KEY",
     noKey: true,
@@ -576,7 +576,7 @@ function detectInitialProvider() {
   if (process.env.BASETEN_API_KEY)   return "baseten";
   if (process.env.REPLIT_API_KEY)    return "replit";
   if (process.env.APEX_NOVA_API_KEY) return "apex-nova";
-  return "apex-nova"; // default
+  return "openai"; // default — prompts user to configure an API key
 }
 
 let currentProvider = detectInitialProvider();
@@ -1104,7 +1104,7 @@ const codeEditorModelVariants = {
 
 // ── Internal client holder ──────────────────────────────────────────────────────────
 const _initialProvider = PROVIDERS[currentProvider];
-const _initialKey = process.env[_initialProvider.envKey] || (_initialProvider.noKey ? "dummy" : "");
+const _initialKey = process.env[_initialProvider.envKey] || "dummy";
 
 let _internalClient = new OpenAI({
   apiKey: _initialKey || "",
