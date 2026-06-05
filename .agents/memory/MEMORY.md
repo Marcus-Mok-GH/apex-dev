@@ -1,1 +1,2 @@
 - [Entry build process](entry-build.md) — src/ changes don't auto-apply; must run `bun scripts/build-entry.mjs` to regenerate entry.mjs, then restart workflow.
+- [npm PATH fix](npm-path.md) — npm/node/npx are not in PATH by default; Bash executor detects Node.js bin dir from socket-npm shebang and injects it into PATH at runtime.

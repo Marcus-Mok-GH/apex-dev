@@ -3,6 +3,23 @@ var require_toolExecutors = __commonJS((exports, module2) => {
   var path2 = __require("path");
   var https = __require("https");
   var { execSync } = __require("child_process");
+
+  // Detect the Node.js bin directory so npm/npx/node are available in Bash
+  function detectNodeBinPath() {
+    try {
+      const socketNpmPath = execSync("which socket-npm 2>/dev/null", { encoding: "utf-8", timeout: 3000 }).trim();
+      if (!socketNpmPath) return null;
+      const resolved = fs2.realpathSync(socketNpmPath);
+      const firstLine = fs2.readFileSync(resolved, "utf-8").split("\n")[0];
+      const match = firstLine.match(/^#!(.+\/bin)\/node/);
+      if (match) return match[1];
+    } catch {}
+    return null;
+  }
+  const NODE_BIN_PATH = detectNodeBinPath();
+  const AUGMENTED_PATH = NODE_BIN_PATH
+    ? `${NODE_BIN_PATH}:${process.env.PATH || ""}`
+    : process.env.PATH;
   var {
     PROJECT_ROOT,
     TOOL_TIMEOUT,
@@ -235,6 +252,7 @@ var require_toolExecutors = __commonJS((exports, module2) => {
               encoding: "utf-8",
               timeout: TOOL_TIMEOUT,
               cwd,
+              env: { ...process.env, PATH: AUGMENTED_PATH },
               maxBuffer: 1024 * 1024 * 5,
               stdio: ["pipe", "pipe", "pipe"]
             });
