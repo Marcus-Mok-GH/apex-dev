@@ -61,7 +61,8 @@ var require_store = __commonJS((exports, module2) => {
     showSummary: false,
     apiKey: _apiKey,
     provider: _detectedProvider,
-    needsConfig: _needsConfig
+    needsConfig: _needsConfig,
+    keyValidationError: null
   };
   var nextId = 1;
   var listeners = new Set;
@@ -495,7 +496,7 @@ var require_config = __commonJS((exports, module) => {
       }
     },
     replit: {
-      label: "Replit (Free)",
+      label: "Replit (Unavailable)",
       baseURL: "https://fireworks-ai-server--coneyparsley3h.replit.app/api/inference/v1",
       envKey: "REPLIT_API_KEY",
       noKey: true,
@@ -511,7 +512,7 @@ var require_config = __commonJS((exports, module) => {
       }
     },
     "apex-nova": {
-      label: "Apex Nova",
+      label: "Apex Nova (Unavailable)",
       baseURL: "https://fireworks-ai-server--coneyparsley3h.replit.app/api/inference/v1",
       envKey: "APEX_NOVA_API_KEY",
       noKey: true,
@@ -546,7 +547,7 @@ var require_config = __commonJS((exports, module) => {
       return "replit";
     if (process.env.APEX_NOVA_API_KEY)
       return "apex-nova";
-    return "apex-nova";
+    return "openai";
   }
   let currentProvider = detectInitialProvider();
   try {
@@ -1026,7 +1027,7 @@ Output JSON only, no markdown fences:
     qwen: { model: "accounts/fireworks/models/qwen3p6-plus", temperature: 0.1, maxTokens: 8192 }
   };
   const _initialProvider = PROVIDERS[currentProvider];
-  const _initialKey = process.env[_initialProvider.envKey] || (_initialProvider.noKey ? "dummy" : "");
+  const _initialKey = process.env[_initialProvider.envKey] || "dummy";
   let _internalClient = new OpenAI2({
     apiKey: _initialKey || "",
     baseURL: _initialProvider.baseURL,
@@ -1124,6 +1125,24 @@ Output JSON only, no markdown fences:
   function sleep(ms) {
     return new Promise((r) => setTimeout(r, ms));
   }
+  async function validateApiKey(providerKey, apiKey) {
+    const provider = PROVIDERS[providerKey];
+    if (!provider || provider.noKey)
+      return { valid: true };
+    if (!apiKey)
+      return { valid: false, error: "No API key provided" };
+    try {
+      const client = _makeClient(apiKey, provider.baseURL);
+      await client.models.list();
+      return { valid: true };
+    } catch (err) {
+      const status = err?.status;
+      if (status === 401 || status === 403) {
+        return { valid: false, error: `${provider.label} key is invalid or expired` };
+      }
+      return { valid: true };
+    }
+  }
   function getMode() {
     return currentMode;
   }
@@ -1202,6 +1221,7 @@ Output JSON only, no markdown fences:
     PROJECT_ROOT,
     nvidiaClient,
     setApiKey,
+    validateApiKey,
     session,
     truncateOutput,
     resolvePath,
@@ -4551,7 +4571,8 @@ function ProviderSelector() {
     import_store.setState({
       apiKey: key,
       provider: providerKey2,
-      needsConfig: false
+      needsConfig: false,
+      keyValidationError: null
     });
   }
   function handleLogin() {
@@ -4644,6 +4665,13 @@ function ProviderSelector() {
             children: "Use \u2191\u2193 or j/k to navigate. Enter logs in or out depending on the selected provider's state."
           })
         }),
+        state.keyValidationError ? jsx_runtime.jsx("box", {
+          style: { paddingLeft: 4, paddingRight: 4, marginBottom: 1 },
+          children: jsx_runtime.jsx("text", {
+            fg: import_theme.colors.red,
+            children: "\u26A0  " + state.keyValidationError + " \u2014 please enter a new key."
+          })
+        }) : null,
         PROVIDER_ORDER.map(function(key, idx) {
           var focused = idx === focusedIdx;
           var stateLabel = loginState(key);
