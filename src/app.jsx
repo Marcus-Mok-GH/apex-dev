@@ -37,19 +37,6 @@ function App() {
       exitApp();
     }
   });
-  import_react17.useEffect(() => {
-    const snap = import_store5.getSnapshot();
-    if (!snap.needsConfig && snap.apiKey) {
-      import_config4.validateApiKey(snap.provider, snap.apiKey).then((result) => {
-        if (!result.valid) {
-          import_store5.setState({
-            needsConfig: true,
-            keyValidationError: result.error || "API key is invalid or expired",
-          });
-        }
-      }).catch(() => {});
-    }
-  }, []);
 
   const handleInput = import_react17.useCallback(async (value) => {
     if (value === "exit" || value === "quit") {
