@@ -217,19 +217,25 @@ const PROVIDERS = {
     },
   },
   "apex-nova": {
-    label: "Apex Nova (Unavailable)",
-    baseURL: "https://fireworks-ai-server--coneyparsley3h.replit.app/api/inference/v1",
+    label: "Apex Nova",
+    baseURL: "https://fireworks-proxy-marcusmok.zocomputer.io",
     envKey: "APEX_NOVA_API_KEY",
     noKey: true,
+    fetch: (url, init) => {
+      const u = new URL(url);
+      if (u.pathname.endsWith("/chat/completions")) u.pathname = "/api/chat";
+      else if (u.pathname.endsWith("/models")) u.pathname = "/api/models";
+      return globalThis.fetch(u.toString(), init);
+    },
     models: {
-      NVIDIA_MODEL:        "accounts/fireworks/models/kimi-k2p6",
-      REVIEWER_MODEL:      "accounts/fireworks/models/deepseek-v4-pro",
-      FILE_PICKER_MODEL:   "accounts/fireworks/models/qwen3p6-plus",
-      THINKER_MODEL:       "accounts/fireworks/models/kimi-k2p6",
-      COMMANDER_MODEL:     "accounts/fireworks/models/qwen3p6-plus",
-      CONTEXT_PRUNER_MODEL:"accounts/fireworks/models/qwen3p6-plus",
-      RESEARCHER_MODEL:    "accounts/fireworks/models/deepseek-v4-pro",
-      GENERAL_AGENT_MODEL: "accounts/fireworks/models/kimi-k2p6",
+      NVIDIA_MODEL:         "kimi-k2.6",
+      REVIEWER_MODEL:       "deepseek-v4-pro",
+      FILE_PICKER_MODEL:    "qwen3.7-max",
+      THINKER_MODEL:        "deepseek-v4-pro",
+      COMMANDER_MODEL:      "qwen3.7-max",
+      CONTEXT_PRUNER_MODEL: "qwen3.7-max",
+      RESEARCHER_MODEL:     "deepseek-v4-pro",
+      GENERAL_AGENT_MODEL:  "kimi-k2.6",
     },
   },
 };
@@ -778,7 +784,8 @@ const _initialKey = process.env[_initialProvider.envKey] || "dummy";
 let _internalClient = new OpenAI({
   apiKey: _initialKey || "",
   baseURL: _initialProvider.baseURL,
-  dangerouslyAllowBrowser: true
+  dangerouslyAllowBrowser: true,
+  ...(_initialProvider.fetch ? { fetch: _initialProvider.fetch } : {}),
 });
 
 const nvidiaClient = new Proxy({}, {
@@ -792,12 +799,13 @@ const nvidiaClient = new Proxy({}, {
   }
 });
 
-function _makeClient(apiKey, baseURL) {
-  return new OpenAI({ apiKey: apiKey || "dummy", baseURL, dangerouslyAllowBrowser: true });
+function _makeClient(apiKey, baseURL, extraOpts = {}) {
+  return new OpenAI({ apiKey: apiKey || "dummy", baseURL, dangerouslyAllowBrowser: true, ...extraOpts });
 }
 
 function setApiKey(key) {
-  _internalClient = _makeClient(key, PROVIDERS[currentProvider].baseURL);
+  const _p = PROVIDERS[currentProvider];
+  _internalClient = _makeClient(key, _p.baseURL, _p.fetch ? { fetch: _p.fetch } : {});
   if (globalThis.require_server) {
     const srv = globalThis.require_server();
     if (srv && srv.updateApiKey) srv.updateApiKey(key);
@@ -814,7 +822,7 @@ function setProvider(providerKey, apiKey) {
   }
 
   currentProvider = providerKey;
-  _internalClient = _makeClient(apiKey, provider.baseURL);
+  _internalClient = _makeClient(apiKey, provider.baseURL, provider.fetch ? { fetch: provider.fetch } : {});
   Object.assign(currentModels, provider.models);
   // Set env var so getProviderLoginState returns correct status
   if (apiKey || provider.noKey) {
@@ -887,7 +895,7 @@ async function validateApiKey(providerKey, apiKey) {
   if (!provider || provider.noKey) return { valid: true };
   if (!apiKey) return { valid: false, error: "No API key provided" };
   try {
-    const client = _makeClient(apiKey, provider.baseURL);
+    const client = _makeClient(apiKey, provider.baseURL, provider.fetch ? { fetch: provider.fetch } : {});
     await client.models.list();
     return { valid: true };
   } catch (err) {
