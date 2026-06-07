@@ -5,7 +5,7 @@ var import_config = __toESM(require_config(), 1);
 var import_useLayout = __toESM(require_useLayout(), 1);
 var jsx_runtime = __toESM(require_jsx_runtime(), 1);
 
-var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together", "baseten", "replit", "apex-nova"];
+var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together", "baseten", "apex-nova"];
 
 var PROVIDER_EMOJI = {
   fireworks: "🔥",
@@ -15,7 +15,6 @@ var PROVIDER_EMOJI = {
   gemini: "💎",
   together: "🤝",
   baseten: "🔺",
-  replit: "🆓",
   "apex-nova": "🌟",
 };
 
@@ -71,7 +70,7 @@ function ProviderSelector() {
         apiKey: remaining.apiKey,
         provider: remaining.providerKey,
         needsConfig: false,
-      });
+        });
     } else {
       import_store.setState({
         apiKey: "",
@@ -233,7 +232,7 @@ function ProviderSelector() {
                   children: jsx_runtime.jsx("text", {
                     fg: import_theme.colors.dim,
                     children: provider.noKey
-                      ? "Press Enter to use this provider — no API key required."
+                      ? "Press Enter to use this provider —"no API key required."
                       : selectedState === "logged-in"
                         ? "Press Enter to log out of the selected provider."
                         : selectedState === "saved"
