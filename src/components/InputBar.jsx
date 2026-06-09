@@ -54,7 +54,6 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
 
   function selectCommand(cmd) {
     if (!cmd) return;
-    // Commands with args like "/git" get a trailing space so user can keep typing
     const fill = cmd.cmd + " ";
     setInputValue(fill);
   }
@@ -81,14 +80,19 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
     onSubmit(trimmed);
   };
 
-  const hint = isNarrow ? "/help" : "/help  /files  ctrl+c";
+  const hint = isNarrow ? "ctrl+c" : "↑↓ history  ctrl+c exit";
   const placeholder = disabled
     ? "setting up…"
     : isNarrow
       ? "message apex…"
-      : "message apex, or /command";
+      : "ask apex anything, or /command";
 
   const colors = import_theme12.colors;
+  const inputBorderColor = disabled
+    ? colors.border
+    : showPicker
+      ? colors.primary
+      : colors.dim;
 
   return /* @__PURE__ */ jsx_runtime12.jsxs("box", {
     style: { flexDirection: "column", paddingLeft: 1, paddingRight: 1, paddingBottom: 1 },
@@ -97,16 +101,20 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
         ? /* @__PURE__ */ jsx_runtime12.jsxs("box", {
             style: {
               flexDirection: "column",
-              paddingLeft: 1,
-              paddingRight: 1,
+              paddingLeft: 2,
+              paddingRight: 2,
+              paddingTop: 0,
+              paddingBottom: 0,
               marginBottom: 0,
               borderStyle: "single",
               borderColor: colors.border,
             },
             children: [
-              /* @__PURE__ */ jsx_runtime12.jsx("text", {
-                fg: colors.dim,
-                content: "commands"
+              /* @__PURE__ */ jsx_runtime12.jsxs("text", {
+                children: [
+                  /* @__PURE__ */ jsx_runtime12.jsx("span", { fg: colors.dim, children: "commands" }),
+                  /* @__PURE__ */ jsx_runtime12.jsx("span", { fg: colors.dim, children: "  ↑↓ navigate  tab select" }),
+                ]
               }),
               filtered.map((item, idx) => {
                 const isActive = idx === selectedIdx;
@@ -116,10 +124,10 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
                   children: [
                     /* @__PURE__ */ jsx_runtime12.jsx("text", {
                       fg: isActive ? colors.primary : colors.border,
-                      content: isActive ? "▶ " : "  "
+                      content: isActive ? "› " : "  "
                     }),
                     /* @__PURE__ */ jsx_runtime12.jsx("text", {
-                      fg: isActive ? colors.primary : colors.muted,
+                      fg: isActive ? colors.text : colors.muted,
                       attributes: isActive ? TextAttributes.BOLD : 0,
                       content: item.cmd
                     }),
@@ -139,13 +147,13 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
           paddingLeft: 1,
           paddingRight: 1,
           borderStyle: "single",
-          borderColor: disabled ? colors.border : showPicker ? colors.primary : colors.dim,
+          borderColor: inputBorderColor,
         },
         children: [
           /* @__PURE__ */ jsx_runtime12.jsx("text", {
             fg: disabled ? colors.dim : colors.primary,
             attributes: disabled ? 0 : TextAttributes.BOLD,
-            content: "> "
+            content: "›  "
           }),
           /* @__PURE__ */ jsx_runtime12.jsx("input", {
             ref: inputRef,
@@ -159,9 +167,7 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
           }),
           /* @__PURE__ */ jsx_runtime12.jsx("text", {
             fg: colors.dim,
-            content: showPicker && filtered.length > 0
-              ? "  ↑↓ navigate  tab select"
-              : "  " + hint
+            content: "  " + hint
           })
         ]
       })
