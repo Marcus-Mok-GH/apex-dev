@@ -4,8 +4,8 @@ var import_config3 = __toESM(require_config(), 1);
 var import_store3 = __toESM(require_store(), 1);
 var jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
 
-// Arc spinner for status bar (matches Spinner component style)
-var SB_SPINNER_FRAMES = ["◜", "◠", "◝", "◞", "◡", "◟"];
+// Arc frames shared with Spinner via theme export
+var SB_SPINNER_FRAMES = import_theme13.SPINNER_FRAMES;
 
 function StatusBar({ isProcessing }) {
   const { isNarrow } = useLayout();

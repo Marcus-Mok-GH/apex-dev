@@ -1,8 +1,8 @@
 var import_react14 = __toESM(require_react(), 1);
 var import_theme7 = __toESM(require_theme(), 1);
 var jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
-// Elegant arc spinner — matches codebuff's clean aesthetic
-var FRAMES = ["◜", "◠", "◝", "◞", "◡", "◟"];
+// Arc frames shared with StatusBar via theme export
+var FRAMES = import_theme7.SPINNER_FRAMES;
 function Spinner({ label }) {
   const [frame, setFrame] = import_react14.useState(0);
   const timerRef = import_react14.useRef(null);

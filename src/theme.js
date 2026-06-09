@@ -15,5 +15,6 @@ var require_theme = __commonJS((exports, module2) => {
     border: "#21262d",     // subtle dark border
     purple: "#bc8cff",     // purple for special accents
   };
-  module2.exports = { colors };
+  var SPINNER_FRAMES = ["◜", "◠", "◝", "◞", "◡", "◟"];
+  module2.exports = { colors, SPINNER_FRAMES };
 });

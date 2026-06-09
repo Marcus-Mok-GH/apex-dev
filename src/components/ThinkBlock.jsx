@@ -6,8 +6,8 @@ function ThinkBlock({ content, expanded, onToggle }) {
   if (!content) return null;
   const lines = content.split("\n");
   const maxPreview = isNarrow ? 2 : 4;
+  const hasMore = lines.length > maxPreview;
   const displayLines = expanded ? lines : lines.slice(0, maxPreview);
-  const isTruncated = !expanded && lines.length > maxPreview;
   const toggleHint = expanded ? " ▾ collapse" : ` ▸ +${lines.length - maxPreview} more`;
 
   return /* @__PURE__ */ jsx_runtime6.jsxs("box", {
@@ -34,7 +34,7 @@ function ThinkBlock({ content, expanded, onToggle }) {
         style: { paddingLeft: smallIndent },
         content: line
       }, i) : null),
-      isTruncated ? /* @__PURE__ */ jsx_runtime6.jsx("text", {
+      hasMore ? /* @__PURE__ */ jsx_runtime6.jsx("text", {
         fg: c.dim,
         attributes: TextAttributes.ITALIC,
         style: { paddingLeft: smallIndent },

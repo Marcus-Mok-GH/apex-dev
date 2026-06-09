@@ -19,7 +19,8 @@ function formatElapsed(ms) {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
 function truncate(str, len) {
-  return str.length > len ? str.slice(0, len - 3) + "…" : str;
+  const ELLIPSIS = "…";
+  return str.length > len ? str.slice(0, len - ELLIPSIS.length) + ELLIPSIS : str;
 }
 function ToolCallItem({ message }) {
   const { indent, isNarrow } = useLayout();
