@@ -3,8 +3,9 @@ var jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
 function Divider() {
   const { width } = useLayout();
   const cols = Math.min(width, 120);
+  // Subtle dotted divider — less heavy than a solid line
   return /* @__PURE__ */ jsx_runtime2.jsx("text", {
     fg: import_theme2.colors.border,
-    content: "\u2500".repeat(cols)
+    content: "┈".repeat(cols)
   });
 }

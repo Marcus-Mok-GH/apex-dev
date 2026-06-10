@@ -3,26 +3,47 @@ var import_config2 = __toESM(require_config(), 1);
 var jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
 function Welcome() {
   const { isNarrow } = useLayout();
+  const c = import_theme3.colors;
+
+  const cmds = isNarrow
+    ? ["/help", "/quit"]
+    : ["/help", "/files", "/diff", "/cost", "/compact", "/quit"];
+
   return /* @__PURE__ */ jsx_runtime3.jsxs("box", {
-    style: { flexDirection: "column", paddingLeft: 2, marginTop: 1, marginBottom: 1 },
+    style: { flexDirection: "column", paddingLeft: 2, marginTop: 2, marginBottom: 1 },
     children: [
-      /* @__PURE__ */ jsx_runtime3.jsx("text", {
-        fg: import_theme3.colors.white,
-        attributes: TextAttributes.BOLD,
-        content: "What are we building?"
+      /* @__PURE__ */ jsx_runtime3.jsxs("text", {
+        children: [
+          /* @__PURE__ */ jsx_runtime3.jsx("span", {
+            fg: c.primary,
+            attributes: TextAttributes.BOLD,
+            children: "◆"
+          }),
+          /* @__PURE__ */ jsx_runtime3.jsx("span", {
+            fg: c.white,
+            attributes: TextAttributes.BOLD,
+            children: "  What should we build?"
+          }),
+        ]
       }),
       /* @__PURE__ */ jsx_runtime3.jsx("text", {
-        fg: import_theme3.colors.dim,
+        fg: c.muted,
         style: { marginTop: 0 },
         content: isNarrow
-          ? "Type a message or /help"
-          : "Read, edit, run shell commands, npm, and review code — just describe what you need."
+          ? "Describe your task or type a command."
+          : "Read files, write code, run commands — describe what you need and I'll handle it."
       }),
-      !isNarrow ? /* @__PURE__ */ jsx_runtime3.jsx("text", {
-        fg: import_theme3.colors.dim,
-        style: { marginTop: 0 },
-        content: "/help  /files  /diff  /cost  /quit"
-      }) : null
+      /* @__PURE__ */ jsx_runtime3.jsxs("text", {
+        style: { marginTop: 1 },
+        children: cmds.map((cmd, i) =>
+          /* @__PURE__ */ jsx_runtime3.jsxs(jsx_runtime3.Fragment, {
+            children: [
+              i > 0 ? /* @__PURE__ */ jsx_runtime3.jsx("span", { fg: c.border, children: "  " }) : null,
+              /* @__PURE__ */ jsx_runtime3.jsx("span", { fg: c.dim, children: cmd }),
+            ]
+          }, cmd)
+        ),
+      }),
     ]
   });
 }

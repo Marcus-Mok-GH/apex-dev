@@ -3,8 +3,30 @@ var import_theme11 = __toESM(require_theme(), 1);
 
 var import_store4 = __toESM(require_store(), 1);
 var jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
+
+// Codebuff-style assistant label with ◆ diamond icon
+function AssistantLabel() {
+  const c = import_theme11.colors;
+  return /* @__PURE__ */ jsx_runtime11.jsxs("text", {
+    style: { paddingLeft: 1 },
+    children: [
+      /* @__PURE__ */ jsx_runtime11.jsx("span", {
+        fg: c.primary,
+        attributes: TextAttributes.BOLD,
+        children: "◆"
+      }),
+      /* @__PURE__ */ jsx_runtime11.jsx("span", {
+        fg: c.text,
+        attributes: TextAttributes.BOLD,
+        children: " apex"
+      }),
+    ]
+  });
+}
+
 function MessageItem({ message }) {
   const { width } = useLayout();
+  const c = import_theme11.colors;
   switch (message.role) {
     case "user":
       return /* @__PURE__ */ jsx_runtime11.jsx(UserMessage, {
@@ -14,12 +36,7 @@ function MessageItem({ message }) {
       return /* @__PURE__ */ jsx_runtime11.jsxs("box", {
         style: { flexDirection: "column", marginTop: 1 },
         children: [
-          /* @__PURE__ */ jsx_runtime11.jsx("text", {
-            fg: import_theme11.colors.primary,
-            attributes: TextAttributes.BOLD,
-            style: { paddingLeft: 1 },
-            content: "Apex"
-          }),
+          /* @__PURE__ */ jsx_runtime11.jsx(AssistantLabel, {}),
           /* @__PURE__ */ jsx_runtime11.jsx(AssistantMessage, {
             content: message.content
           })
@@ -46,16 +63,19 @@ function MessageItem({ message }) {
       });
     case "divider":
       return /* @__PURE__ */ jsx_runtime11.jsx("text", {
-        fg: import_theme11.colors.dim,
+        fg: c.border,
         style: { paddingLeft: 1 },
-        content: "─".repeat(Math.max(width - 2, 10))
+        content: "┈".repeat(Math.max(width - 2, 10))
       });
     default:
       return null;
   }
 }
+
 function ChatArea({ messages, streamingContent, streamingThinking, isProcessing }) {
   const { indent } = useLayout();
+  const c = import_theme11.colors;
+
   const renderedMessages = import_react.useMemo(() =>
     messages.map((msg) => /* @__PURE__ */ jsx_runtime11.jsx(MessageItem, {
       message: msg
@@ -75,53 +95,45 @@ function ChatArea({ messages, streamingContent, streamingThinking, isProcessing 
       children: [
         /* @__PURE__ */ jsx_runtime11.jsx(Welcome, {}),
         renderedMessages,
-        // Thinking preview while streaming — show last 200 chars with a cleaner indicator
         streamingThinking ? /* @__PURE__ */ jsx_runtime11.jsxs("box", {
           style: { paddingLeft: indent, marginTop: 1 },
           children: [
             /* @__PURE__ */ jsx_runtime11.jsxs("text", {
               children: [
                 /* @__PURE__ */ jsx_runtime11.jsx("span", {
-                  fg: import_theme11.colors.accent,
+                  fg: c.purple,
                   attributes: TextAttributes.ITALIC,
-                  children: "◆ "
+                  children: "◆"
                 }),
                 /* @__PURE__ */ jsx_runtime11.jsx("span", {
-                  fg: import_theme11.colors.dim,
+                  fg: c.dim,
                   attributes: TextAttributes.ITALIC,
-                  children: "thinking"
+                  children: " thinking"
                 })
               ]
             }),
             /* @__PURE__ */ jsx_runtime11.jsx("text", {
-              fg: import_theme11.colors.dim,
+              fg: c.dim,
               attributes: TextAttributes.ITALIC,
               style: { paddingLeft: 2 },
               content: streamingThinking.slice(-200)
             })
           ]
         }) : null,
-        // Streaming response — show "Apex" label for visual consistency with committed messages
         streamingContent ? /* @__PURE__ */ jsx_runtime11.jsxs("box", {
           style: { flexDirection: "column", marginTop: 1 },
           children: [
-            /* @__PURE__ */ jsx_runtime11.jsx("text", {
-              fg: import_theme11.colors.primary,
-              attributes: TextAttributes.BOLD,
-              style: { paddingLeft: 1 },
-              content: "Apex"
-            }),
+            /* @__PURE__ */ jsx_runtime11.jsx(AssistantLabel, {}),
             /* @__PURE__ */ jsx_runtime11.jsx(AssistantMessage, {
               content: streamingContent,
               isStreaming: true
             })
           ]
         }) : null,
-        // Idle processing state — spinner while waiting for first token
         isProcessing && !streamingContent && !streamingThinking ? /* @__PURE__ */ jsx_runtime11.jsx("box", {
           style: { paddingLeft: indent, marginTop: 1 },
           children: /* @__PURE__ */ jsx_runtime11.jsx(Spinner, {
-            label: "Reasoning..."
+            label: "reasoning…"
           })
         }) : null,
         /* @__PURE__ */ jsx_runtime11.jsx("box", {

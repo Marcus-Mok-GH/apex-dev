@@ -37,21 +37,30 @@ function Header() {
             /* @__PURE__ */ jsx_runtime.jsx("span", {
               fg: import_theme.colors.primary,
               attributes: TextAttributes.BOLD,
-              children: "◆ apex"
+              children: "◆"
+            }),
+            /* @__PURE__ */ jsx_runtime.jsx("span", {
+              fg: import_theme.colors.text,
+              attributes: TextAttributes.BOLD,
+              children: " apex"
             }),
             /* @__PURE__ */ jsx_runtime.jsx("span", {
               fg: import_theme.colors.border,
-              children: "  ·  "
+              children: "  /  "
             }),
             /* @__PURE__ */ jsx_runtime.jsx("span", {
-              fg: import_theme.colors.muted,
+              fg: import_theme.colors.blue,
               children: isNarrow && cwd.length > 12 ? cwd.slice(0, 12) + "…" : cwd
             }),
             branch && !isNarrow ? /* @__PURE__ */ jsx_runtime.jsxs(jsx_runtime.Fragment, {
               children: [
                 /* @__PURE__ */ jsx_runtime.jsx("span", {
                   fg: import_theme.colors.border,
-                  children: "  ·  "
+                  children: "  "
+                }),
+                /* @__PURE__ */ jsx_runtime.jsx("span", {
+                  fg: import_theme.colors.dim,
+                  children: "⎇ "
                 }),
                 /* @__PURE__ */ jsx_runtime.jsx("span", {
                   fg: import_theme.colors.dim,
@@ -65,16 +74,16 @@ function Header() {
       !isNarrow ? /* @__PURE__ */ jsx_runtime.jsxs("text", {
         children: [
           /* @__PURE__ */ jsx_runtime.jsx("span", {
-            fg: import_theme.colors.dim,
-            children: providerLabel
+            fg: configReady ? import_theme.colors.green : import_theme.colors.yellow,
+            children: "●"
           }),
           /* @__PURE__ */ jsx_runtime.jsx("span", {
             fg: import_theme.colors.border,
             children: "  "
           }),
           /* @__PURE__ */ jsx_runtime.jsx("span", {
-            fg: configReady ? import_theme.colors.green : import_theme.colors.yellow,
-            children: "●"
+            fg: import_theme.colors.dim,
+            children: providerLabel
           })
         ]
       }) : null

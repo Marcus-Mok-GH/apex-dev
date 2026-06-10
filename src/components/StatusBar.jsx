@@ -4,12 +4,14 @@ var import_config3 = __toESM(require_config(), 1);
 var import_store3 = __toESM(require_store(), 1);
 var jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
 
-var SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+// Arc frames shared with Spinner via theme export
+var SB_SPINNER_FRAMES = import_theme13.SPINNER_FRAMES;
 
 function StatusBar({ isProcessing }) {
   const { isNarrow } = useLayout();
   const snapshot = import_config3.session;
   const state = import_store3.getSnapshot();
+  const c = import_theme13.colors;
 
   const [tick, setTick] = import_react_sb.useState(0);
   import_react_sb.useEffect(() => {
@@ -20,7 +22,7 @@ function StatusBar({ isProcessing }) {
   const [spinFrame, setSpinFrame] = import_react_sb.useState(0);
   import_react_sb.useEffect(() => {
     if (!isProcessing) return;
-    const id = setInterval(() => setSpinFrame((f) => (f + 1) % SPINNER_FRAMES.length), 80);
+    const id = setInterval(() => setSpinFrame((f) => (f + 1) % SB_SPINNER_FRAMES.length), 100);
     return () => clearInterval(id);
   }, [isProcessing]);
 
@@ -33,67 +35,70 @@ function StatusBar({ isProcessing }) {
     ? import_config3.PROVIDERS[state.provider]?.label || state.provider
     : "unknown";
 
+  const sep = /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.border, children: "  ·  " });
+
   return /* @__PURE__ */ jsx_runtime13.jsxs("box", {
     style: { flexDirection: "row", paddingLeft: isNarrow ? 1 : 2, paddingRight: isNarrow ? 1 : 2, paddingBottom: 1 },
     children: [
       /* @__PURE__ */ jsx_runtime13.jsx("box", {
         style: { flexGrow: 1 },
-        children: isProcessing ? /* @__PURE__ */ jsx_runtime13.jsxs("text", {
-          children: [
-            /* @__PURE__ */ jsx_runtime13.jsx("span", {
-              fg: import_theme13.colors.primary,
-              children: SPINNER_FRAMES[spinFrame]
-            }),
-            /* @__PURE__ */ jsx_runtime13.jsx("span", {
-              fg: import_theme13.colors.muted,
-              children: isNarrow ? " working…" : " working"
-            }),
-            !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsx("span", {
-              fg: import_theme13.colors.dim,
-              children: "  esc to cancel"
-            }) : null
-          ]
-        }) : /* @__PURE__ */ jsx_runtime13.jsxs("text", {
-          children: [
-            /* @__PURE__ */ jsx_runtime13.jsxs("span", {
-              fg: import_theme13.colors.dim,
-              children: [elapsed, "m"]
-            }),
-            /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.border, children: "  ·  " }),
-            /* @__PURE__ */ jsx_runtime13.jsxs("span", {
-              fg: import_theme13.colors.dim,
-              children: [snapshot.turnCount, " turns"]
-            }),
-            !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs(jsx_runtime13.Fragment, {
+        children: isProcessing
+          ? /* @__PURE__ */ jsx_runtime13.jsxs("text", {
               children: [
-                /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.border, children: "  ·  " }),
-                /* @__PURE__ */ jsx_runtime13.jsxs("span", {
-                  fg: import_theme13.colors.dim,
-                  children: [tokStr, " tok"]
+                /* @__PURE__ */ jsx_runtime13.jsx("span", {
+                  fg: c.primary,
+                  attributes: TextAttributes.BOLD,
+                  children: SB_SPINNER_FRAMES[spinFrame]
                 }),
-                /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.border, children: "  ·  " }),
-                /* @__PURE__ */ jsx_runtime13.jsxs("span", {
-                  fg: import_theme13.colors.dim,
-                  children: ["$", snapshot.totalCost.toFixed(4)]
-                })
+                /* @__PURE__ */ jsx_runtime13.jsx("span", {
+                  fg: c.blue,
+                  attributes: TextAttributes.BOLD,
+                  children: isNarrow ? " working…" : " working"
+                }),
+                !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsx("span", {
+                  fg: c.dim,
+                  children: "    esc to cancel"
+                }) : null
               ]
-            }) : null
-          ]
-        })
+            })
+          : /* @__PURE__ */ jsx_runtime13.jsxs("text", {
+              children: [
+                /* @__PURE__ */ jsx_runtime13.jsxs("span", {
+                  fg: c.dim,
+                  children: [elapsed, "m"]
+                }),
+                sep,
+                /* @__PURE__ */ jsx_runtime13.jsxs("span", {
+                  fg: c.dim,
+                  children: [snapshot.turnCount, " turn", snapshot.turnCount !== 1 ? "s" : ""]
+                }),
+                !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs(jsx_runtime13.Fragment, {
+                  children: [
+                    sep,
+                    /* @__PURE__ */ jsx_runtime13.jsxs("span", {
+                      fg: c.dim,
+                      children: [tokStr, " tok"]
+                    }),
+                    sep,
+                    /* @__PURE__ */ jsx_runtime13.jsxs("span", {
+                      fg: c.dim,
+                      children: ["$", snapshot.totalCost.toFixed(4)]
+                    })
+                  ]
+                }) : null
+              ]
+            })
       }),
-      !isNarrow && !isProcessing ? /* @__PURE__ */ jsx_runtime13.jsxs("text", {
+      !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs("text", {
         children: [
           /* @__PURE__ */ jsx_runtime13.jsx("span", {
-            fg: import_theme13.colors.dim,
+            fg: c.dim,
             children: providerLabel
           }),
+          /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.border, children: "  " }),
           /* @__PURE__ */ jsx_runtime13.jsx("span", {
-            fg: import_theme13.colors.border,
-            children: "  "
-          }),
-          /* @__PURE__ */ jsx_runtime13.jsx("span", {
-            fg: configReady ? import_theme13.colors.green : import_theme13.colors.yellow,
-            children: "●"
+            fg: isProcessing ? c.yellow : configReady ? c.green : c.yellow,
+            children: isProcessing ? "◉" : "●"
           })
         ]
       }) : null
