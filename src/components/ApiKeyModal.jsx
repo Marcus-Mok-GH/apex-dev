@@ -5,7 +5,7 @@ var import_config = __toESM(require_config(), 1);
 var import_useLayout = __toESM(require_useLayout(), 1);
 var jsx_runtime = __toESM(require_jsx_runtime(), 1);
 
-var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together", "baseten", "apex-nova"];
+var PROVIDER_ORDER = ["nvidia", "openai", "openrouter", "groq", "gemini", "together", "baseten"];
 
 function ApiKeyModal() {
   var [input, setInput] = import_react.useState("");
