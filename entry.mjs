@@ -179,21 +179,23 @@ var require_store = __commonJS((exports, module2) => {
 
 var require_theme = __commonJS((exports, module2) => {
   var colors = {
-    primary: "#f97316",
-    accent: "#fdba74",
-    dim: "#525252",
-    muted: "#737373",
-    text: "#e5e5e5",
+    primary: "#0088fa",    // codebuff signature blue
+    accent: "#4da3ff",     // lighter blue for accents
+    dim: "#484f58",        // cool-toned dim
+    muted: "#8b949e",      // subtle muted text
+    text: "#e6edf3",       // crisp near-white
     white: "#ffffff",
-    green: "#4ade80",
-    yellow: "#fbbf24",
-    red: "#f87171",
-    blue: "#60a5fa",
-    cyan: "#22d3ee",
-    surface: "#0c0c0c",
-    border: "#262626"
+    green: "#3fb950",      // vivid green
+    yellow: "#d29922",     // amber
+    red: "#f85149",        // clean red
+    blue: "#79c0ff",       // highlight blue
+    cyan: "#56d364",       // bright teal-green
+    surface: "#0d1117",    // very dark navy (github dark bg)
+    border: "#21262d",     // subtle dark border
+    purple: "#bc8cff",     // purple for special accents
   };
-  module2.exports = { colors };
+  var SPINNER_FRAMES = ["◜", "◠", "◝", "◞", "◡", "◟"];
+  module2.exports = { colors, SPINNER_FRAMES };
 });
 
 
@@ -427,19 +429,20 @@ function getFirstSavedProvider() {
 
 // ── Provider registry ────────────────────────────────────────────────
 const PROVIDERS = {
-  fireworks: {
-    label: "Fireworks AI",
-    baseURL: process.env.APEX_API_URL || "https://api.fireworks.ai/inference/v1",
-    envKey: "FIREWORKS_API_KEY",
+  nvidia: {
+    label: "NVIDIA (Free)",
+    baseURL: process.env.NVIDIA_API_URL || "https://nvidia-api-server-marcusmok.zocomputer.io",
+    envKey: "NVIDIA_API_KEY",
+    noKey: true,
     models: {
-      NVIDIA_MODEL:        "accounts/fireworks/models/kimi-k2p6",
-      REVIEWER_MODEL:      "accounts/fireworks/models/deepseek-v4-pro",
-      FILE_PICKER_MODEL:   "accounts/fireworks/models/qwen3p6-plus",
-      THINKER_MODEL:       "accounts/fireworks/models/kimi-k2p6",
-      COMMANDER_MODEL:     "accounts/fireworks/models/qwen3p6-plus",
-      CONTEXT_PRUNER_MODEL:"accounts/fireworks/models/qwen3p6-plus",
-      RESEARCHER_MODEL:    "accounts/fireworks/models/deepseek-v4-pro",
-      GENERAL_AGENT_MODEL: "accounts/fireworks/models/kimi-k2p6",
+      NVIDIA_MODEL:        "deepseek-ai/deepseek-v4-flash-0731",
+      REVIEWER_MODEL:      "deepseek-ai/deepseek-v4-flash-0731",
+      FILE_PICKER_MODEL:   "google/gemma-3-12b-it",
+      THINKER_MODEL:       "deepseek-ai/deepseek-v4-flash-0731",
+      COMMANDER_MODEL:     "google/gemma-3-12b-it",
+      CONTEXT_PRUNER_MODEL:"google/gemma-3-12b-it",
+      RESEARCHER_MODEL:    "deepseek-ai/deepseek-v4-flash-0731",
+      GENERAL_AGENT_MODEL: "deepseek-ai/deepseek-v4-flash-0731",
     },
   },
   openai: {
@@ -532,38 +535,6 @@ const PROVIDERS = {
       GENERAL_AGENT_MODEL: "moonshotai/Kimi-K2.6",
     },
   },
-  replit: {
-    label: "Replit (Unavailable)",
-    baseURL: "https://fireworks-ai-server--coneyparsley3h.replit.app/api/inference/v1",
-    envKey: "REPLIT_API_KEY",
-    noKey: true,
-    models: {
-      NVIDIA_MODEL:        "accounts/fireworks/models/kimi-k2p6",
-      REVIEWER_MODEL:      "accounts/fireworks/models/deepseek-v4-pro",
-      FILE_PICKER_MODEL:   "accounts/fireworks/models/qwen3p6-plus",
-      THINKER_MODEL:       "accounts/fireworks/models/kimi-k2p6",
-      COMMANDER_MODEL:     "accounts/fireworks/models/qwen3p6-plus",
-      CONTEXT_PRUNER_MODEL:"accounts/fireworks/models/qwen3p6-plus",
-      RESEARCHER_MODEL:    "accounts/fireworks/models/deepseek-v4-pro",
-      GENERAL_AGENT_MODEL: "accounts/fireworks/models/kimi-k2p6",
-    },
-  },
-  "apex-nova": {
-    label: "Apex Nova (Unavailable)",
-    baseURL: "https://fireworks-ai-server--coneyparsley3h.replit.app/api/inference/v1",
-    envKey: "APEX_NOVA_API_KEY",
-    noKey: true,
-    models: {
-      NVIDIA_MODEL:        "accounts/fireworks/models/kimi-k2p6",
-      REVIEWER_MODEL:      "accounts/fireworks/models/deepseek-v4-pro",
-      FILE_PICKER_MODEL:   "accounts/fireworks/models/qwen3p6-plus",
-      THINKER_MODEL:       "accounts/fireworks/models/kimi-k2p6",
-      COMMANDER_MODEL:     "accounts/fireworks/models/qwen3p6-plus",
-      CONTEXT_PRUNER_MODEL:"accounts/fireworks/models/qwen3p6-plus",
-      RESEARCHER_MODEL:    "accounts/fireworks/models/deepseek-v4-pro",
-      GENERAL_AGENT_MODEL: "accounts/fireworks/models/kimi-k2p6",
-    },
-  },
 };
 
 // ── Detect initial provider from env ───────────────────────────────────
@@ -575,9 +546,7 @@ function detectInitialProvider() {
   if (process.env.GEMINI_API_KEY)    return "gemini";
   if (process.env.TOGETHER_API_KEY)  return "together";
   if (process.env.BASETEN_API_KEY)   return "baseten";
-  if (process.env.REPLIT_API_KEY)    return "replit";
-  if (process.env.APEX_NOVA_API_KEY) return "apex-nova";
-  return "openai"; // default — prompts user to configure an API key
+  return "nvidia"; // default — free keyless NVIDIA proxy
 }
 
 let currentProvider = detectInitialProvider();
@@ -980,7 +949,7 @@ const GENERAL_AGENT_SYSTEM_PROMPT = APEX_SYSTEM_PROMPT;
 
 const agentConfigs = {
   apex: {
-    model: "accounts/fireworks/models/kimi-k2p6",
+    model: "z-ai/glm-5.2",
     temperature: 0.7,
     maxTokens: 8192,
     displayName: "Apex",
@@ -990,7 +959,7 @@ const agentConfigs = {
     instructionsPrompt: APEX_INSTRUCTIONS_PROMPT,
   },
   theo: {
-    model: "accounts/fireworks/models/deepseek-v4-pro",
+    model: "deepseek-ai/deepseek-v4-flash-0731",
     temperature: 0.3,
     maxTokens: 4096,
     displayName: "Theo the Theorizer",
@@ -1000,7 +969,7 @@ const agentConfigs = {
     instructionsPrompt: THEO_INSTRUCTIONS_PROMPT,
   },
   nitPickNick: {
-    model: "accounts/fireworks/models/qwen3p6-plus",
+    model: "openai/gpt-oss-20b",
     temperature: 0.2,
     maxTokens: 4096,
     displayName: "Nit Pick Nick",
@@ -1010,7 +979,7 @@ const agentConfigs = {
     instructionsPrompt: NIT_PICK_NICK_INSTRUCTIONS_PROMPT,
   },
   codeEditor: {
-    model: "accounts/fireworks/models/kimi-k2p6",
+    model: "z-ai/glm-5.2",
     temperature: 0.1,
     maxTokens: 8192,
     displayName: "Code Editor",
@@ -1020,7 +989,7 @@ const agentConfigs = {
     instructionsPrompt: CODE_EDITOR_INSTRUCTIONS_PROMPT,
   },
   weeb: {
-    model: "accounts/fireworks/models/qwen3p6-plus",
+    model: "openai/gpt-oss-20b",
     temperature: 0.5,
     maxTokens: 4096,
     displayName: "Weeb",
@@ -1030,7 +999,7 @@ const agentConfigs = {
     instructionsPrompt: WEEB_INSTRUCTIONS_PROMPT,
   },
   doc: {
-    model: "accounts/fireworks/models/qwen3p6-plus",
+    model: "openai/gpt-oss-20b",
     temperature: 0.5,
     maxTokens: 4096,
     displayName: "Doc",
@@ -1040,7 +1009,7 @@ const agentConfigs = {
     instructionsPrompt: DOC_INSTRUCTIONS_PROMPT,
   },
   basher: {
-    model: "accounts/fireworks/models/qwen3p6-plus",
+    model: "openai/gpt-oss-20b",
     temperature: 0.3,
     maxTokens: 4096,
     displayName: "Basher",
@@ -1050,7 +1019,7 @@ const agentConfigs = {
     instructionsPrompt: BASHER_INSTRUCTIONS_PROMPT,
   },
   contextPruner: {
-    model: "accounts/fireworks/models/qwen3p6-plus",
+    model: "openai/gpt-oss-20b",
     temperature: 0.3,
     maxTokens: 4096,
     displayName: "Context Pruner",
@@ -1067,27 +1036,27 @@ const agentConfigs = {
 
 const agentModes = {
   default: {
-    model: "accounts/fireworks/models/kimi-k2p6",
+    model: "z-ai/glm-5.2",
     temperature: 0.7,
     maxTokens: 8192,
   },
   fast: {
-    model: "accounts/fireworks/models/qwen3p6-plus",
+    model: "openai/gpt-oss-20b",
     temperature: 0.1,
     maxTokens: 4096,
   },
   max: {
-    model: "accounts/fireworks/models/kimi-k2p6",
+    model: "z-ai/glm-5.2",
     temperature: 0.7,
     maxTokens: 16384,
   },
   free: {
-    model: "accounts/fireworks/models/qwen3p6-plus",
+    model: "openai/gpt-oss-20b",
     temperature: 0.5,
     maxTokens: 8192,
   },
   lite: {
-    model: "accounts/fireworks/models/qwen3p6-plus",
+    model: "openai/gpt-oss-20b",
     temperature: 0.3,
     maxTokens: 4096,
   },
@@ -1098,10 +1067,19 @@ const agentModes = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const codeEditorModelVariants = {
-  "kimi":     { model: "accounts/fireworks/models/kimi-k2p6", temperature: 0.1, maxTokens: 8192 },
-  "deepseek": { model: "accounts/fireworks/models/deepseek-v4-pro", temperature: 0.1, maxTokens: 8192 },
-  "qwen":     { model: "accounts/fireworks/models/qwen3p6-plus", temperature: 0.1, maxTokens: 8192 },
+  "kimi":     { model: "z-ai/glm-5.2", temperature: 0.1, maxTokens: 8192 },
+  "deepseek": { model: "deepseek-ai/deepseek-v4-flash-0731", temperature: 0.1, maxTokens: 8192 },
+  "glm":     { model: "openai/gpt-oss-20b", temperature: 0.1, maxTokens: 8192 },
 };
+
+// Proxy endpoints sit behind Cloudflare, which returns 403 for the default
+// OpenAI/JS <version> User-Agent. Route all OpenAI client fetch calls through
+// a UA-safe wrapper so both the keyless NVIDIA proxy and keyed providers work.
+function safeFetch(url, init) {
+  const headers = new Headers(init?.headers || {});
+  headers.set("User-Agent", "apex-dev/" + require("../package.json").version);
+  return globalThis.fetch(url, { ...init, headers });
+}
 
 // ── Internal client holder ──────────────────────────────────────────────────────────
 const _initialProvider = PROVIDERS[currentProvider];
@@ -1110,7 +1088,8 @@ const _initialKey = process.env[_initialProvider.envKey] || "dummy";
 let _internalClient = new OpenAI({
   apiKey: _initialKey || "",
   baseURL: _initialProvider.baseURL,
-  dangerouslyAllowBrowser: true
+  dangerouslyAllowBrowser: true,
+  fetch: safeFetch,
 });
 
 const nvidiaClient = new Proxy({}, {
@@ -1124,12 +1103,13 @@ const nvidiaClient = new Proxy({}, {
   }
 });
 
-function _makeClient(apiKey, baseURL) {
-  return new OpenAI({ apiKey: apiKey || "dummy", baseURL, dangerouslyAllowBrowser: true });
+function _makeClient(apiKey, baseURL, extraOpts = {}) {
+  return new OpenAI({ apiKey: apiKey || "dummy", baseURL, dangerouslyAllowBrowser: true, fetch: safeFetch, ...extraOpts });
 }
 
 function setApiKey(key) {
-  _internalClient = _makeClient(key, PROVIDERS[currentProvider].baseURL);
+  const _p = PROVIDERS[currentProvider];
+  _internalClient = _makeClient(key, _p.baseURL, _p.fetch ? { fetch: _p.fetch } : {});
   if (globalThis.require_server) {
     const srv = globalThis.require_server();
     if (srv && srv.updateApiKey) srv.updateApiKey(key);
@@ -1146,7 +1126,7 @@ function setProvider(providerKey, apiKey) {
   }
 
   currentProvider = providerKey;
-  _internalClient = _makeClient(apiKey, provider.baseURL);
+  _internalClient = _makeClient(apiKey, provider.baseURL, provider.fetch ? { fetch: provider.fetch } : {});
   Object.assign(currentModels, provider.models);
   // Set env var so getProviderLoginState returns correct status
   if (apiKey || provider.noKey) {
@@ -1219,7 +1199,7 @@ async function validateApiKey(providerKey, apiKey) {
   if (!provider || provider.noKey) return { valid: true };
   if (!apiKey) return { valid: false, error: "No API key provided" };
   try {
-    const client = _makeClient(apiKey, provider.baseURL);
+    const client = _makeClient(apiKey, provider.baseURL, provider.fetch ? { fetch: provider.fetch } : {});
     await client.models.list();
     return { valid: true };
   } catch (err) {
@@ -3453,21 +3433,30 @@ function Header() {
             /* @__PURE__ */ jsx_runtime.jsx("span", {
               fg: import_theme.colors.primary,
               attributes: TextAttributes.BOLD,
-              children: "◆ apex"
+              children: "◆"
+            }),
+            /* @__PURE__ */ jsx_runtime.jsx("span", {
+              fg: import_theme.colors.text,
+              attributes: TextAttributes.BOLD,
+              children: " apex"
             }),
             /* @__PURE__ */ jsx_runtime.jsx("span", {
               fg: import_theme.colors.border,
-              children: "  ·  "
+              children: "  /  "
             }),
             /* @__PURE__ */ jsx_runtime.jsx("span", {
-              fg: import_theme.colors.muted,
+              fg: import_theme.colors.blue,
               children: isNarrow && cwd.length > 12 ? cwd.slice(0, 12) + "…" : cwd
             }),
             branch && !isNarrow ? /* @__PURE__ */ jsx_runtime.jsxs(jsx_runtime.Fragment, {
               children: [
                 /* @__PURE__ */ jsx_runtime.jsx("span", {
                   fg: import_theme.colors.border,
-                  children: "  ·  "
+                  children: "  "
+                }),
+                /* @__PURE__ */ jsx_runtime.jsx("span", {
+                  fg: import_theme.colors.dim,
+                  children: "⎇ "
                 }),
                 /* @__PURE__ */ jsx_runtime.jsx("span", {
                   fg: import_theme.colors.dim,
@@ -3481,16 +3470,16 @@ function Header() {
       !isNarrow ? /* @__PURE__ */ jsx_runtime.jsxs("text", {
         children: [
           /* @__PURE__ */ jsx_runtime.jsx("span", {
-            fg: import_theme.colors.dim,
-            children: providerLabel
+            fg: configReady ? import_theme.colors.green : import_theme.colors.yellow,
+            children: "●"
           }),
           /* @__PURE__ */ jsx_runtime.jsx("span", {
             fg: import_theme.colors.border,
             children: "  "
           }),
           /* @__PURE__ */ jsx_runtime.jsx("span", {
-            fg: configReady ? import_theme.colors.green : import_theme.colors.yellow,
-            children: "●"
+            fg: import_theme.colors.dim,
+            children: providerLabel
           })
         ]
       }) : null
@@ -3504,9 +3493,10 @@ var jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
 function Divider() {
   const { width } = useLayout();
   const cols = Math.min(width, 120);
+  // Subtle dotted divider — less heavy than a solid line
   return /* @__PURE__ */ jsx_runtime2.jsx("text", {
     fg: import_theme2.colors.border,
-    content: "\u2500".repeat(cols)
+    content: "┈".repeat(cols)
   });
 }
 
@@ -3516,26 +3506,47 @@ var import_config2 = __toESM(require_config(), 1);
 var jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
 function Welcome() {
   const { isNarrow } = useLayout();
+  const c = import_theme3.colors;
+
+  const cmds = isNarrow
+    ? ["/help", "/quit"]
+    : ["/help", "/files", "/diff", "/cost", "/compact", "/quit"];
+
   return /* @__PURE__ */ jsx_runtime3.jsxs("box", {
-    style: { flexDirection: "column", paddingLeft: 2, marginTop: 1, marginBottom: 1 },
+    style: { flexDirection: "column", paddingLeft: 2, marginTop: 2, marginBottom: 1 },
     children: [
-      /* @__PURE__ */ jsx_runtime3.jsx("text", {
-        fg: import_theme3.colors.white,
-        attributes: TextAttributes.BOLD,
-        content: "What are we building?"
+      /* @__PURE__ */ jsx_runtime3.jsxs("text", {
+        children: [
+          /* @__PURE__ */ jsx_runtime3.jsx("span", {
+            fg: c.primary,
+            attributes: TextAttributes.BOLD,
+            children: "◆"
+          }),
+          /* @__PURE__ */ jsx_runtime3.jsx("span", {
+            fg: c.white,
+            attributes: TextAttributes.BOLD,
+            children: "  What should we build?"
+          }),
+        ]
       }),
       /* @__PURE__ */ jsx_runtime3.jsx("text", {
-        fg: import_theme3.colors.dim,
+        fg: c.muted,
         style: { marginTop: 0 },
         content: isNarrow
-          ? "Type a message or /help"
-          : "Read, edit, run shell commands, npm, and review code — just describe what you need."
+          ? "Describe your task or type a command."
+          : "Read files, write code, run commands — describe what you need and I'll handle it."
       }),
-      !isNarrow ? /* @__PURE__ */ jsx_runtime3.jsx("text", {
-        fg: import_theme3.colors.dim,
-        style: { marginTop: 0 },
-        content: "/help  /files  /diff  /cost  /quit"
-      }) : null
+      /* @__PURE__ */ jsx_runtime3.jsxs("text", {
+        style: { marginTop: 1 },
+        children: cmds.map((cmd, i) =>
+          /* @__PURE__ */ jsx_runtime3.jsxs(jsx_runtime3.Fragment, {
+            children: [
+              i > 0 ? /* @__PURE__ */ jsx_runtime3.jsx("span", { fg: c.border, children: "  " }) : null,
+              /* @__PURE__ */ jsx_runtime3.jsx("span", { fg: c.dim, children: cmd }),
+            ]
+          }, cmd)
+        ),
+      }),
     ]
   });
 }
@@ -3546,25 +3557,30 @@ var jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
 
 function UserMessage({ content }) {
   const { indent } = useLayout();
+  const c = import_theme4.colors;
   const msgLines = (content || "").split("\n");
 
   return /* @__PURE__ */ jsx_runtime4.jsxs("box", {
-    style: { flexDirection: "row", marginTop: 1 },
+    style: { flexDirection: "row", marginTop: 1, paddingLeft: 1 },
     children: [
       /* @__PURE__ */ jsx_runtime4.jsx("text", {
-        fg: import_theme4.colors.primary,
-        content: "▎"
+        fg: c.primary,
+        content: "┃"
       }),
       /* @__PURE__ */ jsx_runtime4.jsxs("box", {
-        style: { flexDirection: "column", paddingLeft: 1 },
+        style: { flexDirection: "column", paddingLeft: 2 },
         children: [
-          /* @__PURE__ */ jsx_runtime4.jsx("text", {
-            fg: import_theme4.colors.primary,
-            attributes: TextAttributes.BOLD,
-            content: "you"
+          /* @__PURE__ */ jsx_runtime4.jsxs("text", {
+            children: [
+              /* @__PURE__ */ jsx_runtime4.jsx("span", {
+                fg: c.blue,
+                attributes: TextAttributes.BOLD,
+                children: "you"
+              }),
+            ]
           }),
           msgLines.map((line, i) => /* @__PURE__ */ jsx_runtime4.jsx("text", {
-            fg: import_theme4.colors.text,
+            fg: c.text,
             content: line
           }, i))
         ]
@@ -3581,7 +3597,8 @@ function AssistantMessage({ content, isStreaming }) {
   const { indent, isNarrow, width } = useLayout();
   const codeIndent = isNarrow ? 1 : 2;
   const codeAreaWidth = Math.max(width - indent - codeIndent, 10);
-  const separatorWidth = Math.min(codeAreaWidth, isNarrow ? 44 : 72);
+  const separatorWidth = Math.min(codeAreaWidth, isNarrow ? 44 : 76);
+  const c = import_theme5.colors;
 
   if (!content) return null;
 
@@ -3590,6 +3607,50 @@ function AssistantMessage({ content, isStreaming }) {
   let inCodeBlock = false;
   let codeLines = [];
   let codeLang = "";
+
+  function renderCodeBlock(lang, codeL, keyStr, isOpen) {
+    const langLabel = lang || "code";
+    const headerLabel = " " + langLabel + " ";
+    const ruleLen = Math.max(separatorWidth - headerLabel.length - 2, 4);
+    const ruleFill = "─".repeat(ruleLen);
+    const footerFill = "─".repeat(Math.max(separatorWidth, 9));
+
+    return /* @__PURE__ */ jsx_runtime5.jsxs("box", {
+      style: { flexDirection: "column", paddingLeft: codeIndent, marginTop: 1, marginBottom: 0 },
+      children: [
+        /* @__PURE__ */ jsx_runtime5.jsxs("text", {
+          children: [
+            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: c.border, children: "╭─" }),
+            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: c.accent, attributes: TextAttributes.BOLD, children: headerLabel }),
+            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: c.border, children: ruleFill + (isOpen ? "" : "╮") }),
+          ]
+        }),
+        codeL.map((cl, j2) => /* @__PURE__ */ jsx_runtime5.jsxs("text", {
+          children: [
+            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: c.border, children: "│" }),
+            /* @__PURE__ */ jsx_runtime5.jsx("span", {
+              fg: c.dim,
+              children: " " + String(j2 + 1).padStart(isNarrow ? 2 : 3) + "  "
+            }),
+            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: c.text, children: cl }),
+          ]
+        }, j2)),
+        !isOpen
+          ? /* @__PURE__ */ jsx_runtime5.jsxs("text", {
+              children: [
+                /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: c.border, children: "╰" }),
+                /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: c.border, children: footerFill + "╯" }),
+              ]
+            })
+          : /* @__PURE__ */ jsx_runtime5.jsxs("text", {
+              children: [
+                /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: c.border, children: "│" }),
+                /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: c.primary, children: " ▌" }),
+              ]
+            }),
+      ]
+    }, keyStr);
+  }
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -3600,99 +3661,54 @@ function AssistantMessage({ content, isStreaming }) {
       codeLines = [];
     } else if (line.startsWith("```") && inCodeBlock) {
       inCodeBlock = false;
-      // Header: lang label + thin rule
-      const langLabel = codeLang;
-      const ruleFill = "\u2500".repeat(Math.max(separatorWidth - langLabel.length - 3, 4));
-      rendered.push(/* @__PURE__ */ jsx_runtime5.jsxs("box", {
-        style: { flexDirection: "column", paddingLeft: codeIndent, marginTop: 1 },
-        children: [
-          /* @__PURE__ */ jsx_runtime5.jsxs("text", {
-            children: [
-              /* @__PURE__ */ jsx_runtime5.jsx("span", {
-                fg: import_theme5.colors.primary,
-                children: langLabel
-              }),
-              /* @__PURE__ */ jsx_runtime5.jsx("span", {
-                fg: import_theme5.colors.border,
-                children: "  " + ruleFill
-              })
-            ]
-          }),
-          codeLines.map((cl, j2) => /* @__PURE__ */ jsx_runtime5.jsxs("text", {
-            children: [
-              /* @__PURE__ */ jsx_runtime5.jsx("span", {
-                fg: import_theme5.colors.dim,
-                children: String(j2 + 1).padStart(isNarrow ? 2 : 3) + "  "
-              }),
-              /* @__PURE__ */ jsx_runtime5.jsx("span", {
-                fg: import_theme5.colors.text,
-                children: cl
-              })
-            ]
-          }, j2)),
-          /* @__PURE__ */ jsx_runtime5.jsx("text", {
-            fg: import_theme5.colors.border,
-            content: "\u2500".repeat(Math.max(separatorWidth, 9))
-          })
-        ]
-      }, `code-${i}`));
+      rendered.push(renderCodeBlock(codeLang, codeLines, `code-${i}`, false));
     } else if (inCodeBlock) {
       codeLines.push(line);
     } else {
-      // Inline code: `backtick` → accent color
-      const processed = line.replace(/`([^`]+)`/g, "\xAB$1\xBB");
-      if (processed.includes("\xAB")) {
-        const parts = processed.split(/«|»/);
-        rendered.push(/* @__PURE__ */ jsx_runtime5.jsx("text", {
-          children: parts.map((part, j2) =>
-            j2 % 2 === 0
-              ? /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.text, children: part }, j2)
-              : /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.accent, children: part }, j2)
-          )
+      const isHeading = /^#{1,3} /.test(line);
+      if (isHeading) {
+        const headingText = line.replace(/^#+\s*/, "");
+        rendered.push(/* @__PURE__ */ jsx_runtime5.jsxs("text", {
+          style: { marginTop: 1 },
+          children: [
+            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: c.primary, children: "▍ " }),
+            /* @__PURE__ */ jsx_runtime5.jsx("span", {
+              fg: c.text,
+              attributes: TextAttributes.BOLD,
+              children: headingText
+            }),
+          ]
         }, `line-${i}`));
       } else {
-        rendered.push(/* @__PURE__ */ jsx_runtime5.jsx("text", {
-          children: /* @__PURE__ */ jsx_runtime5.jsx("span", {
-            fg: import_theme5.colors.text,
-            children: line
-          })
-        }, `line-${i}`));
+        const processed = line.replace(/`([^`]+)`/g, "\xAB$1\xBB");
+        if (processed.includes("\xAB")) {
+          const parts = processed.split(/\xAB|\xBB/);
+          rendered.push(/* @__PURE__ */ jsx_runtime5.jsx("text", {
+            children: parts.map((part, j2) =>
+              j2 % 2 === 0
+                ? /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: c.text, children: part }, j2)
+                : /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: c.accent, children: part }, j2)
+            )
+          }, `line-${i}`));
+        } else {
+          rendered.push(/* @__PURE__ */ jsx_runtime5.jsx("text", {
+            children: /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: c.text, children: line })
+          }, `line-${i}`));
+        }
       }
     }
   }
 
-  // Unclosed code block (streaming mid-block)
   if (inCodeBlock && codeLines.length > 0) {
-    const langLabel = codeLang;
-    const ruleFill = "\u2500".repeat(Math.max(separatorWidth - langLabel.length - 3, 4));
-    rendered.push(/* @__PURE__ */ jsx_runtime5.jsxs("box", {
-      style: { flexDirection: "column", paddingLeft: codeIndent, marginTop: 1 },
-      children: [
-        /* @__PURE__ */ jsx_runtime5.jsxs("text", {
-          children: [
-            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.primary, children: langLabel }),
-            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.border, children: "  " + ruleFill })
-          ]
-        }),
-        codeLines.map((cl, j2) => /* @__PURE__ */ jsx_runtime5.jsxs("text", {
-          children: [
-            /* @__PURE__ */ jsx_runtime5.jsx("span", {
-              fg: import_theme5.colors.dim,
-              children: String(j2 + 1).padStart(isNarrow ? 2 : 3) + "  "
-            }),
-            /* @__PURE__ */ jsx_runtime5.jsx("span", { fg: import_theme5.colors.text, children: cl })
-          ]
-        }, j2))
-      ]
-    }, "code-tail"));
+    rendered.push(renderCodeBlock(codeLang, codeLines, "code-tail", true));
   }
 
   return /* @__PURE__ */ jsx_runtime5.jsxs("box", {
     style: { flexDirection: "column", paddingLeft: indent },
     children: [
       rendered,
-      isStreaming ? /* @__PURE__ */ jsx_runtime5.jsx("text", {
-        fg: import_theme5.colors.primary,
+      isStreaming && !inCodeBlock ? /* @__PURE__ */ jsx_runtime5.jsx("text", {
+        fg: c.primary,
         content: "▌"
       }) : null
     ]
@@ -3704,33 +3720,45 @@ var import_theme6 = __toESM(require_theme(), 1);
 var jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
 function ThinkBlock({ content, expanded, onToggle }) {
   const { isNarrow, smallIndent } = useLayout();
-  if (!content)
-    return null;
-  const lines = content.split(`
-`);
+  const c = import_theme6.colors;
+  if (!content) return null;
+  const lines = content.split("\n");
   const maxPreview = isNarrow ? 2 : 4;
+  const hasMore = lines.length > maxPreview;
   const displayLines = expanded ? lines : lines.slice(0, maxPreview);
-  const isTruncated = !expanded && lines.length > maxPreview;
+  const toggleHint = expanded ? " ▾ collapse" : ` ▸ +${lines.length - maxPreview} more`;
+
   return /* @__PURE__ */ jsx_runtime6.jsxs("box", {
     style: { flexDirection: "column", paddingLeft: smallIndent, marginTop: 0 },
     onMouseDown: onToggle,
     children: [
-      /* @__PURE__ */ jsx_runtime6.jsx("text", {
-        fg: import_theme6.colors.dim,
-        attributes: TextAttributes.ITALIC,
-        content: "\u25B8 Thinking"
+      /* @__PURE__ */ jsx_runtime6.jsxs("text", {
+        children: [
+          /* @__PURE__ */ jsx_runtime6.jsx("span", {
+            fg: c.purple,
+            attributes: TextAttributes.ITALIC,
+            children: "◆"
+          }),
+          /* @__PURE__ */ jsx_runtime6.jsx("span", {
+            fg: c.dim,
+            attributes: TextAttributes.ITALIC,
+            children: " thinking"
+          }),
+        ]
       }),
       displayLines.map((line, i) => line.trim() ? /* @__PURE__ */ jsx_runtime6.jsx("text", {
-        fg: import_theme6.colors.dim,
+        fg: c.dim,
         attributes: TextAttributes.ITALIC,
         style: { paddingLeft: smallIndent },
         content: line
       }, i) : null),
-      isTruncated ? /* @__PURE__ */ jsx_runtime6.jsx("text", {
-        fg: import_theme6.colors.dim,
+      hasMore ? /* @__PURE__ */ jsx_runtime6.jsx("text", {
+        fg: c.dim,
         attributes: TextAttributes.ITALIC,
         style: { paddingLeft: smallIndent },
-        content: isNarrow ? `+${lines.length - maxPreview} more (tap)` : `... +${lines.length - maxPreview} more lines (click to expand)`
+        content: isNarrow
+          ? `+${lines.length - maxPreview} more`
+          : toggleHint
       }) : null
     ]
   });
@@ -3759,51 +3787,64 @@ function formatElapsed(ms) {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
 function truncate(str, len) {
-  return str.length > len ? str.slice(0, len - 3) + "..." : str;
+  const ELLIPSIS = "…";
+  return str.length > len ? str.slice(0, len - ELLIPSIS.length) + ELLIPSIS : str;
 }
 function ToolCallItem({ message }) {
   const { indent, isNarrow } = useLayout();
-  const truncLen = isNarrow ? 32 : 56;
+  const truncLen = isNarrow ? 32 : 60;
   const { id, name, detail, status, success, elapsed, output, expanded } = message;
   const isRunning = status === "running" || status === "pending";
   const isSubagent = SUBAGENT_TOOLS.has(name);
+  const c = import_theme8.colors;
+
   return /* @__PURE__ */ jsx_runtime8.jsxs("box", {
     style: { flexDirection: "column", paddingLeft: indent },
     onMouseDown: () => import_store2.toggleMessageExpanded(id),
     children: [
       /* @__PURE__ */ jsx_runtime8.jsx("box", {
         style: { flexDirection: "row" },
-        children: isRunning ? /* @__PURE__ */ jsx_runtime8.jsx(Spinner, {
-          label: `${name}  ${truncate(detail || "…", truncLen)}`
-        }) : /* @__PURE__ */ jsx_runtime8.jsxs("text", {
-          children: [
-            /* @__PURE__ */ jsx_runtime8.jsx("span", {
-              fg: success ? import_theme8.colors.green : import_theme8.colors.red,
-              children: success ? "\u2713" : "\u2717"
-            }),
-            /* @__PURE__ */ jsx_runtime8.jsx("span", {
-              fg: import_theme8.colors.dim,
-              children: "  "
-            }),
-            /* @__PURE__ */ jsx_runtime8.jsx("span", {
-              fg: import_theme8.colors.accent,
-              attributes: TextAttributes.BOLD,
-              children: name
-            }),
-            /* @__PURE__ */ jsx_runtime8.jsx("span", {
-              fg: import_theme8.colors.muted,
-              children: "  " + truncate(detail || "", truncLen)
-            }),
-            elapsed != null ? /* @__PURE__ */ jsx_runtime8.jsx("span", {
-              fg: import_theme8.colors.dim,
-              children: "  " + formatElapsed(elapsed)
-            }) : null,
-            isSubagent ? /* @__PURE__ */ jsx_runtime8.jsx("span", {
-              fg: import_theme8.colors.dim,
-              children: expanded ? "  ▾" : "  ▸"
-            }) : null
-          ]
-        })
+        children: isRunning
+          ? /* @__PURE__ */ jsx_runtime8.jsxs("text", {
+              children: [
+                /* @__PURE__ */ jsx_runtime8.jsx(Spinner, {}),
+                /* @__PURE__ */ jsx_runtime8.jsx("span", {
+                  fg: c.accent,
+                  attributes: TextAttributes.BOLD,
+                  children: " " + name
+                }),
+                /* @__PURE__ */ jsx_runtime8.jsx("span", {
+                  fg: c.dim,
+                  children: detail ? "  " + truncate(detail, truncLen) : ""
+                }),
+              ]
+            })
+          : /* @__PURE__ */ jsx_runtime8.jsxs("text", {
+              children: [
+                /* @__PURE__ */ jsx_runtime8.jsx("span", {
+                  fg: success ? c.green : c.red,
+                  children: success ? "✓" : "✗"
+                }),
+                /* @__PURE__ */ jsx_runtime8.jsx("span", { fg: c.border, children: "  " }),
+                /* @__PURE__ */ jsx_runtime8.jsx("span", {
+                  fg: c.blue,
+                  attributes: TextAttributes.BOLD,
+                  children: name
+                }),
+                detail ? /* @__PURE__ */ jsx_runtime8.jsx("span", {
+                  fg: c.muted,
+                  children: "  " + truncate(detail, truncLen)
+                }) : null,
+                elapsed != null ? /* @__PURE__ */ jsx_runtime8.jsx("span", {
+                  fg: c.dim,
+                  children: "  [" + formatElapsed(elapsed) + "]"
+                }) : null,
+                isSubagent ? /* @__PURE__ */ jsx_runtime8.jsx("span", {
+                  fg: c.dim,
+                  children: expanded ? "  ▾" : "  ▸"
+                }) : null
+              ]
+            })
       }),
       expanded && output ? (() => {
         const lines = output.split("\n");
@@ -3812,22 +3853,25 @@ function ToolCallItem({ message }) {
         const displayOutput = isTruncated ? lines.slice(0, maxLines).join("\n") + "\n…" : output;
 
         return /* @__PURE__ */ jsx_runtime8.jsxs("box", {
-          style: { flexDirection: "column", paddingLeft: 2, marginTop: 0 },
+          style: { flexDirection: "column", paddingLeft: 3, marginTop: 0 },
           children: [
             /* @__PURE__ */ jsx_runtime8.jsx("text", {
-              fg: import_theme8.colors.border,
-              content: "\u2500".repeat(36)
+              fg: c.border,
+              content: "┄".repeat(36)
             }),
+            isTruncated ? /* @__PURE__ */ jsx_runtime8.jsx("text", {
+              fg: c.dim,
+              content: `${lines.length} lines — showing first ${maxLines}`,
+            }) : null,
             /* @__PURE__ */ jsx_runtime8.jsx("text", {
-              fg: import_theme8.colors.dim,
-              content: isTruncated ? `${lines.length} lines — showing first ${maxLines}` : "",
-              style: { marginBottom: 0 }
-            }),
-            /* @__PURE__ */ jsx_runtime8.jsx("text", {
-              fg: import_theme8.colors.muted,
+              fg: c.muted,
               content: displayOutput,
               wrapMode: "char"
-            })
+            }),
+            /* @__PURE__ */ jsx_runtime8.jsx("text", {
+              fg: c.border,
+              content: "┄".repeat(36)
+            }),
           ]
         });
       })() : null
@@ -3839,24 +3883,26 @@ function ToolCallItem({ message }) {
 var import_react14 = __toESM(require_react(), 1);
 var import_theme7 = __toESM(require_theme(), 1);
 var jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
-var FRAMES = ["\u280B", "\u2819", "\u2839", "\u2838", "\u283C", "\u2834", "\u2826", "\u2827", "\u2807", "\u280F"];
+// Arc frames shared with StatusBar via theme export
+var FRAMES = import_theme7.SPINNER_FRAMES;
 function Spinner({ label }) {
   const [frame, setFrame] = import_react14.useState(0);
   const timerRef = import_react14.useRef(null);
   import_react14.useEffect(() => {
     timerRef.current = setInterval(() => {
       setFrame((f) => (f + 1) % FRAMES.length);
-    }, 80);
+    }, 100);
     return () => clearInterval(timerRef.current);
   }, []);
   return /* @__PURE__ */ jsx_runtime7.jsxs("text", {
     children: [
       /* @__PURE__ */ jsx_runtime7.jsx("span", {
-        fg: import_theme7.colors.accent,
+        fg: import_theme7.colors.primary,
+        attributes: TextAttributes.BOLD,
         children: FRAMES[frame]
       }),
       label ? /* @__PURE__ */ jsx_runtime7.jsx("span", {
-        fg: import_theme7.colors.dim,
+        fg: import_theme7.colors.muted,
         children: " " + label
       }) : null
     ]
@@ -3944,8 +3990,30 @@ var import_theme11 = __toESM(require_theme(), 1);
 
 var import_store4 = __toESM(require_store(), 1);
 var jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
+
+// Codebuff-style assistant label with ◆ diamond icon
+function AssistantLabel() {
+  const c = import_theme11.colors;
+  return /* @__PURE__ */ jsx_runtime11.jsxs("text", {
+    style: { paddingLeft: 1 },
+    children: [
+      /* @__PURE__ */ jsx_runtime11.jsx("span", {
+        fg: c.primary,
+        attributes: TextAttributes.BOLD,
+        children: "◆"
+      }),
+      /* @__PURE__ */ jsx_runtime11.jsx("span", {
+        fg: c.text,
+        attributes: TextAttributes.BOLD,
+        children: " apex"
+      }),
+    ]
+  });
+}
+
 function MessageItem({ message }) {
   const { width } = useLayout();
+  const c = import_theme11.colors;
   switch (message.role) {
     case "user":
       return /* @__PURE__ */ jsx_runtime11.jsx(UserMessage, {
@@ -3955,12 +4023,7 @@ function MessageItem({ message }) {
       return /* @__PURE__ */ jsx_runtime11.jsxs("box", {
         style: { flexDirection: "column", marginTop: 1 },
         children: [
-          /* @__PURE__ */ jsx_runtime11.jsx("text", {
-            fg: import_theme11.colors.primary,
-            attributes: TextAttributes.BOLD,
-            style: { paddingLeft: 1 },
-            content: "Apex"
-          }),
+          /* @__PURE__ */ jsx_runtime11.jsx(AssistantLabel, {}),
           /* @__PURE__ */ jsx_runtime11.jsx(AssistantMessage, {
             content: message.content
           })
@@ -3987,16 +4050,19 @@ function MessageItem({ message }) {
       });
     case "divider":
       return /* @__PURE__ */ jsx_runtime11.jsx("text", {
-        fg: import_theme11.colors.dim,
+        fg: c.border,
         style: { paddingLeft: 1 },
-        content: "─".repeat(Math.max(width - 2, 10))
+        content: "┈".repeat(Math.max(width - 2, 10))
       });
     default:
       return null;
   }
 }
+
 function ChatArea({ messages, streamingContent, streamingThinking, isProcessing }) {
   const { indent } = useLayout();
+  const c = import_theme11.colors;
+
   const renderedMessages = import_react.useMemo(() =>
     messages.map((msg) => /* @__PURE__ */ jsx_runtime11.jsx(MessageItem, {
       message: msg
@@ -4016,53 +4082,45 @@ function ChatArea({ messages, streamingContent, streamingThinking, isProcessing 
       children: [
         /* @__PURE__ */ jsx_runtime11.jsx(Welcome, {}),
         renderedMessages,
-        // Thinking preview while streaming — show last 200 chars with a cleaner indicator
         streamingThinking ? /* @__PURE__ */ jsx_runtime11.jsxs("box", {
           style: { paddingLeft: indent, marginTop: 1 },
           children: [
             /* @__PURE__ */ jsx_runtime11.jsxs("text", {
               children: [
                 /* @__PURE__ */ jsx_runtime11.jsx("span", {
-                  fg: import_theme11.colors.accent,
+                  fg: c.purple,
                   attributes: TextAttributes.ITALIC,
-                  children: "◆ "
+                  children: "◆"
                 }),
                 /* @__PURE__ */ jsx_runtime11.jsx("span", {
-                  fg: import_theme11.colors.dim,
+                  fg: c.dim,
                   attributes: TextAttributes.ITALIC,
-                  children: "thinking"
+                  children: " thinking"
                 })
               ]
             }),
             /* @__PURE__ */ jsx_runtime11.jsx("text", {
-              fg: import_theme11.colors.dim,
+              fg: c.dim,
               attributes: TextAttributes.ITALIC,
               style: { paddingLeft: 2 },
               content: streamingThinking.slice(-200)
             })
           ]
         }) : null,
-        // Streaming response — show "Apex" label for visual consistency with committed messages
         streamingContent ? /* @__PURE__ */ jsx_runtime11.jsxs("box", {
           style: { flexDirection: "column", marginTop: 1 },
           children: [
-            /* @__PURE__ */ jsx_runtime11.jsx("text", {
-              fg: import_theme11.colors.primary,
-              attributes: TextAttributes.BOLD,
-              style: { paddingLeft: 1 },
-              content: "Apex"
-            }),
+            /* @__PURE__ */ jsx_runtime11.jsx(AssistantLabel, {}),
             /* @__PURE__ */ jsx_runtime11.jsx(AssistantMessage, {
               content: streamingContent,
               isStreaming: true
             })
           ]
         }) : null,
-        // Idle processing state — spinner while waiting for first token
         isProcessing && !streamingContent && !streamingThinking ? /* @__PURE__ */ jsx_runtime11.jsx("box", {
           style: { paddingLeft: indent, marginTop: 1 },
           children: /* @__PURE__ */ jsx_runtime11.jsx(Spinner, {
-            label: "Reasoning..."
+            label: "reasoning…"
           })
         }) : null,
         /* @__PURE__ */ jsx_runtime11.jsx("box", {
@@ -4130,7 +4188,6 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
 
   function selectCommand(cmd) {
     if (!cmd) return;
-    // Commands with args like "/git" get a trailing space so user can keep typing
     const fill = cmd.cmd + " ";
     setInputValue(fill);
   }
@@ -4157,14 +4214,19 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
     onSubmit(trimmed);
   };
 
-  const hint = isNarrow ? "/help" : "/help  /files  ctrl+c";
+  const hint = isNarrow ? "ctrl+c" : "↑↓ history  ctrl+c exit";
   const placeholder = disabled
     ? "setting up…"
     : isNarrow
       ? "message apex…"
-      : "message apex, or /command";
+      : "ask apex anything, or /command";
 
   const colors = import_theme12.colors;
+  const inputBorderColor = disabled
+    ? colors.border
+    : showPicker
+      ? colors.primary
+      : colors.dim;
 
   return /* @__PURE__ */ jsx_runtime12.jsxs("box", {
     style: { flexDirection: "column", paddingLeft: 1, paddingRight: 1, paddingBottom: 1 },
@@ -4173,16 +4235,20 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
         ? /* @__PURE__ */ jsx_runtime12.jsxs("box", {
             style: {
               flexDirection: "column",
-              paddingLeft: 1,
-              paddingRight: 1,
+              paddingLeft: 2,
+              paddingRight: 2,
+              paddingTop: 0,
+              paddingBottom: 0,
               marginBottom: 0,
               borderStyle: "single",
               borderColor: colors.border,
             },
             children: [
-              /* @__PURE__ */ jsx_runtime12.jsx("text", {
-                fg: colors.dim,
-                content: "commands"
+              /* @__PURE__ */ jsx_runtime12.jsxs("text", {
+                children: [
+                  /* @__PURE__ */ jsx_runtime12.jsx("span", { fg: colors.dim, children: "commands" }),
+                  /* @__PURE__ */ jsx_runtime12.jsx("span", { fg: colors.dim, children: "  ↑↓ navigate  tab select" }),
+                ]
               }),
               filtered.map((item, idx) => {
                 const isActive = idx === selectedIdx;
@@ -4192,10 +4258,10 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
                   children: [
                     /* @__PURE__ */ jsx_runtime12.jsx("text", {
                       fg: isActive ? colors.primary : colors.border,
-                      content: isActive ? "▶ " : "  "
+                      content: isActive ? "› " : "  "
                     }),
                     /* @__PURE__ */ jsx_runtime12.jsx("text", {
-                      fg: isActive ? colors.primary : colors.muted,
+                      fg: isActive ? colors.text : colors.muted,
                       attributes: isActive ? TextAttributes.BOLD : 0,
                       content: item.cmd
                     }),
@@ -4215,13 +4281,13 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
           paddingLeft: 1,
           paddingRight: 1,
           borderStyle: "single",
-          borderColor: disabled ? colors.border : showPicker ? colors.primary : colors.dim,
+          borderColor: inputBorderColor,
         },
         children: [
           /* @__PURE__ */ jsx_runtime12.jsx("text", {
             fg: disabled ? colors.dim : colors.primary,
             attributes: disabled ? 0 : TextAttributes.BOLD,
-            content: "> "
+            content: "›  "
           }),
           /* @__PURE__ */ jsx_runtime12.jsx("input", {
             ref: inputRef,
@@ -4235,9 +4301,7 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
           }),
           /* @__PURE__ */ jsx_runtime12.jsx("text", {
             fg: colors.dim,
-            content: showPicker && filtered.length > 0
-              ? "  ↑↓ navigate  tab select"
-              : "  " + hint
+            content: "  " + hint
           })
         ]
       })
@@ -4252,12 +4316,14 @@ var import_config3 = __toESM(require_config(), 1);
 var import_store3 = __toESM(require_store(), 1);
 var jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
 
-var SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+// Arc frames shared with Spinner via theme export
+var SB_SPINNER_FRAMES = import_theme13.SPINNER_FRAMES;
 
 function StatusBar({ isProcessing }) {
   const { isNarrow } = useLayout();
   const snapshot = import_config3.session;
   const state = import_store3.getSnapshot();
+  const c = import_theme13.colors;
 
   const [tick, setTick] = import_react_sb.useState(0);
   import_react_sb.useEffect(() => {
@@ -4268,7 +4334,7 @@ function StatusBar({ isProcessing }) {
   const [spinFrame, setSpinFrame] = import_react_sb.useState(0);
   import_react_sb.useEffect(() => {
     if (!isProcessing) return;
-    const id = setInterval(() => setSpinFrame((f) => (f + 1) % SPINNER_FRAMES.length), 80);
+    const id = setInterval(() => setSpinFrame((f) => (f + 1) % SB_SPINNER_FRAMES.length), 100);
     return () => clearInterval(id);
   }, [isProcessing]);
 
@@ -4281,67 +4347,70 @@ function StatusBar({ isProcessing }) {
     ? import_config3.PROVIDERS[state.provider]?.label || state.provider
     : "unknown";
 
+  const sep = /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.border, children: "  ·  " });
+
   return /* @__PURE__ */ jsx_runtime13.jsxs("box", {
     style: { flexDirection: "row", paddingLeft: isNarrow ? 1 : 2, paddingRight: isNarrow ? 1 : 2, paddingBottom: 1 },
     children: [
       /* @__PURE__ */ jsx_runtime13.jsx("box", {
         style: { flexGrow: 1 },
-        children: isProcessing ? /* @__PURE__ */ jsx_runtime13.jsxs("text", {
-          children: [
-            /* @__PURE__ */ jsx_runtime13.jsx("span", {
-              fg: import_theme13.colors.primary,
-              children: SPINNER_FRAMES[spinFrame]
-            }),
-            /* @__PURE__ */ jsx_runtime13.jsx("span", {
-              fg: import_theme13.colors.muted,
-              children: isNarrow ? " working…" : " working"
-            }),
-            !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsx("span", {
-              fg: import_theme13.colors.dim,
-              children: "  esc to cancel"
-            }) : null
-          ]
-        }) : /* @__PURE__ */ jsx_runtime13.jsxs("text", {
-          children: [
-            /* @__PURE__ */ jsx_runtime13.jsxs("span", {
-              fg: import_theme13.colors.dim,
-              children: [elapsed, "m"]
-            }),
-            /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.border, children: "  ·  " }),
-            /* @__PURE__ */ jsx_runtime13.jsxs("span", {
-              fg: import_theme13.colors.dim,
-              children: [snapshot.turnCount, " turns"]
-            }),
-            !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs(jsx_runtime13.Fragment, {
+        children: isProcessing
+          ? /* @__PURE__ */ jsx_runtime13.jsxs("text", {
               children: [
-                /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.border, children: "  ·  " }),
-                /* @__PURE__ */ jsx_runtime13.jsxs("span", {
-                  fg: import_theme13.colors.dim,
-                  children: [tokStr, " tok"]
+                /* @__PURE__ */ jsx_runtime13.jsx("span", {
+                  fg: c.primary,
+                  attributes: TextAttributes.BOLD,
+                  children: SB_SPINNER_FRAMES[spinFrame]
                 }),
-                /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: import_theme13.colors.border, children: "  ·  " }),
-                /* @__PURE__ */ jsx_runtime13.jsxs("span", {
-                  fg: import_theme13.colors.dim,
-                  children: ["$", snapshot.totalCost.toFixed(4)]
-                })
+                /* @__PURE__ */ jsx_runtime13.jsx("span", {
+                  fg: c.blue,
+                  attributes: TextAttributes.BOLD,
+                  children: isNarrow ? " working…" : " working"
+                }),
+                !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsx("span", {
+                  fg: c.dim,
+                  children: "    esc to cancel"
+                }) : null
               ]
-            }) : null
-          ]
-        })
+            })
+          : /* @__PURE__ */ jsx_runtime13.jsxs("text", {
+              children: [
+                /* @__PURE__ */ jsx_runtime13.jsxs("span", {
+                  fg: c.dim,
+                  children: [elapsed, "m"]
+                }),
+                sep,
+                /* @__PURE__ */ jsx_runtime13.jsxs("span", {
+                  fg: c.dim,
+                  children: [snapshot.turnCount, " turn", snapshot.turnCount !== 1 ? "s" : ""]
+                }),
+                !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs(jsx_runtime13.Fragment, {
+                  children: [
+                    sep,
+                    /* @__PURE__ */ jsx_runtime13.jsxs("span", {
+                      fg: c.dim,
+                      children: [tokStr, " tok"]
+                    }),
+                    sep,
+                    /* @__PURE__ */ jsx_runtime13.jsxs("span", {
+                      fg: c.dim,
+                      children: ["$", snapshot.totalCost.toFixed(4)]
+                    })
+                  ]
+                }) : null
+              ]
+            })
       }),
-      !isNarrow && !isProcessing ? /* @__PURE__ */ jsx_runtime13.jsxs("text", {
+      !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs("text", {
         children: [
           /* @__PURE__ */ jsx_runtime13.jsx("span", {
-            fg: import_theme13.colors.dim,
+            fg: c.dim,
             children: providerLabel
           }),
+          /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.border, children: "  " }),
           /* @__PURE__ */ jsx_runtime13.jsx("span", {
-            fg: import_theme13.colors.border,
-            children: "  "
-          }),
-          /* @__PURE__ */ jsx_runtime13.jsx("span", {
-            fg: configReady ? import_theme13.colors.green : import_theme13.colors.yellow,
-            children: "●"
+            fg: isProcessing ? c.yellow : configReady ? c.green : c.yellow,
+            children: isProcessing ? "◉" : "●"
           })
         ]
       }) : null
@@ -4509,18 +4578,16 @@ var import_config = __toESM(require_config(), 1);
 var import_useLayout = __toESM(require_useLayout(), 1);
 var jsx_runtime = __toESM(require_jsx_runtime(), 1);
 
-var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together", "baseten", "replit", "apex-nova"];
+var PROVIDER_ORDER = ["nvidia", "openai", "openrouter", "groq", "gemini", "together", "baseten"];
 
 var PROVIDER_EMOJI = {
-  fireworks: "🔥",
+  nvidia: "🟢",
   openai: "🤖",
   openrouter: "🔀",
   groq: "⚡",
   gemini: "💎",
   together: "🤝",
   baseten: "🔺",
-  replit: "🆓",
-  "apex-nova": "🌟",
 };
 
 function ProviderSelector() {
@@ -4575,7 +4642,7 @@ function ProviderSelector() {
         apiKey: remaining.apiKey,
         provider: remaining.providerKey,
         needsConfig: false,
-      });
+        });
     } else {
       import_store.setState({
         apiKey: "",
@@ -4737,7 +4804,7 @@ function ProviderSelector() {
                   children: jsx_runtime.jsx("text", {
                     fg: import_theme.colors.dim,
                     children: provider.noKey
-                      ? "Press Enter to use this provider — no API key required."
+                      ? "Press Enter to use this provider —no API key required."
                       : selectedState === "logged-in"
                         ? "Press Enter to log out of the selected provider."
                         : selectedState === "saved"
@@ -4818,7 +4885,7 @@ var import_config = __toESM(require_config(), 1);
 var import_useLayout = __toESM(require_useLayout(), 1);
 var jsx_runtime = __toESM(require_jsx_runtime(), 1);
 
-var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together", "baseten", "replit", "apex-nova"];
+var PROVIDER_ORDER = ["nvidia", "openai", "openrouter", "groq", "gemini", "together", "baseten"];
 
 function ApiKeyModal() {
   var [input, setInput] = import_react.useState("");

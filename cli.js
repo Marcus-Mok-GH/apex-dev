@@ -15,15 +15,13 @@ const RELEASE_TAG = `v${VERSION}`;
 const CONFIG_PATH = path.join(os.homedir(), ".apex-dev", "config.json");
 
 const PROVIDERS = [
-  { name: "fireworks", label: "Fireworks AI",  envKey: "FIREWORKS_API_KEY" },
+  { name: "nvidia",    label: "NVIDIA (Free)",   envKey: "NVIDIA_API_KEY",   noKey: true },
   { name: "openai",    label: "OpenAI",         envKey: "OPENAI_API_KEY" },
   { name: "openrouter",label: "OpenRouter",     envKey: "OPENROUTER_API_KEY" },
   { name: "groq",      label: "Groq",           envKey: "GROQ_API_KEY" },
   { name: "gemini",    label: "Google Gemini",  envKey: "GEMINI_API_KEY" },
   { name: "together",  label: "Together AI",    envKey: "TOGETHER_API_KEY" },
   { name: "baseten",   label: "Baseten",        envKey: "BASETEN_API_KEY" },
-  { name: "replit",    label: "Replit (Free)",  envKey: "REPLIT_API_KEY",  noKey: true },
-  { name: "apex-nova", label: "Apex Nova",      envKey: "APEX_NOVA_API_KEY", noKey: true },
 ];
 
 function readConfig() {
