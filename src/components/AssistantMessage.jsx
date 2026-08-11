@@ -2,10 +2,10 @@ var import_theme5 = __toESM(require_theme(), 1);
 var jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
 
 function AssistantMessage({ content, isStreaming }) {
-  const { indent, isNarrow, width } = useLayout();
-  const codeIndent = isNarrow ? 1 : 2;
-  const codeAreaWidth = Math.max(width - indent - codeIndent, 10);
-  const separatorWidth = Math.min(codeAreaWidth, isNarrow ? 44 : 76);
+  const { indent, isCompact, isNarrow, width } = useLayout();
+  const codeIndent = isCompact ? 0 : isNarrow ? 1 : 2;
+  const codeAreaWidth = Math.max(width - indent - codeIndent, 12);
+  const separatorWidth = Math.min(codeAreaWidth, isCompact ? 24 : isNarrow ? 44 : 76);
   const c = import_theme5.colors;
 
   if (!content) return null;

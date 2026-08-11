@@ -7,7 +7,7 @@ var jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
 var SB_SPINNER_FRAMES = import_theme13.SPINNER_FRAMES;
 
 function StatusBar({ isProcessing }) {
-  const { isNarrow } = useLayout();
+  const { isCompact, isNarrow } = useLayout();
   const snapshot = import_config3.session;
   const c = import_theme13.colors;
 
@@ -32,7 +32,7 @@ function StatusBar({ isProcessing }) {
   const sep = /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.borderStrong, children: "  ·  " });
 
   return /* @__PURE__ */ jsx_runtime13.jsxs("box", {
-    style: { flexDirection: "row", paddingLeft: 2, paddingRight: 2, paddingTop: 1, paddingBottom: 1 },
+    style: { flexDirection: "row", paddingLeft: isCompact ? 1 : 2, paddingRight: isCompact ? 1 : 2, paddingTop: isCompact ? 0 : 1, paddingBottom: 1 },
     children: [
       /* @__PURE__ */ jsx_runtime13.jsx("box", {
         style: { flexGrow: 1 },
@@ -41,15 +41,13 @@ function StatusBar({ isProcessing }) {
               children: [
                 /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.primary, attributes: TextAttributes.BOLD, children: SB_SPINNER_FRAMES[spinFrame] }),
                 /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.blue, attributes: TextAttributes.BOLD, children: "  working" }),
-                !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.dim, children: "  ·  esc to cancel" }) : null
+                !isNarrow && !isCompact ? /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.dim, children: "  ·  esc to cancel" }) : null
               ]
             })
           : /* @__PURE__ */ jsx_runtime13.jsxs("text", {
               children: [
                 /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.muted, children: elapsed + "m" }),
-                sep,
-                /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.muted, children: snapshot.turnCount + " turn" + (snapshot.turnCount !== 1 ? "s" : "") }),
-                !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs(jsx_runtime13.Fragment, {
+                !isCompact ? /* @__PURE__ */ jsx_runtime13.jsxs(jsx_runtime13.Fragment, {
                   children: [
                     sep,
                     /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.muted, children: tokStr + " tok" }),

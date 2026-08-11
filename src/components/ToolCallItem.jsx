@@ -23,8 +23,8 @@ function truncate(str, len) {
   return str.length > len ? str.slice(0, len - ELLIPSIS.length) + ELLIPSIS : str;
 }
 function ToolCallItem({ message }) {
-  const { indent, isNarrow } = useLayout();
-  const truncLen = isNarrow ? 32 : 60;
+  const { indent, isCompact, isNarrow } = useLayout();
+  const truncLen = isCompact ? 18 : isNarrow ? 32 : 60;
   const { id, name, detail, status, success, elapsed, output, expanded } = message;
   const isRunning = status === "running" || status === "pending";
   const isSubagent = SUBAGENT_TOOLS.has(name);
@@ -89,7 +89,7 @@ function ToolCallItem({ message }) {
           children: [
             /* @__PURE__ */ jsx_runtime8.jsx("text", {
               fg: c.border,
-              content: "┄".repeat(36)
+              content: "┄".repeat(Math.max(12, Math.min(36, isCompact ? 16 : 36)))
             }),
             isTruncated ? /* @__PURE__ */ jsx_runtime8.jsx("text", {
               fg: c.dim,
@@ -102,7 +102,7 @@ function ToolCallItem({ message }) {
             }),
             /* @__PURE__ */ jsx_runtime8.jsx("text", {
               fg: c.border,
-              content: "┄".repeat(36)
+              content: "┄".repeat(Math.max(12, Math.min(36, isCompact ? 16 : 36)))
             }),
           ]
         });

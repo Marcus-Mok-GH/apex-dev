@@ -9,7 +9,7 @@ var { execSync } = __require("child_process");
 
 function Header() {
   const [branch, setBranch] = import_react13.useState("");
-  const { isNarrow } = useLayout();
+  const { isCompact, isNarrow } = useLayout();
   const cwd = path2.basename(import_config.PROJECT_ROOT);
 
   import_react13.useEffect(() => {
@@ -24,10 +24,10 @@ function Header() {
 
   const snapshot = import_store_h.getSnapshot();
   const configReady = !snapshot.needsConfig;
-  const projectLabel = isNarrow && cwd.length > 14 ? cwd.slice(0, 14) + "…" : cwd;
+  const projectLabel = isNarrow && cwd.length > (isCompact ? 10 : 14) ? cwd.slice(0, isCompact ? 10 : 14) + "…" : cwd;
 
   return /* @__PURE__ */ jsx_runtime.jsxs("box", {
-    style: { flexDirection: "row", paddingLeft: 2, paddingRight: 2, paddingTop: 1, paddingBottom: 1 },
+    style: { flexDirection: "row", paddingLeft: isCompact ? 1 : 2, paddingRight: isCompact ? 1 : 2, paddingTop: isCompact ? 0 : 1, paddingBottom: 1 },
     children: [
       /* @__PURE__ */ jsx_runtime.jsx("box", {
         style: { flexGrow: 1 },
