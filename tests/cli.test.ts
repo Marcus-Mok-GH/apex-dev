@@ -31,10 +31,8 @@ test("apex --keys shows provider status", async ({ $ }) => {
   
   expect(result.code).toBe(0);
   
-  const hasProviders = result.output.includes("Fireworks") || 
-                       result.output.includes("OpenAI") ||
-                       result.output.includes("No API keys");
-  expect(hasProviders).toBe(true);
+  expect(result.stderr).toContain("service ready");
+  expect(result.stderr).not.toMatch(/NVIDIA|OpenAI|OpenRouter|Groq|Gemini|Together|Baseten/);
 });
 
 test("apex shows version in help output", async ({ $ }) => {

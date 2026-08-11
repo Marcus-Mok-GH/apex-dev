@@ -14,15 +14,7 @@ const RELEASE_TAG = `v${VERSION}`;
 // ── Config ──────────────────────────────────────────────────────────────────────────
 const CONFIG_PATH = path.join(os.homedir(), ".apex-dev", "config.json");
 
-const PROVIDERS = [
-  { name: "nvidia",    label: "NVIDIA (Free)", envKey: "NVIDIA_API_KEY", noKey: true },
-  { name: "openai",    label: "OpenAI",        envKey: "OPENAI_API_KEY" },
-  { name: "openrouter",label: "OpenRouter",    envKey: "OPENROUTER_API_KEY" },
-  { name: "groq",      label: "Groq",          envKey: "GROQ_API_KEY" },
-  { name: "gemini",    label: "Google Gemini", envKey: "GEMINI_API_KEY" },
-  { name: "together",  label: "Together AI",   envKey: "TOGETHER_API_KEY" },
-  { name: "baseten",   label: "Baseten",       envKey: "BASETEN_API_KEY" },
-];
+const PROVIDER = { name: "nvidia", label: "NVIDIA", envKey: "NVIDIA_API_KEY", noKey: true };
 
 function readConfig() {
   try {
@@ -40,66 +32,6 @@ function saveConfig(config) {
   }
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
   fs.chmodSync(CONFIG_PATH, 0o600);
-}
-
-function promptKey(providerName) {
-  return new Promise((resolve) => {
-    const prompt = `Enter your ${providerName} API key (or press Enter to skip): `;
-    process.stdout.write(prompt);
-
-    const stdin = process.stdin;
-
-    try {
-      stdin.setRawMode(true);
-    } catch {
-      // Not a TTY — fall back to line-buffered input
-      stdin.resume();
-      let buf = "";
-      const onData = (data) => {
-        buf += data.toString();
-        const idx = buf.indexOf("\n");
-        if (idx !== -1) {
-          stdin.removeListener("data", onData);
-          stdin.pause();
-          process.stdout.write("\n");
-          resolve(buf.slice(0, idx).trim());
-        }
-      };
-      stdin.on("data", onData);
-      return;
-    }
-
-    stdin.resume();
-    let key = "";
-
-    const onData = (data) => {
-      const chars = data.toString();
-      for (const ch of chars) {
-        if (ch === "\r" || ch === "\n") {
-          stdin.removeListener("data", onData);
-          stdin.setRawMode(false);
-          stdin.pause();
-          process.stdout.write("\n");
-          resolve(key);
-          return;
-        }
-        if (ch === "\x7f" || ch === "\b") {
-          if (key.length > 0) {
-            key = key.slice(0, -1);
-            process.stdout.write("\b \b");
-          }
-          continue;
-        }
-        if (ch === "\x03") {
-          process.exit(1);
-        }
-        key += ch;
-        process.stdout.write("*");
-      }
-    };
-
-    stdin.on("data", onData);
-  });
 }
 
 // ── Platform detection ────────────────────────────────────────────────────────
@@ -465,72 +397,24 @@ function runWithBun() {
 // ── API key orchestration ────────────────────────────────────────────────────
 async function ensureApiKeys() {
   const args = process.argv.slice(2);
-
-  // --setup: re-prompt for every provider, overwriting stored keys
-  if (args.includes("--setup")) {
-    const config = {};
-    console.error("API Key Setup\n");
-    for (const provider of PROVIDERS) {
-      if (provider.noKey) {
-        console.error(`  ${provider.label}: no API key required`);
-        continue;
-      }
-      const key = await promptKey(provider.label);
-      if (key) {
-        config[provider.name] = key;
-        process.env[provider.envKey] = key;
-      }
-    }
-    saveConfig(config);
-    const providersWithKeys = PROVIDERS.filter((p) => process.env[p.envKey]).length;
-    if (providersWithKeys > 0) {
-      console.error(`\n✓ ${providersWithKeys} API key(s) saved to ~/.apex-dev/config.json`);
-    } else {
-      console.error("\nNo keys were entered. Configuration unchanged.");
-    }
-    process.exit(0);
-  }
-
-  // --keys: list which providers have keys (without revealing the key)
-  if (args.includes("--keys")) {
-    const config = readConfig();
-    let count = 0;
-    for (const provider of PROVIDERS) {
-      if (provider.noKey) {
-        console.error(`✓ ${provider.label} (no key required)`);
-      } else if (process.env[provider.envKey] || config[provider.name]) {
-        console.error(`✓ ${provider.label} (${provider.envKey})`);
-        count++;
-      }
-    }
-    if (count === 0) {
-      console.error("⚠ No API keys configured. Run apex-dev --setup to add keys.");
-    } else {
-      console.error(`\n${count} provider(s) configured.`);
-    }
-    process.exit(0);
-  }
-
-  // Normal flow: fill missing keys from config (non-interactive — TUI handles selection)
   const config = readConfig();
 
-  for (const provider of PROVIDERS) {
-    if (process.env[provider.envKey]) continue;
-
-    const stored = config[provider.name];
-    if (stored) {
-      process.env[provider.envKey] = stored;
-    }
+  if (args.includes("--setup")) {
+    console.error("Apex is ready. AI service configuration is managed automatically.");
+    process.exit(0);
   }
 
-  // Summary
-  const configured = PROVIDERS.filter((p) => process.env[p.envKey]);
-  if (configured.length > 0) {
-    console.error(`\n✓ ${configured.length} provider(s) configured`);
-  } else {
-    console.error("\n⚠ No API keys configured. Launching interactive provider selection.");
-    process.env.APEX_DEV_NEEDS_CONFIG = "true";
+  if (args.includes("--keys")) {
+    console.error("✓ AI service ready");
+    process.exit(0);
   }
+
+  if (!process.env[PROVIDER.envKey] && config[PROVIDER.name]) {
+    process.env[PROVIDER.envKey] = config[PROVIDER.name];
+  }
+
+  process.env.APEX_PROVIDER = PROVIDER.name;
+  process.env.APEX_DEV_NEEDS_CONFIG = "false";
 }
 
 async function main() {
@@ -548,8 +432,8 @@ async function main() {
     console.log("Apex AI - a friendly agentic coding assistant for the terminal");
     console.log("");
     console.log("Flags:");
-    console.log("  --setup            Re-prompt for all API keys from scratch");
-    console.log("  --keys             Show which providers have keys configured");
+    console.log("  --setup            Show configuration status");
+    console.log("  --keys             Show service status");
     console.log("  --help, -h         Show this help message");
     process.exit(0);
   }

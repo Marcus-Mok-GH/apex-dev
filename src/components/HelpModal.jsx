@@ -15,7 +15,7 @@ const QUICK_TIPS = [
   "Ctrl+C exits the app",
   "Esc closes overlays",
   "Ask to run npm, bun, pnpm, or yarn commands — all supported",
-  "On first launch, choose a provider and enter your API key",
+  "Apex manages the AI service configuration automatically",
 ];
 var TOOLS = [
   "Read",

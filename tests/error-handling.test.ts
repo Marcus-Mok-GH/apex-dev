@@ -41,5 +41,5 @@ test("handles missing API keys gracefully", async ({ $ }) => {
   const result = await $`HOME=${testHomeDir} FIREWORKS_API_KEY= OPENAI_API_KEY= OPENROUTER_API_KEY= GROQ_API_KEY= GEMINI_API_KEY= TOGETHER_API_KEY= ANTHROPIC_API_KEY= node ${cliPath} --keys`;
 
   expect(result.code).toBe(0);
-  expect(result.stderr).toMatch(/No API keys|provider/i);
+  expect(result.stderr).toContain("service ready");
 });

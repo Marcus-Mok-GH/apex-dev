@@ -9,7 +9,6 @@ var SB_SPINNER_FRAMES = import_theme13.SPINNER_FRAMES;
 function StatusBar({ isProcessing }) {
   const { isNarrow } = useLayout();
   const snapshot = import_config3.session;
-  const state = import_store3.getSnapshot();
   const c = import_theme13.colors;
 
   const [tick, setTick] = import_react_sb.useState(0);
@@ -29,9 +28,6 @@ function StatusBar({ isProcessing }) {
   const tokStr = snapshot.totalTokens >= 1000
     ? (snapshot.totalTokens / 1000).toFixed(1) + "k"
     : String(snapshot.totalTokens);
-  const providerLabel = state.provider
-    ? import_config3.PROVIDERS[state.provider]?.label || state.provider
-    : "unknown";
 
   const sep = /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.borderStrong, children: "  ·  " });
 
@@ -64,13 +60,7 @@ function StatusBar({ isProcessing }) {
               ]
             })
       }),
-      !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs("text", {
-        children: [
-          /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.dim, children: providerLabel }),
-          /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.borderStrong, children: "  " }),
-          /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: isProcessing ? c.yellow : c.green, children: isProcessing ? "◉" : "●" })
-        ]
-      }) : null
+      !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: isProcessing ? c.yellow : c.green, children: isProcessing ? "◉" : "●" }) : null
     ]
   });
 }

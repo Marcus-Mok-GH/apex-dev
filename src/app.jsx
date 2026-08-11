@@ -63,8 +63,7 @@ function App() {
       });
     }
   }, []);
-  const shouldShowSetup = process.env.APEX_DEV_NEEDS_CONFIG === "true" || state.needsConfig;
-  const inputDisabled = state.isProcessing || state.showHelp || shouldShowSetup;
+  const inputDisabled = state.isProcessing || state.showHelp;
   const keepChatInputFocused = import_react17.useCallback((event) => {
     if (inputDisabled)
       return;
@@ -75,7 +74,7 @@ function App() {
     style: { flexDirection: "column", flexGrow: 1 },
     onMouseDown: keepChatInputFocused,
     children: [
-      shouldShowSetup ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ProviderSelector, {}) : /* @__PURE__ */ jsx_runtime15.jsxs(jsx_runtime15.Fragment, {
+      /* @__PURE__ */ jsx_runtime15.jsxs(jsx_runtime15.Fragment, {
         children: [
           /* @__PURE__ */ jsx_runtime15.jsx(Header, {}),
           /* @__PURE__ */ jsx_runtime15.jsx(Divider, {}),
