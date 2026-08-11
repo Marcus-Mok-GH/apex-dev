@@ -63,6 +63,10 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
   });
 
   const handleSubmit = (value) => {
+    if (showPicker && filtered.length > 0) {
+      selectCommand(filtered[selectedIdx]);
+      return;
+    }
     const trimmed = value.trim();
     if (!trimmed) return;
     setInputValue("");
@@ -71,7 +75,11 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
 
   const c = import_theme12.colors;
   const inputBorderColor = disabled ? c.border : showPicker ? c.primary : c.borderStrong;
-  const hint = isNarrow ? "ctrl+c to exit" : "↑↓ navigate  ·  ctrl+c exit";
+  const hint = isNarrow
+    ? "ctrl+c to exit"
+    : showPicker
+      ? "↑↓ navigate  ·  tab/enter select  ·  ctrl+c exit"
+      : "ctrl+c exit";
   const placeholder = disabled ? "setting up…" : isNarrow ? "message apex…" : "ask apex anything, or /command";
 
   return /* @__PURE__ */ jsx_runtime12.jsxs("box", {

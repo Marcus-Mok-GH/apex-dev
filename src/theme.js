@@ -2,7 +2,7 @@ var require_theme = __commonJS((exports, module2) => {
   var colors = {
     primary: "#8b9cff",
     accent: "#b8c1ff",
-    dim: "#526078",
+    dim: "#94a3b8",
     muted: "#94a3b8",
     text: "#e7ebf5",
     white: "#ffffff",

@@ -39,7 +39,7 @@ test("config file is created with mode 0600 on save", async ({ $ }) => {
   
   // Write a config file and verify it gets mode 0600
   // This tests the writeSavedApiKeys function behavior
-  const testConfig = { fireworks: "test-key-123" };
+  const testConfig = { openai: "test-key-123" };
   writeFileSync(testConfigPath, JSON.stringify(testConfig, null, 2), { mode: 0o600 });
   
   // Verify file exists and has correct permissions

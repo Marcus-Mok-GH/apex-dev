@@ -1,46 +1,6 @@
 #!/usr/bin/env bun
 // @bun
-var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
 var __require = import.meta.require;
-
-// ../package.json
-var require_package = __commonJS((exports, module) => {
-  module.exports = {
-    name: "workspace",
-    version: "0.0.0",
-    type: "module",
-    license: "MIT",
-    packageManager: "pnpm@9.15.4",
-    scripts: {
-      preinstall: `sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'`,
-      build: "pnpm run typecheck && pnpm -r --if-present run build",
-      test: "vitest run artifacts/api-server/src/chess-server/socket/game.test.js artifacts/api-server/src/chess-server/socket/utils.test.js artifacts/api-server/src/chess-server/socket/handlers/gameHandlers.test.js artifacts/api-server/src/chess-server/routes/games.move.test.js artifacts/api-server/src/chess-server/routes/auth.proxy.test.js artifacts/api-server/src/chess-server/kv/onlineGameKv.test.js artifacts/api-server/src/chess-server/puzzles/puzzleGenerator.test.js artifacts/api-server/src/chess-server/index.vercel.test.js artifacts/chess/src/engine/game/moveHistory.test.js artifacts/chess/src/engine/puzzles/puzzleGenerator.test.js artifacts/chess/src/services/api.test.js artifacts/chess/src/services/apiBase.test.js artifacts/chess/src/services/matchmakingPolling.test.js artifacts/chess/src/components/LoginModal.test.jsx artifacts/chess/src/contexts/UserContext.test.jsx artifacts/chess/src/pages/Changelog.test.jsx artifacts/chess/src/pages/Login.test.jsx",
-      "typecheck:libs": "tsc --build",
-      typecheck: 'pnpm run typecheck:libs && pnpm -r --filter "./artifacts/**" --filter "./scripts" --if-present run typecheck'
-    },
-    private: true,
-    dependencies: {
-      "@upstash/redis": "^1.38.0",
-      "chess.js": "^1.4.0",
-      "cookie-parser": "^1.4.7",
-      cors: "^2.8.6",
-      "drizzle-orm": "catalog:",
-      express: "^5.2.1",
-      pg: "^8.20.0",
-      pino: "^9.14.0",
-      "pino-http": "^10.5.0",
-      "socket.io": "^4.8.3",
-      stockfish: "^18.0.8"
-    },
-    devDependencies: {
-      "@vitejs/plugin-react": "^6.0.5",
-      jsdom: "^29.1.1",
-      prettier: "^3.8.3",
-      typescript: "~5.9.3",
-      vitest: "^4.1.10"
-    }
-  };
-});
 
 // entry.mjs
 import {
@@ -81,12 +41,13 @@ var __toESM = (mod, isNodeMode, target) => {
     cache.set(mod, to);
   return to;
 };
-var __commonJS2 = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
 var __require2 = import.meta.require;
+var APEX_VERSION = "3.10.44";
 var require_react = () => React;
 var require_jsx_runtime = () => ({ jsx: _jsx, jsxs: _jsxs, Fragment: _Fragment });
 var require_openai = () => OpenAI;
-var require_store = __commonJS2((exports, module2) => {
+var require_store = __commonJS((exports, module2) => {
   var config = require_config();
   var _detectedProvider = config.currentProvider;
   var _providerEnvKey = config.PROVIDERS[_detectedProvider].envKey;
@@ -195,11 +156,11 @@ var require_store = __commonJS2((exports, module2) => {
     getRenderer
   };
 });
-var require_theme = __commonJS2((exports, module2) => {
+var require_theme = __commonJS((exports, module2) => {
   var colors = {
     primary: "#8b9cff",
     accent: "#b8c1ff",
-    dim: "#526078",
+    dim: "#94a3b8",
     muted: "#94a3b8",
     text: "#e7ebf5",
     white: "#ffffff",
@@ -217,7 +178,7 @@ var require_theme = __commonJS2((exports, module2) => {
   var SPINNER_FRAMES = ["\u25DC", "\u25E0", "\u25DD", "\u25DE", "\u25E1", "\u25DF"];
   module2.exports = { colors, SPINNER_FRAMES };
 });
-var require_thinking = __commonJS2((exports, module2) => {
+var require_thinking = __commonJS((exports, module2) => {
   function parseThinkBlocks(text) {
     const thinkRegex = /<think>([\s\S]*?)(?:<\/think>|think>)/g;
     const thoughts = [];
@@ -282,7 +243,7 @@ var require_thinking = __commonJS2((exports, module2) => {
     splitAtPartialTag
   };
 });
-var require_utils3 = __commonJS2((exports, module2) => {
+var require_utils3 = __commonJS((exports, module2) => {
   function toolDetailStr(name, args) {
     if (!args)
       return "";
@@ -343,7 +304,7 @@ var require_utils3 = __commonJS2((exports, module2) => {
   }
   module2.exports = { toolDetailStr };
 });
-var require_config = __commonJS2((exports, module) => {
+var require_config = __commonJS((exports, module) => {
   const OpenAI2 = __require("openai");
   const fs = __require("fs");
   const path = __require("path");
@@ -923,6 +884,7 @@ Output JSON only, no markdown fences:
   const GENERAL_AGENT_SYSTEM_PROMPT = APEX_SYSTEM_PROMPT;
   const agentConfigs = {
     apex: {
+      modelKey: "GENERAL_AGENT_MODEL",
       model: "z-ai/glm-5.2",
       temperature: 0.7,
       maxTokens: 8192,
@@ -933,7 +895,7 @@ Output JSON only, no markdown fences:
       instructionsPrompt: APEX_INSTRUCTIONS_PROMPT
     },
     theo: {
-      model: "deepseek-ai/deepseek-v4-flash-0731",
+      modelKey: "THINKER_MODEL",
       temperature: 0.3,
       maxTokens: 4096,
       displayName: "Theo the Theorizer",
@@ -943,7 +905,7 @@ Output JSON only, no markdown fences:
       instructionsPrompt: THEO_INSTRUCTIONS_PROMPT
     },
     nitPickNick: {
-      model: "openai/gpt-oss-20b",
+      modelKey: "REVIEWER_MODEL",
       temperature: 0.2,
       maxTokens: 4096,
       displayName: "Nit Pick Nick",
@@ -953,7 +915,7 @@ Output JSON only, no markdown fences:
       instructionsPrompt: NIT_PICK_NICK_INSTRUCTIONS_PROMPT
     },
     codeEditor: {
-      model: "z-ai/glm-5.2",
+      modelKey: "GENERAL_AGENT_MODEL",
       temperature: 0.1,
       maxTokens: 8192,
       displayName: "Code Editor",
@@ -963,7 +925,7 @@ Output JSON only, no markdown fences:
       instructionsPrompt: CODE_EDITOR_INSTRUCTIONS_PROMPT
     },
     weeb: {
-      model: "openai/gpt-oss-20b",
+      modelKey: "RESEARCHER_MODEL",
       temperature: 0.5,
       maxTokens: 4096,
       displayName: "Weeb",
@@ -973,7 +935,7 @@ Output JSON only, no markdown fences:
       instructionsPrompt: WEEB_INSTRUCTIONS_PROMPT
     },
     doc: {
-      model: "openai/gpt-oss-20b",
+      modelKey: "RESEARCHER_MODEL",
       temperature: 0.5,
       maxTokens: 4096,
       displayName: "Doc",
@@ -983,7 +945,7 @@ Output JSON only, no markdown fences:
       instructionsPrompt: DOC_INSTRUCTIONS_PROMPT
     },
     basher: {
-      model: "openai/gpt-oss-20b",
+      modelKey: "COMMANDER_MODEL",
       temperature: 0.3,
       maxTokens: 4096,
       displayName: "Basher",
@@ -993,7 +955,7 @@ Output JSON only, no markdown fences:
       instructionsPrompt: BASHER_INSTRUCTIONS_PROMPT
     },
     contextPruner: {
-      model: "openai/gpt-oss-20b",
+      modelKey: "CONTEXT_PRUNER_MODEL",
       temperature: 0.3,
       maxTokens: 4096,
       displayName: "Context Pruner",
@@ -1005,39 +967,39 @@ Output JSON only, no markdown fences:
   };
   const agentModes = {
     default: {
-      model: "z-ai/glm-5.2",
+      modelKey: "GENERAL_AGENT_MODEL",
       temperature: 0.7,
       maxTokens: 8192
     },
     fast: {
-      model: "openai/gpt-oss-20b",
+      modelKey: "COMMANDER_MODEL",
       temperature: 0.1,
       maxTokens: 4096
     },
     max: {
-      model: "z-ai/glm-5.2",
+      modelKey: "GENERAL_AGENT_MODEL",
       temperature: 0.7,
       maxTokens: 16384
     },
     free: {
-      model: "openai/gpt-oss-20b",
+      modelKey: "GENERAL_AGENT_MODEL",
       temperature: 0.5,
       maxTokens: 8192
     },
     lite: {
-      model: "openai/gpt-oss-20b",
+      modelKey: "COMMANDER_MODEL",
       temperature: 0.3,
       maxTokens: 4096
     }
   };
   const codeEditorModelVariants = {
-    kimi: { model: "z-ai/glm-5.2", temperature: 0.1, maxTokens: 8192 },
-    deepseek: { model: "deepseek-ai/deepseek-v4-flash-0731", temperature: 0.1, maxTokens: 8192 },
-    glm: { model: "openai/gpt-oss-20b", temperature: 0.1, maxTokens: 8192 }
+    nvidia: { modelKey: "NVIDIA_MODEL", temperature: 0.1, maxTokens: 8192 },
+    thinker: { modelKey: "THINKER_MODEL", temperature: 0.1, maxTokens: 8192 },
+    general: { modelKey: "GENERAL_AGENT_MODEL", temperature: 0.1, maxTokens: 8192 }
   };
   function safeFetch(url, init) {
     const headers = new Headers(init?.headers || {});
-    headers.set("User-Agent", "apex-dev/" + require_package().version);
+    headers.set("User-Agent", "apex-dev/" + APEX_VERSION);
     return globalThis.fetch(url, { ...init, headers });
   }
   const _initialProvider = PROVIDERS[currentProvider];
@@ -1061,9 +1023,12 @@ Output JSON only, no markdown fences:
   function _makeClient(apiKey, baseURL, extraOpts = {}) {
     return new OpenAI2({ apiKey: apiKey || "dummy", baseURL, dangerouslyAllowBrowser: true, fetch: safeFetch, ...extraOpts });
   }
+  function providerFetchOpts(provider) {
+    return provider?.fetch ? { fetch: provider.fetch } : {};
+  }
   function setApiKey(key) {
     const _p = PROVIDERS[currentProvider];
-    _internalClient = _makeClient(key, _p.baseURL, _p.fetch ? { fetch: _p.fetch } : {});
+    _internalClient = _makeClient(key, _p.baseURL, providerFetchOpts(_p));
     if (globalThis.require_server) {
       const srv = globalThis.require_server();
       if (srv && srv.updateApiKey)
@@ -1078,7 +1043,7 @@ Output JSON only, no markdown fences:
       delete process.env[p.envKey];
     }
     currentProvider = providerKey;
-    _internalClient = _makeClient(apiKey, provider.baseURL, provider.fetch ? { fetch: provider.fetch } : {});
+    _internalClient = _makeClient(apiKey, provider.baseURL, providerFetchOpts(provider));
     Object.assign(currentModels, provider.models);
     if (apiKey || provider.noKey) {
       process.env[provider.envKey] = apiKey || "dummy";
@@ -1094,21 +1059,24 @@ Output JSON only, no markdown fences:
     if (!config)
       return null;
     const modeOverrides = agentModes[mode] || {};
-    return {
+    const resolved = {
       ...config,
       ...modeOverrides
     };
+    return {
+      ...resolved,
+      model: currentModels[resolved.modelKey] || currentModels.GENERAL_AGENT_MODEL
+    };
   }
-  function resolveCodeEditorConfig(variant = "opus") {
+  function resolveCodeEditorConfig(variant = "general") {
     const config = agentConfigs.codeEditor;
     if (!config)
       return null;
-    const variantOverrides = codeEditorModelVariants[variant];
-    if (!variantOverrides)
-      return config;
+    const variantOverrides = codeEditorModelVariants[variant] || codeEditorModelVariants.general;
     return {
       ...config,
-      ...variantOverrides
+      ...variantOverrides,
+      model: currentModels[variantOverrides.modelKey] || currentModels[config.modelKey] || currentModels.GENERAL_AGENT_MODEL
     };
   }
   const session = {
@@ -1148,7 +1116,7 @@ Output JSON only, no markdown fences:
     if (!apiKey)
       return { valid: false, error: "No API key provided" };
     try {
-      const client = _makeClient(apiKey, provider.baseURL, provider.fetch ? { fetch: provider.fetch } : {});
+      const client = _makeClient(apiKey, provider.baseURL, providerFetchOpts(provider));
       await client.models.list();
       return { valid: true };
     } catch (err) {
@@ -1246,7 +1214,7 @@ Output JSON only, no markdown fences:
     getMode
   };
 });
-var require_tools = __commonJS2((exports, module2) => {
+var require_tools = __commonJS((exports, module2) => {
   var toolDefs = [
     {
       type: "function",
@@ -1652,7 +1620,7 @@ var require_tools = __commonJS2((exports, module2) => {
   ];
   module2.exports = { toolDefs };
 });
-var require_prompt = __commonJS2((exports, module2) => {
+var require_prompt = __commonJS((exports, module2) => {
   var fs2 = __require2("fs");
   var path2 = __require2("path");
   var { execSync } = __require2("child_process");
@@ -1693,7 +1661,7 @@ Scripts: ${Object.keys(pkg.scripts).join(", ")}`;
   }
   module2.exports = { buildSystemPrompt };
 });
-var require_server = __commonJS2((exports, module2) => {
+var require_server = __commonJS((exports, module2) => {
   var OpenAI2 = require_openai();
   var NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
   var PORT = process.env.APEX_SERVER_PORT || 3579;
@@ -1791,7 +1759,7 @@ var require_server = __commonJS2((exports, module2) => {
   }
   module2.exports = { startServer, getServerURL, getPort, updateApiKey };
 });
-var require_toolExecutors = __commonJS2((exports, module2) => {
+var require_toolExecutors = __commonJS((exports, module2) => {
   var fs2 = __require2("fs");
   var path2 = __require2("path");
   var https = __require2("https");
@@ -3047,7 +3015,7 @@ ${historyCtx}` : ""
   }
   module2.exports = { executeTool, resolvePlaceholders };
 });
-var require_agent = __commonJS2((exports, module2) => {
+var require_agent = __commonJS((exports, module2) => {
   var {
     currentModels,
     MAX_TOOL_ITERATIONS,
@@ -3406,7 +3374,7 @@ Status: ${err.status}`;
     getIsProcessing
   };
 });
-var require_commands = __commonJS2((exports, module2) => {
+var require_commands = __commonJS((exports, module2) => {
   var fs2 = __require2("fs");
   var path2 = __require2("path");
   var { execSync } = __require2("child_process");
@@ -3519,7 +3487,7 @@ var require_commands = __commonJS2((exports, module2) => {
   }
   module2.exports = { handleSlashCommand };
 });
-var require_useLayout = __commonJS2((exports, module) => {
+var require_useLayout = __commonJS((exports, module) => {
   var NARROW_THRESHOLD = 60;
   function useLayout2() {
     const { width } = useTerminalDimensions();
@@ -3628,11 +3596,12 @@ var import_theme2 = __toESM(require_theme(), 1);
 var jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
 function Divider() {
   const { width } = useLayout();
-  const cols = Math.min(width - 4, 120);
+  const cols = Math.max(width - 4, 0);
+  const count = Math.floor(cols / 3);
   return /* @__PURE__ */ jsx_runtime2.jsx("text", {
     fg: import_theme2.colors.border,
     style: { paddingLeft: 2, paddingRight: 2 },
-    content: "\xB7  ".repeat(Math.max(Math.floor(cols / 3), 8))
+    content: "\xB7  ".repeat(count)
   });
 }
 var import_theme3 = __toESM(require_theme(), 1);
@@ -3745,9 +3714,9 @@ function AssistantMessage({ content, isStreaming }) {
   function renderCodeBlock(lang, codeL, keyStr, isOpen) {
     const langLabel = lang || "code";
     const headerLabel = " " + langLabel + " ";
-    const ruleLen = Math.max(separatorWidth - headerLabel.length - 2, 4);
+    const ruleLen = Math.max(separatorWidth - headerLabel.length - 3, 1);
     const ruleFill = "\u2500".repeat(ruleLen);
-    const footerFill = "\u2500".repeat(Math.max(separatorWidth, 9));
+    const footerFill = "\u2500".repeat(Math.max(separatorWidth - 2, 1));
     return /* @__PURE__ */ jsx_runtime5.jsxs("box", {
       style: { flexDirection: "column", paddingLeft: codeIndent, marginTop: 1, marginBottom: 0 },
       children: [
@@ -4287,6 +4256,10 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
       selectCommand(filtered[selectedIdx]);
   });
   const handleSubmit = (value) => {
+    if (showPicker && filtered.length > 0) {
+      selectCommand(filtered[selectedIdx]);
+      return;
+    }
     const trimmed = value.trim();
     if (!trimmed)
       return;
@@ -4295,7 +4268,7 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
   };
   const c = import_theme12.colors;
   const inputBorderColor = disabled ? c.border : showPicker ? c.primary : c.borderStrong;
-  const hint = isNarrow ? "ctrl+c to exit" : "\u2191\u2193 navigate  \xB7  ctrl+c exit";
+  const hint = isNarrow ? "ctrl+c to exit" : showPicker ? "\u2191\u2193 navigate  \xB7  tab/enter select  \xB7  ctrl+c exit" : "ctrl+c exit";
   const placeholder = disabled ? "setting up\u2026" : isNarrow ? "message apex\u2026" : "ask apex anything, or /command";
   return /* @__PURE__ */ jsx_runtime12.jsxs("box", {
     style: { flexDirection: "column", paddingLeft: 2, paddingRight: 2, paddingBottom: 1 },
@@ -4554,16 +4527,15 @@ var import_store = __toESM(require_store(), 1);
 var import_config = __toESM(require_config(), 1);
 var import_useLayout = __toESM(require_useLayout(), 1);
 var jsx_runtime = __toESM(require_jsx_runtime(), 1);
-var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together", "baseten", "apex-nova"];
+var PROVIDER_ORDER = ["nvidia", "openai", "openrouter", "groq", "gemini", "together", "baseten"];
 var PROVIDER_EMOJI = {
-  fireworks: "\uD83D\uDD25",
+  nvidia: "\uD83D\uDFE2",
   openai: "\uD83E\uDD16",
   openrouter: "\uD83D\uDD00",
   groq: "\u26A1",
   gemini: "\uD83D\uDC8E",
   together: "\uD83E\uDD1D",
-  baseten: "\uD83D\uDD3A",
-  "apex-nova": "\uD83C\uDF1F"
+  baseten: "\uD83D\uDD3A"
 };
 function ProviderSelector() {
   var state = useStore();
@@ -4813,7 +4785,7 @@ var import_store = __toESM(require_store(), 1);
 var import_config = __toESM(require_config(), 1);
 var import_useLayout = __toESM(require_useLayout(), 1);
 var jsx_runtime = __toESM(require_jsx_runtime(), 1);
-var PROVIDER_ORDER = ["fireworks", "openai", "openrouter", "groq", "gemini", "together", "baseten", "apex-nova"];
+var PROVIDER_ORDER = ["nvidia", "openai", "openrouter", "groq", "gemini", "together", "baseten"];
 function ApiKeyModal() {
   var [input, setInput] = import_react3.useState("");
   var [selectedIdx, setSelectedIdx] = import_react3.useState(0);

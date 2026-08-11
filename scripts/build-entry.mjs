@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 const SRC = resolve(ROOT, "src");
+const pkgVersion = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf-8")).version;
 
 const HEADER = `#!/usr/bin/env bun
 // Proper entry for Apex AI
@@ -65,6 +66,7 @@ var __export = (target, all) => {
     });
 };
 var __require = import.meta.require;
+var APEX_VERSION = ${JSON.stringify(pkgVersion)};
 
 // External package re-exports (resolved at build time via static imports above)
 var require_react = () => React;

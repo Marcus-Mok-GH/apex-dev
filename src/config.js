@@ -615,6 +615,7 @@ const GENERAL_AGENT_SYSTEM_PROMPT = APEX_SYSTEM_PROMPT;
 
 const agentConfigs = {
   apex: {
+    modelKey: "GENERAL_AGENT_MODEL",
     model: "z-ai/glm-5.2",
     temperature: 0.7,
     maxTokens: 8192,
@@ -625,7 +626,7 @@ const agentConfigs = {
     instructionsPrompt: APEX_INSTRUCTIONS_PROMPT,
   },
   theo: {
-    model: "deepseek-ai/deepseek-v4-flash-0731",
+    modelKey: "THINKER_MODEL",
     temperature: 0.3,
     maxTokens: 4096,
     displayName: "Theo the Theorizer",
@@ -635,7 +636,7 @@ const agentConfigs = {
     instructionsPrompt: THEO_INSTRUCTIONS_PROMPT,
   },
   nitPickNick: {
-    model: "openai/gpt-oss-20b",
+    modelKey: "REVIEWER_MODEL",
     temperature: 0.2,
     maxTokens: 4096,
     displayName: "Nit Pick Nick",
@@ -645,7 +646,7 @@ const agentConfigs = {
     instructionsPrompt: NIT_PICK_NICK_INSTRUCTIONS_PROMPT,
   },
   codeEditor: {
-    model: "z-ai/glm-5.2",
+    modelKey: "GENERAL_AGENT_MODEL",
     temperature: 0.1,
     maxTokens: 8192,
     displayName: "Code Editor",
@@ -655,7 +656,7 @@ const agentConfigs = {
     instructionsPrompt: CODE_EDITOR_INSTRUCTIONS_PROMPT,
   },
   weeb: {
-    model: "openai/gpt-oss-20b",
+    modelKey: "RESEARCHER_MODEL",
     temperature: 0.5,
     maxTokens: 4096,
     displayName: "Weeb",
@@ -665,7 +666,7 @@ const agentConfigs = {
     instructionsPrompt: WEEB_INSTRUCTIONS_PROMPT,
   },
   doc: {
-    model: "openai/gpt-oss-20b",
+    modelKey: "RESEARCHER_MODEL",
     temperature: 0.5,
     maxTokens: 4096,
     displayName: "Doc",
@@ -675,7 +676,7 @@ const agentConfigs = {
     instructionsPrompt: DOC_INSTRUCTIONS_PROMPT,
   },
   basher: {
-    model: "openai/gpt-oss-20b",
+    modelKey: "COMMANDER_MODEL",
     temperature: 0.3,
     maxTokens: 4096,
     displayName: "Basher",
@@ -685,7 +686,7 @@ const agentConfigs = {
     instructionsPrompt: BASHER_INSTRUCTIONS_PROMPT,
   },
   contextPruner: {
-    model: "openai/gpt-oss-20b",
+    modelKey: "CONTEXT_PRUNER_MODEL",
     temperature: 0.3,
     maxTokens: 4096,
     displayName: "Context Pruner",
@@ -702,27 +703,27 @@ const agentConfigs = {
 
 const agentModes = {
   default: {
-    model: "z-ai/glm-5.2",
+    modelKey: "GENERAL_AGENT_MODEL",
     temperature: 0.7,
     maxTokens: 8192,
   },
   fast: {
-    model: "openai/gpt-oss-20b",
+    modelKey: "COMMANDER_MODEL",
     temperature: 0.1,
     maxTokens: 4096,
   },
   max: {
-    model: "z-ai/glm-5.2",
+    modelKey: "GENERAL_AGENT_MODEL",
     temperature: 0.7,
     maxTokens: 16384,
   },
   free: {
-    model: "openai/gpt-oss-20b",
+    modelKey: "GENERAL_AGENT_MODEL",
     temperature: 0.5,
     maxTokens: 8192,
   },
   lite: {
-    model: "openai/gpt-oss-20b",
+    modelKey: "COMMANDER_MODEL",
     temperature: 0.3,
     maxTokens: 4096,
   },
@@ -733,9 +734,9 @@ const agentModes = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const codeEditorModelVariants = {
-  "kimi":     { model: "z-ai/glm-5.2", temperature: 0.1, maxTokens: 8192 },
-  "deepseek": { model: "deepseek-ai/deepseek-v4-flash-0731", temperature: 0.1, maxTokens: 8192 },
-  "glm":     { model: "openai/gpt-oss-20b", temperature: 0.1, maxTokens: 8192 },
+  nvidia:  { modelKey: "NVIDIA_MODEL", temperature: 0.1, maxTokens: 8192 },
+  thinker: { modelKey: "THINKER_MODEL", temperature: 0.1, maxTokens: 8192 },
+  general: { modelKey: "GENERAL_AGENT_MODEL", temperature: 0.1, maxTokens: 8192 },
 };
 
 // Proxy endpoints sit behind Cloudflare, which returns 403 for the default
@@ -743,7 +744,7 @@ const codeEditorModelVariants = {
 // a UA-safe wrapper so both the keyless NVIDIA proxy and keyed providers work.
 function safeFetch(url, init) {
   const headers = new Headers(init?.headers || {});
-  headers.set("User-Agent", "apex-dev/" + require("../package.json").version);
+  headers.set("User-Agent", "apex-dev/" + APEX_VERSION);
   return globalThis.fetch(url, { ...init, headers });
 }
 
@@ -773,9 +774,13 @@ function _makeClient(apiKey, baseURL, extraOpts = {}) {
   return new OpenAI({ apiKey: apiKey || "dummy", baseURL, dangerouslyAllowBrowser: true, fetch: safeFetch, ...extraOpts });
 }
 
+function providerFetchOpts(provider) {
+  return provider?.fetch ? { fetch: provider.fetch } : {};
+}
+
 function setApiKey(key) {
   const _p = PROVIDERS[currentProvider];
-  _internalClient = _makeClient(key, _p.baseURL, _p.fetch ? { fetch: _p.fetch } : {});
+  _internalClient = _makeClient(key, _p.baseURL, providerFetchOpts(_p));
   if (globalThis.require_server) {
     const srv = globalThis.require_server();
     if (srv && srv.updateApiKey) srv.updateApiKey(key);
@@ -792,7 +797,7 @@ function setProvider(providerKey, apiKey) {
   }
 
   currentProvider = providerKey;
-  _internalClient = _makeClient(apiKey, provider.baseURL, provider.fetch ? { fetch: provider.fetch } : {});
+  _internalClient = _makeClient(apiKey, provider.baseURL, providerFetchOpts(provider));
   Object.assign(currentModels, provider.models);
   // Set env var so getProviderLoginState returns correct status
   if (apiKey || provider.noKey) {
@@ -809,21 +814,25 @@ function resolveAgentConfig(agentName, mode = currentMode) {
   const config = agentConfigs[agentName];
   if (!config) return null;
   const modeOverrides = agentModes[mode] || {};
-  return {
+  const resolved = {
     ...config,
     ...modeOverrides,
+  };
+  return {
+    ...resolved,
+    model: currentModels[resolved.modelKey] || currentModels.GENERAL_AGENT_MODEL,
   };
 }
 
 // ── Helper: resolve code editor with model variant ──────────────────────────────────
-function resolveCodeEditorConfig(variant = "opus") {
+function resolveCodeEditorConfig(variant = "general") {
   const config = agentConfigs.codeEditor;
   if (!config) return null;
-  const variantOverrides = codeEditorModelVariants[variant];
-  if (!variantOverrides) return config;
+  const variantOverrides = codeEditorModelVariants[variant] || codeEditorModelVariants.general;
   return {
     ...config,
     ...variantOverrides,
+    model: currentModels[variantOverrides.modelKey] || currentModels[config.modelKey] || currentModels.GENERAL_AGENT_MODEL,
   };
 }
 
@@ -865,7 +874,7 @@ async function validateApiKey(providerKey, apiKey) {
   if (!provider || provider.noKey) return { valid: true };
   if (!apiKey) return { valid: false, error: "No API key provided" };
   try {
-    const client = _makeClient(apiKey, provider.baseURL, provider.fetch ? { fetch: provider.fetch } : {});
+    const client = _makeClient(apiKey, provider.baseURL, providerFetchOpts(provider));
     await client.models.list();
     return { valid: true };
   } catch (err) {
