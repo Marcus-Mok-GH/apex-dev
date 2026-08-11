@@ -12,3 +12,4 @@
 
 - Removed alternate provider configuration and provider-selection screens; Apex now uses the managed AI service automatically without exposing backend or model details in the CLI.
 - Removed obsolete provider UI components and updated generated entry/build artifacts and tests for the single-backend flow.
+- Prepared the 3.10.47 npm release containing the managed-backend provider changes.

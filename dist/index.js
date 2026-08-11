@@ -43,7 +43,7 @@ var __toESM = (mod, isNodeMode, target) => {
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
 var __require2 = import.meta.require;
-var APEX_VERSION = "3.10.46";
+var APEX_VERSION = "3.10.47";
 var require_react = () => React;
 var require_jsx_runtime = () => ({ jsx: _jsx, jsxs: _jsxs, Fragment: _Fragment });
 var require_openai = () => OpenAI;

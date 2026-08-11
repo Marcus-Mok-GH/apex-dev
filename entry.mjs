@@ -54,7 +54,7 @@ var __export = (target, all) => {
     });
 };
 var __require = import.meta.require;
-var APEX_VERSION = "3.10.46";
+var APEX_VERSION = "3.10.47";
 
 // External package re-exports (resolved at build time via static imports above)
 var require_react = () => React;
