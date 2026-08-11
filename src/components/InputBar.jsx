@@ -32,7 +32,7 @@ function fuzzyScore(cmdStr, query) {
 function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
   const internalInputRef = import_react15.useRef(null);
   const inputRef = externalInputRef || internalInputRef;
-  const { isNarrow } = useLayout();
+  const { isCompact, isNarrow } = useLayout();
   const [inputValue, setInputValue] = import_react15.useState("");
   const [selectedIdx, setSelectedIdx] = import_react15.useState(0);
   const showPicker = !disabled && inputValue.startsWith("/");
@@ -75,23 +75,25 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
 
   const c = import_theme12.colors;
   const inputBorderColor = disabled ? c.border : showPicker ? c.primary : c.borderStrong;
-  const hint = isNarrow
-    ? "ctrl+c to exit"
-    : showPicker
-      ? "↑↓ navigate  ·  tab/enter select  ·  ctrl+c exit"
-      : "ctrl+c exit";
-  const placeholder = disabled ? "setting up…" : isNarrow ? "message apex…" : "ask apex anything, or /command";
+  const hint = isCompact
+    ? ""
+    : isNarrow
+      ? "ctrl+c to exit"
+      : showPicker
+        ? "↑↓ navigate  ·  tab/enter select  ·  ctrl+c exit"
+        : "ctrl+c exit";
+  const placeholder = disabled ? "setting up…" : isCompact ? "message…" : isNarrow ? "message apex…" : "ask apex anything, or /command";
 
   return /* @__PURE__ */ jsx_runtime12.jsxs("box", {
-    style: { flexDirection: "column", paddingLeft: 2, paddingRight: 2, paddingBottom: 1 },
+    style: { flexDirection: "column", paddingLeft: isCompact ? 1 : 2, paddingRight: isCompact ? 1 : 2, paddingBottom: 1 },
     children: [
       showPicker && filtered.length > 0 ? /* @__PURE__ */ jsx_runtime12.jsxs("box", {
-        style: { flexDirection: "column", paddingLeft: 2, paddingRight: 2, borderStyle: "single", borderColor: c.border, marginBottom: 1 },
+        style: { flexDirection: "column", paddingLeft: isCompact ? 1 : 2, paddingRight: isCompact ? 1 : 2, borderStyle: "single", borderColor: c.border, marginBottom: 1 },
         children: [
           /* @__PURE__ */ jsx_runtime12.jsxs("text", {
             children: [
               /* @__PURE__ */ jsx_runtime12.jsx("span", { fg: c.accent, attributes: TextAttributes.BOLD, children: "commands" }),
-              /* @__PURE__ */ jsx_runtime12.jsx("span", { fg: c.dim, children: "  ·  ↑↓ navigate  tab select" })
+              /* @__PURE__ */ jsx_runtime12.jsx("span", { fg: c.dim, children: isCompact ? "  ·  tab select" : "  ·  ↑↓ navigate  tab select" })
             ]
           }),
           filtered.map((item, idx) => {
@@ -102,18 +104,18 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
               children: [
                 /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: isActive ? c.primary : c.border, children: isActive ? "› " : "  " }),
                 /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: isActive ? c.text : c.muted, attributes: isActive ? TextAttributes.BOLD : 0, children: item.cmd }),
-                /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: c.dim, children: "  " + item.desc })
+                /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: c.dim, children: "  " + (isCompact ? item.desc.slice(0, 12) : isNarrow ? item.desc.slice(0, 22) : item.desc) })
               ]
             }, item.cmd);
           })
         ]
       }) : null,
       /* @__PURE__ */ jsx_runtime12.jsxs("box", {
-        style: { flexDirection: "row", paddingLeft: 1, paddingRight: 1, borderStyle: "single", borderColor: inputBorderColor },
+        style: { flexDirection: "row", paddingLeft: isCompact ? 0 : 1, paddingRight: isCompact ? 0 : 1, borderStyle: "single", borderColor: inputBorderColor },
         children: [
           /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: disabled ? c.dim : c.primary, attributes: disabled ? 0 : TextAttributes.BOLD, children: "›  " }),
           /* @__PURE__ */ jsx_runtime12.jsx("input", { ref: inputRef, focused: !disabled, value: inputValue, onChange: setInputValue, placeholder, onSubmit: handleSubmit, fg: c.text, style: { flexGrow: 1 } }),
-          !isNarrow ? /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: c.dim, children: "  " + hint }) : null
+          !isCompact ? /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: c.dim, children: "  " + hint }) : null
         ]
       })
     ]

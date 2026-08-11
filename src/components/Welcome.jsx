@@ -1,11 +1,11 @@
 var import_theme3 = __toESM(require_theme(), 1);
 var jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
 function Welcome() {
-  const { isNarrow } = useLayout();
+  const { isCompact, isNarrow } = useLayout();
   const c = import_theme3.colors;
 
   return /* @__PURE__ */ jsx_runtime3.jsxs("box", {
-    style: { flexDirection: "column", paddingLeft: 3, paddingRight: 2, marginTop: 2, marginBottom: 1 },
+    style: { flexDirection: "column", paddingLeft: isCompact ? 1 : 3, paddingRight: isCompact ? 1 : 2, marginTop: isCompact ? 1 : 2, marginBottom: 1 },
     children: [
       /* @__PURE__ */ jsx_runtime3.jsxs("text", {
         children: [

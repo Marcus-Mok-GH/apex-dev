@@ -41,7 +41,7 @@ var SUBAGENTS = [
   "ContextPruner"
 ];
 function HelpModal({ onClose, onCommand }) {
-  const { isNarrow } = useLayout();
+  const { isNarrow, isCompact } = useLayout();
   useKeyboard((key) => {
     if (key.name === "escape" || key.name === "q") {
       onClose();
@@ -52,14 +52,14 @@ function HelpModal({ onClose, onCommand }) {
     border: true,
     borderColor: import_theme14.colors.primary,
     backgroundColor: "#0c0c0c",
-    title: " apex help ",
+    title: isCompact ? " help " : " apex help ",
     titleAlignment: "center",
     style: {
       position: "absolute",
       top: 2,
-      left: isNarrow ? 1 : 4,
+      left: isCompact ? 0 : isNarrow ? 1 : 4,
       bottom: 2,
-      right: isNarrow ? 1 : 4,
+      right: isCompact ? 0 : isNarrow ? 1 : 4,
       padding: 1,
       flexDirection: "column"
     },
@@ -83,7 +83,7 @@ function HelpModal({ onClose, onCommand }) {
             children: [
               /* @__PURE__ */ jsx_runtime14.jsx("span", {
                 fg: import_theme14.colors.primary,
-                children: cmd.padEnd(isNarrow ? 12 : 16)
+                children: cmd.padEnd(isCompact ? 10 : isNarrow ? 12 : 16)
               }),
               /* @__PURE__ */ jsx_runtime14.jsx("span", {
                 fg: import_theme14.colors.muted,
@@ -143,7 +143,7 @@ function HelpModal({ onClose, onCommand }) {
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
         fg: import_theme14.colors.dim,
         style: { marginTop: 1 },
-        content: "esc or q to close"
+        content: isCompact ? "tips · esc/q closes" : "esc or q to close"
       })
     ]
   });

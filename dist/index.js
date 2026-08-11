@@ -43,7 +43,7 @@ var __toESM = (mod, isNodeMode, target) => {
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
 var __require2 = import.meta.require;
-var APEX_VERSION = "3.10.46";
+var APEX_VERSION = "3.10.47";
 var require_react = () => React;
 var require_jsx_runtime = () => ({ jsx: _jsx, jsxs: _jsxs, Fragment: _Fragment });
 var require_openai = () => OpenAI;
@@ -3238,16 +3238,20 @@ var require_commands = __commonJS((exports, module2) => {
   module2.exports = { handleSlashCommand };
 });
 var require_useLayout = __commonJS((exports, module) => {
-  var NARROW_THRESHOLD = 60;
+  var COMPACT_THRESHOLD = 48;
+  var NARROW_THRESHOLD = 68;
   function useLayout2() {
     const { width } = useTerminalDimensions();
-    const w2 = width || 80;
+    const w2 = Math.max(width || 80, 20);
+    const isCompact = w2 < COMPACT_THRESHOLD;
     const isNarrow = w2 < NARROW_THRESHOLD;
     return {
       width: w2,
+      isCompact,
       isNarrow,
-      indent: isNarrow ? 2 : 4,
-      smallIndent: isNarrow ? 1 : 2
+      indent: isCompact ? 1 : isNarrow ? 2 : 4,
+      smallIndent: isCompact ? 1 : isNarrow ? 1 : 2,
+      contentWidth: Math.max(w2 - (isCompact ? 2 : isNarrow ? 4 : 8), 12)
     };
   }
   globalThis.useLayout = useLayout2;
@@ -3268,7 +3272,7 @@ var path2 = __require2("path");
 var { execSync } = __require2("child_process");
 function Header() {
   const [branch, setBranch] = import_react13.useState("");
-  const { isNarrow } = useLayout();
+  const { isCompact, isNarrow } = useLayout();
   const cwd = path2.basename(import_config.PROJECT_ROOT);
   import_react13.useEffect(() => {
     try {
@@ -3281,9 +3285,9 @@ function Header() {
   }, []);
   const snapshot = import_store_h.getSnapshot();
   const configReady = !snapshot.needsConfig;
-  const projectLabel = isNarrow && cwd.length > 14 ? cwd.slice(0, 14) + "\u2026" : cwd;
+  const projectLabel = isNarrow && cwd.length > (isCompact ? 10 : 14) ? cwd.slice(0, isCompact ? 10 : 14) + "\u2026" : cwd;
   return /* @__PURE__ */ jsx_runtime.jsxs("box", {
-    style: { flexDirection: "row", paddingLeft: 2, paddingRight: 2, paddingTop: 1, paddingBottom: 1 },
+    style: { flexDirection: "row", paddingLeft: isCompact ? 1 : 2, paddingRight: isCompact ? 1 : 2, paddingTop: isCompact ? 0 : 1, paddingBottom: 1 },
     children: [
       /* @__PURE__ */ jsx_runtime.jsx("box", {
         style: { flexGrow: 1 },
@@ -3333,7 +3337,7 @@ var jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
 function Divider() {
   const { width } = useLayout();
   const cols = Math.max(width - 4, 0);
-  const count = Math.floor(cols / 3);
+  const count = Math.max(1, Math.floor(cols / 3));
   return /* @__PURE__ */ jsx_runtime2.jsx("text", {
     fg: import_theme2.colors.border,
     style: { paddingLeft: 2, paddingRight: 2 },
@@ -3343,10 +3347,10 @@ function Divider() {
 var import_theme3 = __toESM(require_theme(), 1);
 var jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
 function Welcome() {
-  const { isNarrow } = useLayout();
+  const { isCompact, isNarrow } = useLayout();
   const c = import_theme3.colors;
   return /* @__PURE__ */ jsx_runtime3.jsxs("box", {
-    style: { flexDirection: "column", paddingLeft: 3, paddingRight: 2, marginTop: 2, marginBottom: 1 },
+    style: { flexDirection: "column", paddingLeft: isCompact ? 1 : 3, paddingRight: isCompact ? 1 : 2, marginTop: isCompact ? 1 : 2, marginBottom: 1 },
     children: [
       /* @__PURE__ */ jsx_runtime3.jsxs("text", {
         children: [
@@ -3434,10 +3438,10 @@ function UserMessage({ content }) {
 var import_theme5 = __toESM(require_theme(), 1);
 var jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
 function AssistantMessage({ content, isStreaming }) {
-  const { indent, isNarrow, width } = useLayout();
-  const codeIndent = isNarrow ? 1 : 2;
-  const codeAreaWidth = Math.max(width - indent - codeIndent, 10);
-  const separatorWidth = Math.min(codeAreaWidth, isNarrow ? 44 : 76);
+  const { indent, isCompact, isNarrow, width } = useLayout();
+  const codeIndent = isCompact ? 0 : isNarrow ? 1 : 2;
+  const codeAreaWidth = Math.max(width - indent - codeIndent, 12);
+  const separatorWidth = Math.min(codeAreaWidth, isCompact ? 24 : isNarrow ? 44 : 76);
   const c = import_theme5.colors;
   if (!content)
     return null;
@@ -3612,8 +3616,8 @@ function truncate(str, len) {
   return str.length > len ? str.slice(0, len - ELLIPSIS.length) + ELLIPSIS : str;
 }
 function ToolCallItem({ message }) {
-  const { indent, isNarrow } = useLayout();
-  const truncLen = isNarrow ? 32 : 60;
+  const { indent, isCompact, isNarrow } = useLayout();
+  const truncLen = isCompact ? 18 : isNarrow ? 32 : 60;
   const { id, name, detail, status, success, elapsed, output, expanded } = message;
   const isRunning = status === "running" || status === "pending";
   const isSubagent = SUBAGENT_TOOLS.has(name);
@@ -3677,7 +3681,7 @@ function ToolCallItem({ message }) {
           children: [
             /* @__PURE__ */ jsx_runtime8.jsx("text", {
               fg: c.border,
-              content: "\u2504".repeat(36)
+              content: "\u2504".repeat(Math.max(12, Math.min(36, isCompact ? 16 : 36)))
             }),
             isTruncated ? /* @__PURE__ */ jsx_runtime8.jsx("text", {
               fg: c.dim,
@@ -3690,7 +3694,7 @@ function ToolCallItem({ message }) {
             }),
             /* @__PURE__ */ jsx_runtime8.jsx("text", {
               fg: c.border,
-              content: "\u2504".repeat(36)
+              content: "\u2504".repeat(Math.max(12, Math.min(36, isCompact ? 16 : 36)))
             })
           ]
         });
@@ -3963,7 +3967,7 @@ function fuzzyScore(cmdStr, query) {
 function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
   const internalInputRef = import_react15.useRef(null);
   const inputRef = externalInputRef || internalInputRef;
-  const { isNarrow } = useLayout();
+  const { isCompact, isNarrow } = useLayout();
   const [inputValue, setInputValue] = import_react15.useState("");
   const [selectedIdx, setSelectedIdx] = import_react15.useState(0);
   const showPicker = !disabled && inputValue.startsWith("/");
@@ -4004,18 +4008,18 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
   };
   const c = import_theme12.colors;
   const inputBorderColor = disabled ? c.border : showPicker ? c.primary : c.borderStrong;
-  const hint = isNarrow ? "ctrl+c to exit" : showPicker ? "\u2191\u2193 navigate  \xB7  tab/enter select  \xB7  ctrl+c exit" : "ctrl+c exit";
-  const placeholder = disabled ? "setting up\u2026" : isNarrow ? "message apex\u2026" : "ask apex anything, or /command";
+  const hint = isCompact ? "" : isNarrow ? "ctrl+c to exit" : showPicker ? "\u2191\u2193 navigate  \xB7  tab/enter select  \xB7  ctrl+c exit" : "ctrl+c exit";
+  const placeholder = disabled ? "setting up\u2026" : isCompact ? "message\u2026" : isNarrow ? "message apex\u2026" : "ask apex anything, or /command";
   return /* @__PURE__ */ jsx_runtime12.jsxs("box", {
-    style: { flexDirection: "column", paddingLeft: 2, paddingRight: 2, paddingBottom: 1 },
+    style: { flexDirection: "column", paddingLeft: isCompact ? 1 : 2, paddingRight: isCompact ? 1 : 2, paddingBottom: 1 },
     children: [
       showPicker && filtered.length > 0 ? /* @__PURE__ */ jsx_runtime12.jsxs("box", {
-        style: { flexDirection: "column", paddingLeft: 2, paddingRight: 2, borderStyle: "single", borderColor: c.border, marginBottom: 1 },
+        style: { flexDirection: "column", paddingLeft: isCompact ? 1 : 2, paddingRight: isCompact ? 1 : 2, borderStyle: "single", borderColor: c.border, marginBottom: 1 },
         children: [
           /* @__PURE__ */ jsx_runtime12.jsxs("text", {
             children: [
               /* @__PURE__ */ jsx_runtime12.jsx("span", { fg: c.accent, attributes: TextAttributes.BOLD, children: "commands" }),
-              /* @__PURE__ */ jsx_runtime12.jsx("span", { fg: c.dim, children: "  \xB7  \u2191\u2193 navigate  tab select" })
+              /* @__PURE__ */ jsx_runtime12.jsx("span", { fg: c.dim, children: isCompact ? "  \xB7  tab select" : "  \xB7  \u2191\u2193 navigate  tab select" })
             ]
           }),
           filtered.map((item, idx) => {
@@ -4026,18 +4030,18 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
               children: [
                 /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: isActive ? c.primary : c.border, children: isActive ? "\u203A " : "  " }),
                 /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: isActive ? c.text : c.muted, attributes: isActive ? TextAttributes.BOLD : 0, children: item.cmd }),
-                /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: c.dim, children: "  " + item.desc })
+                /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: c.dim, children: "  " + (isCompact ? item.desc.slice(0, 12) : isNarrow ? item.desc.slice(0, 22) : item.desc) })
               ]
             }, item.cmd);
           })
         ]
       }) : null,
       /* @__PURE__ */ jsx_runtime12.jsxs("box", {
-        style: { flexDirection: "row", paddingLeft: 1, paddingRight: 1, borderStyle: "single", borderColor: inputBorderColor },
+        style: { flexDirection: "row", paddingLeft: isCompact ? 0 : 1, paddingRight: isCompact ? 0 : 1, borderStyle: "single", borderColor: inputBorderColor },
         children: [
           /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: disabled ? c.dim : c.primary, attributes: disabled ? 0 : TextAttributes.BOLD, children: "\u203A  " }),
           /* @__PURE__ */ jsx_runtime12.jsx("input", { ref: inputRef, focused: !disabled, value: inputValue, onChange: setInputValue, placeholder, onSubmit: handleSubmit, fg: c.text, style: { flexGrow: 1 } }),
-          !isNarrow ? /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: c.dim, children: "  " + hint }) : null
+          !isCompact ? /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: c.dim, children: "  " + hint }) : null
         ]
       })
     ]
@@ -4050,7 +4054,7 @@ var import_store3 = __toESM(require_store(), 1);
 var jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
 var SB_SPINNER_FRAMES = import_theme13.SPINNER_FRAMES;
 function StatusBar({ isProcessing }) {
-  const { isNarrow } = useLayout();
+  const { isCompact, isNarrow } = useLayout();
   const snapshot = import_config3.session;
   const c = import_theme13.colors;
   const [tick, setTick] = import_react_sb.useState(0);
@@ -4069,7 +4073,7 @@ function StatusBar({ isProcessing }) {
   const tokStr = snapshot.totalTokens >= 1000 ? (snapshot.totalTokens / 1000).toFixed(1) + "k" : String(snapshot.totalTokens);
   const sep = /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.borderStrong, children: "  \xB7  " });
   return /* @__PURE__ */ jsx_runtime13.jsxs("box", {
-    style: { flexDirection: "row", paddingLeft: 2, paddingRight: 2, paddingTop: 1, paddingBottom: 1 },
+    style: { flexDirection: "row", paddingLeft: isCompact ? 1 : 2, paddingRight: isCompact ? 1 : 2, paddingTop: isCompact ? 0 : 1, paddingBottom: 1 },
     children: [
       /* @__PURE__ */ jsx_runtime13.jsx("box", {
         style: { flexGrow: 1 },
@@ -4077,14 +4081,12 @@ function StatusBar({ isProcessing }) {
           children: [
             /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.primary, attributes: TextAttributes.BOLD, children: SB_SPINNER_FRAMES[spinFrame] }),
             /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.blue, attributes: TextAttributes.BOLD, children: "  working" }),
-            !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.dim, children: "  \xB7  esc to cancel" }) : null
+            !isNarrow && !isCompact ? /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.dim, children: "  \xB7  esc to cancel" }) : null
           ]
         }) : /* @__PURE__ */ jsx_runtime13.jsxs("text", {
           children: [
             /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.muted, children: elapsed + "m" }),
-            sep,
-            /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.muted, children: snapshot.turnCount + " turn" + (snapshot.turnCount !== 1 ? "s" : "") }),
-            !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs(jsx_runtime13.Fragment, {
+            !isCompact ? /* @__PURE__ */ jsx_runtime13.jsxs(jsx_runtime13.Fragment, {
               children: [
                 sep,
                 /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.muted, children: tokStr + " tok" }),
@@ -4142,7 +4144,7 @@ var SUBAGENTS = [
   "ContextPruner"
 ];
 function HelpModal({ onClose, onCommand }) {
-  const { isNarrow } = useLayout();
+  const { isNarrow, isCompact } = useLayout();
   useKeyboard((key) => {
     if (key.name === "escape" || key.name === "q") {
       onClose();
@@ -4153,14 +4155,14 @@ function HelpModal({ onClose, onCommand }) {
     border: true,
     borderColor: import_theme14.colors.primary,
     backgroundColor: "#0c0c0c",
-    title: " apex help ",
+    title: isCompact ? " help " : " apex help ",
     titleAlignment: "center",
     style: {
       position: "absolute",
       top: 2,
-      left: isNarrow ? 1 : 4,
+      left: isCompact ? 0 : isNarrow ? 1 : 4,
       bottom: 2,
-      right: isNarrow ? 1 : 4,
+      right: isCompact ? 0 : isNarrow ? 1 : 4,
       padding: 1,
       flexDirection: "column"
     },
@@ -4184,7 +4186,7 @@ function HelpModal({ onClose, onCommand }) {
             children: [
               /* @__PURE__ */ jsx_runtime14.jsx("span", {
                 fg: import_theme14.colors.primary,
-                children: cmd.padEnd(isNarrow ? 12 : 16)
+                children: cmd.padEnd(isCompact ? 10 : isNarrow ? 12 : 16)
               }),
               /* @__PURE__ */ jsx_runtime14.jsx("span", {
                 fg: import_theme14.colors.muted,
@@ -4244,7 +4246,7 @@ function HelpModal({ onClose, onCommand }) {
       /* @__PURE__ */ jsx_runtime14.jsx("text", {
         fg: import_theme14.colors.dim,
         style: { marginTop: 1 },
-        content: "esc or q to close"
+        content: isCompact ? "tips \xB7 esc/q closes" : "esc or q to close"
       })
     ]
   });
