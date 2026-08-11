@@ -23,8 +23,6 @@ function Header() {
   }, []);
 
   const snapshot = import_store_h.getSnapshot();
-  const provider = snapshot.provider;
-  const providerLabel = import_config.PROVIDERS[provider]?.label || provider;
   const configReady = !snapshot.needsConfig;
   const projectLabel = isNarrow && cwd.length > 14 ? cwd.slice(0, 14) + "…" : cwd;
 
@@ -67,19 +65,7 @@ function Header() {
         children: [
           /* @__PURE__ */ jsx_runtime.jsx("span", {
             fg: configReady ? import_theme.colors.green : import_theme.colors.yellow,
-            children: configReady ? "●" : "○"
-          }),
-          /* @__PURE__ */ jsx_runtime.jsx("span", {
-            fg: import_theme.colors.muted,
-            children: "  " + (configReady ? "ready" : "setup needed")
-          }),
-          /* @__PURE__ */ jsx_runtime.jsx("span", {
-            fg: import_theme.colors.borderStrong,
-            children: "  ·  "
-          }),
-          /* @__PURE__ */ jsx_runtime.jsx("span", {
-            fg: import_theme.colors.accent,
-            children: providerLabel
+            children: configReady ? "● ready" : "○ unavailable"
           })
         ]
       }) : null

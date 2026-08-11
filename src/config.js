@@ -24,79 +24,10 @@ function writeSavedApiKeys(config) {
   fs.chmodSync(CONFIG_PATH, 0o600);
 }
 
-function getSavedApiKey(providerKey) {
-  const config = readSavedApiKeys();
-  return config[providerKey] || "";
-}
-
-function getProviderLoginState(providerKey) {
-  const provider = PROVIDERS[providerKey];
-  if (!provider) return "empty";
-  if (provider.noKey) return "no-key";
-  if (process.env[provider.envKey]) return "logged-in";
-  if (getSavedApiKey(providerKey)) return "saved";
-  return "empty";
-}
-
-function updateSavedApiKey(providerKey, apiKey) {
-  const config = readSavedApiKeys();
-  if (apiKey) {
-    config[providerKey] = apiKey;
-  } else {
-    delete config[providerKey];
-  }
-  if (Object.keys(config).length === 0) {
-    try {
-      fs.unlinkSync(CONFIG_PATH);
-    } catch {}
-    return config;
-  }
-  writeSavedApiKeys(config);
-  return config;
-}
-
-function clearSavedApiKey(providerKey) {
-  return updateSavedApiKey(providerKey, "");
-}
-
-function loginProvider(providerKey, apiKey) {
-  updateSavedApiKey(providerKey, apiKey);
-  setProvider(providerKey, apiKey);
-  return { providerKey, apiKey };
-}
-
-function logoutProvider(providerKey) {
-  clearSavedApiKey(providerKey);
-  const provider = PROVIDERS[providerKey];
-  if (provider) {
-    delete process.env[provider.envKey];
-    if (currentProvider === providerKey) {
-      setProvider(providerKey, "");
-    }
-  }
-  const remaining = getFirstSavedProvider();
-  if (remaining) {
-    currentProvider = remaining.providerKey;
-    process.env[remaining.provider.envKey] = remaining.apiKey;
-    setProvider(remaining.providerKey, remaining.apiKey);
-  }
-  return remaining;
-}
-
-function getFirstSavedProvider() {
-  const config = readSavedApiKeys();
-  for (const [providerKey, provider] of Object.entries(PROVIDERS)) {
-    if (config[providerKey]) {
-      return { providerKey, apiKey: config[providerKey], provider };
-    }
-  }
-  return null;
-}
-
-// ── Provider registry ────────────────────────────────────────────────
+// ── NVIDIA backend ────────────────────────────────────────────────────
 const PROVIDERS = {
   nvidia: {
-    label: "NVIDIA (Free)",
+    label: "NVIDIA",
     baseURL: process.env.NVIDIA_API_URL || "https://nvidia-api-server-marcusmok.zocomputer.io",
     envKey: "NVIDIA_API_KEY",
     noKey: true,
@@ -111,126 +42,14 @@ const PROVIDERS = {
       GENERAL_AGENT_MODEL: "deepseek-ai/deepseek-v4-flash-0731",
     },
   },
-  openai: {
-    label: "OpenAI",
-    baseURL: "https://api.openai.com/v1",
-    envKey: "OPENAI_API_KEY",
-    models: {
-      NVIDIA_MODEL:        "gpt-4o",
-      REVIEWER_MODEL:      "gpt-4o",
-      FILE_PICKER_MODEL:   "gpt-4o-mini",
-      THINKER_MODEL:       "gpt-4o",
-      COMMANDER_MODEL:     "gpt-4o-mini",
-      CONTEXT_PRUNER_MODEL:"gpt-4o-mini",
-      RESEARCHER_MODEL:    "gpt-4o",
-      GENERAL_AGENT_MODEL: "gpt-4o",
-    },
-  },
-  openrouter: {
-    label: "OpenRouter",
-    baseURL: "https://openrouter.ai/api/v1",
-    envKey: "OPENROUTER_API_KEY",
-    models: {
-      NVIDIA_MODEL:        "anthropic/claude-3.5-sonnet",
-      REVIEWER_MODEL:      "anthropic/claude-3.5-sonnet",
-      FILE_PICKER_MODEL:   "google/gemini-flash-1.5",
-      THINKER_MODEL:       "anthropic/claude-3.5-sonnet",
-      COMMANDER_MODEL:     "google/gemini-flash-1.5",
-      CONTEXT_PRUNER_MODEL:"google/gemini-flash-1.5",
-      RESEARCHER_MODEL:    "anthropic/claude-3.5-sonnet",
-      GENERAL_AGENT_MODEL: "anthropic/claude-3.5-sonnet",
-    },
-  },
-  groq: {
-    label: "Groq",
-    baseURL: "https://api.groq.com/openai/v1",
-    envKey: "GROQ_API_KEY",
-    models: {
-      NVIDIA_MODEL:        "llama-3.3-70b-versatile",
-      REVIEWER_MODEL:      "llama-3.3-70b-versatile",
-      FILE_PICKER_MODEL:   "llama-3.1-8b-instant",
-      THINKER_MODEL:       "llama-3.3-70b-versatile",
-      COMMANDER_MODEL:     "llama-3.1-8b-instant",
-      CONTEXT_PRUNER_MODEL:"llama-3.1-8b-instant",
-      RESEARCHER_MODEL:    "llama-3.3-70b-versatile",
-      GENERAL_AGENT_MODEL: "llama-3.3-70b-versatile",
-    },
-  },
-  gemini: {
-    label: "Google Gemini",
-    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
-    envKey: "GEMINI_API_KEY",
-    models: {
-      NVIDIA_MODEL:        "gemini-2.5-flash",
-      REVIEWER_MODEL:      "gemini-2.5-pro",
-      FILE_PICKER_MODEL:   "gemini-2.5-flash",
-      THINKER_MODEL:       "gemini-2.5-pro",
-      COMMANDER_MODEL:     "gemini-2.5-flash",
-      CONTEXT_PRUNER_MODEL:"gemini-2.5-flash",
-      RESEARCHER_MODEL:    "gemini-2.5-pro",
-      GENERAL_AGENT_MODEL: "gemini-2.5-pro",
-    },
-  },
-  together: {
-    label: "Together AI",
-    baseURL: "https://api.together.ai/v1",
-    envKey: "TOGETHER_API_KEY",
-    models: {
-      NVIDIA_MODEL:        "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-      REVIEWER_MODEL:      "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-      FILE_PICKER_MODEL:   "meta-llama/Llama-3.2-3B-Instruct-Turbo",
-      THINKER_MODEL:       "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-      COMMANDER_MODEL:     "meta-llama/Llama-3.2-3B-Instruct-Turbo",
-      CONTEXT_PRUNER_MODEL:"meta-llama/Llama-3.2-3B-Instruct-Turbo",
-      RESEARCHER_MODEL:    "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-      GENERAL_AGENT_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-    },
-  },
-  baseten: {
-    label: "Baseten",
-    baseURL: "https://inference.baseten.co/v1",
-    envKey: "BASETEN_API_KEY",
-    models: {
-      NVIDIA_MODEL:        "moonshotai/Kimi-K2.6",
-      REVIEWER_MODEL:      "deepseek-ai/DeepSeek-V4-Pro",
-      FILE_PICKER_MODEL:   "zai-org/GLM-5.1",
-      THINKER_MODEL:       "moonshotai/Kimi-K2.6",
-      COMMANDER_MODEL:     "zai-org/GLM-5.1",
-      CONTEXT_PRUNER_MODEL:"zai-org/GLM-5.1",
-      RESEARCHER_MODEL:    "deepseek-ai/DeepSeek-V4-Pro",
-      GENERAL_AGENT_MODEL: "moonshotai/Kimi-K2.6",
-    },
-  },
 };
 
-// ── Detect initial provider from env ───────────────────────────────────
-function detectInitialProvider() {
-  if (process.env.APEX_PROVIDER && PROVIDERS[process.env.APEX_PROVIDER]) return process.env.APEX_PROVIDER;
-  if (process.env.OPENAI_API_KEY)    return "openai";
-  if (process.env.OPENROUTER_API_KEY) return "openrouter";
-  if (process.env.GROQ_API_KEY)      return "groq";
-  if (process.env.GEMINI_API_KEY)    return "gemini";
-  if (process.env.TOGETHER_API_KEY)  return "together";
-  if (process.env.BASETEN_API_KEY)   return "baseten";
-  return "nvidia"; // default — free keyless NVIDIA proxy
-}
+const currentProvider = "nvidia";
 
-let currentProvider = detectInitialProvider();
-
-try {
-  const hasEnvKey = Object.values(PROVIDERS).some((p) => process.env[p.envKey]);
-  if (!hasEnvKey) {
-    const saved = getFirstSavedProvider();
-    if (saved) {
-      currentProvider = saved.providerKey;
-      process.env[saved.provider.envKey] = saved.apiKey;
-    }
-  }
-} catch {}
+process.env.NVIDIA_API_KEY ||= "dummy";
+const currentModels = Object.assign({}, PROVIDERS.nvidia.models);
 
 // ── Mutable models object (shared reference — mutations propagate) ────────
-const currentModels = Object.assign({}, PROVIDERS[currentProvider].models);
-
 const MAX_TOOL_ITERATIONS = 50;
 const MAX_OUTPUT_LEN = 12000;
 const TOOL_TIMEOUT = 60000;
@@ -741,7 +560,7 @@ const codeEditorModelVariants = {
 
 // Proxy endpoints sit behind Cloudflare, which returns 403 for the default
 // OpenAI/JS <version> User-Agent. Route all OpenAI client fetch calls through
-// a UA-safe wrapper so both the keyless NVIDIA proxy and keyed providers work.
+// Route client fetches through a UA-safe wrapper for the managed backend.
 function safeFetch(url, init) {
   const headers = new Headers(init?.headers || {});
   headers.set("User-Agent", "apex-dev/" + APEX_VERSION);
@@ -774,38 +593,11 @@ function _makeClient(apiKey, baseURL, extraOpts = {}) {
   return new OpenAI({ apiKey: apiKey || "dummy", baseURL, dangerouslyAllowBrowser: true, fetch: safeFetch, ...extraOpts });
 }
 
-function providerFetchOpts(provider) {
-  return provider?.fetch ? { fetch: provider.fetch } : {};
-}
-
 function setApiKey(key) {
-  const _p = PROVIDERS[currentProvider];
-  _internalClient = _makeClient(key, _p.baseURL, providerFetchOpts(_p));
+  _internalClient = _makeClient(key || "dummy", PROVIDERS.nvidia.baseURL);
   if (globalThis.require_server) {
     const srv = globalThis.require_server();
     if (srv && srv.updateApiKey) srv.updateApiKey(key);
-  }
-}
-
-function setProvider(providerKey, apiKey) {
-  const provider = PROVIDERS[providerKey];
-  if (!provider) return;
-
-  // Clear all provider env vars to prevent stale login state
-  for (const p of Object.values(PROVIDERS)) {
-    delete process.env[p.envKey];
-  }
-
-  currentProvider = providerKey;
-  _internalClient = _makeClient(apiKey, provider.baseURL, providerFetchOpts(provider));
-  Object.assign(currentModels, provider.models);
-  // Set env var so getProviderLoginState returns correct status
-  if (apiKey || provider.noKey) {
-    process.env[provider.envKey] = apiKey || "dummy";
-  }
-  if (globalThis.require_server) {
-    const srv = globalThis.require_server();
-    if (srv && srv.updateApiKey) srv.updateApiKey(apiKey || "");
   }
 }
 
@@ -869,23 +661,6 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function validateApiKey(providerKey, apiKey) {
-  const provider = PROVIDERS[providerKey];
-  if (!provider || provider.noKey) return { valid: true };
-  if (!apiKey) return { valid: false, error: "No API key provided" };
-  try {
-    const client = _makeClient(apiKey, provider.baseURL, providerFetchOpts(provider));
-    await client.models.list();
-    return { valid: true };
-  } catch (err) {
-    const status = err?.status;
-    if (status === 401 || status === 403) {
-      return { valid: false, error: `${provider.label} key is invalid or expired` };
-    }
-    return { valid: true };
-  }
-}
-
 function getMode() {
   return currentMode;
 }
@@ -902,20 +677,8 @@ module.exports = {
   get RESEARCHER_MODEL()    { return currentModels.RESEARCHER_MODEL; },
   get GENERAL_AGENT_MODEL() { return currentModels.GENERAL_AGENT_MODEL; },
   get FILE_PICKER_MODEL()   { return currentModels.FILE_PICKER_MODEL; },
-  // Provider management
   PROVIDERS,
   get currentProvider()     { return currentProvider; },
-  detectInitialProvider,
-  setProvider,
-  readSavedApiKeys,
-  writeSavedApiKeys,
-  getSavedApiKey,
-  getProviderLoginState,
-  updateSavedApiKey,
-  clearSavedApiKey,
-  loginProvider,
-  logoutProvider,
-  getFirstSavedProvider,
   // Apex agent configs
   agentConfigs,
   agentModes,
@@ -953,7 +716,6 @@ module.exports = {
   PROJECT_ROOT,
   nvidiaClient,
   setApiKey,
-  validateApiKey,
   session,
   truncateOutput,
   resolvePath,

@@ -43,16 +43,15 @@ var __toESM = (mod, isNodeMode, target) => {
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
 var __require2 = import.meta.require;
-var APEX_VERSION = "3.10.44";
+var APEX_VERSION = "3.10.46";
 var require_react = () => React;
 var require_jsx_runtime = () => ({ jsx: _jsx, jsxs: _jsxs, Fragment: _Fragment });
 var require_openai = () => OpenAI;
 var require_store = __commonJS((exports, module2) => {
   var config = require_config();
   var _detectedProvider = config.currentProvider;
-  var _providerEnvKey = config.PROVIDERS[_detectedProvider].envKey;
-  var _apiKey = process.env[_providerEnvKey] || "";
-  var _needsConfig = process.env.APEX_DEV_NEEDS_CONFIG === "true" || !Boolean(_apiKey) && !config.PROVIDERS[_detectedProvider].noKey;
+  var _apiKey = process.env.NVIDIA_API_KEY || "dummy";
+  var _needsConfig = false;
   var state = {
     messages: [],
     streamingContent: "",
@@ -328,75 +327,9 @@ var require_config = __commonJS((exports, module) => {
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
     fs.chmodSync(CONFIG_PATH, 384);
   }
-  function getSavedApiKey(providerKey) {
-    const config = readSavedApiKeys();
-    return config[providerKey] || "";
-  }
-  function getProviderLoginState(providerKey) {
-    const provider = PROVIDERS[providerKey];
-    if (!provider)
-      return "empty";
-    if (provider.noKey)
-      return "no-key";
-    if (process.env[provider.envKey])
-      return "logged-in";
-    if (getSavedApiKey(providerKey))
-      return "saved";
-    return "empty";
-  }
-  function updateSavedApiKey(providerKey, apiKey) {
-    const config = readSavedApiKeys();
-    if (apiKey) {
-      config[providerKey] = apiKey;
-    } else {
-      delete config[providerKey];
-    }
-    if (Object.keys(config).length === 0) {
-      try {
-        fs.unlinkSync(CONFIG_PATH);
-      } catch {}
-      return config;
-    }
-    writeSavedApiKeys(config);
-    return config;
-  }
-  function clearSavedApiKey(providerKey) {
-    return updateSavedApiKey(providerKey, "");
-  }
-  function loginProvider(providerKey, apiKey) {
-    updateSavedApiKey(providerKey, apiKey);
-    setProvider(providerKey, apiKey);
-    return { providerKey, apiKey };
-  }
-  function logoutProvider(providerKey) {
-    clearSavedApiKey(providerKey);
-    const provider = PROVIDERS[providerKey];
-    if (provider) {
-      delete process.env[provider.envKey];
-      if (currentProvider === providerKey) {
-        setProvider(providerKey, "");
-      }
-    }
-    const remaining = getFirstSavedProvider();
-    if (remaining) {
-      currentProvider = remaining.providerKey;
-      process.env[remaining.provider.envKey] = remaining.apiKey;
-      setProvider(remaining.providerKey, remaining.apiKey);
-    }
-    return remaining;
-  }
-  function getFirstSavedProvider() {
-    const config = readSavedApiKeys();
-    for (const [providerKey, provider] of Object.entries(PROVIDERS)) {
-      if (config[providerKey]) {
-        return { providerKey, apiKey: config[providerKey], provider };
-      }
-    }
-    return null;
-  }
   const PROVIDERS = {
     nvidia: {
-      label: "NVIDIA (Free)",
+      label: "NVIDIA",
       baseURL: process.env.NVIDIA_API_URL || "https://nvidia-api-server-marcusmok.zocomputer.io",
       envKey: "NVIDIA_API_KEY",
       noKey: true,
@@ -410,127 +343,11 @@ var require_config = __commonJS((exports, module) => {
         RESEARCHER_MODEL: "deepseek-ai/deepseek-v4-flash-0731",
         GENERAL_AGENT_MODEL: "deepseek-ai/deepseek-v4-flash-0731"
       }
-    },
-    openai: {
-      label: "OpenAI",
-      baseURL: "https://api.openai.com/v1",
-      envKey: "OPENAI_API_KEY",
-      models: {
-        NVIDIA_MODEL: "gpt-4o",
-        REVIEWER_MODEL: "gpt-4o",
-        FILE_PICKER_MODEL: "gpt-4o-mini",
-        THINKER_MODEL: "gpt-4o",
-        COMMANDER_MODEL: "gpt-4o-mini",
-        CONTEXT_PRUNER_MODEL: "gpt-4o-mini",
-        RESEARCHER_MODEL: "gpt-4o",
-        GENERAL_AGENT_MODEL: "gpt-4o"
-      }
-    },
-    openrouter: {
-      label: "OpenRouter",
-      baseURL: "https://openrouter.ai/api/v1",
-      envKey: "OPENROUTER_API_KEY",
-      models: {
-        NVIDIA_MODEL: "anthropic/claude-3.5-sonnet",
-        REVIEWER_MODEL: "anthropic/claude-3.5-sonnet",
-        FILE_PICKER_MODEL: "google/gemini-flash-1.5",
-        THINKER_MODEL: "anthropic/claude-3.5-sonnet",
-        COMMANDER_MODEL: "google/gemini-flash-1.5",
-        CONTEXT_PRUNER_MODEL: "google/gemini-flash-1.5",
-        RESEARCHER_MODEL: "anthropic/claude-3.5-sonnet",
-        GENERAL_AGENT_MODEL: "anthropic/claude-3.5-sonnet"
-      }
-    },
-    groq: {
-      label: "Groq",
-      baseURL: "https://api.groq.com/openai/v1",
-      envKey: "GROQ_API_KEY",
-      models: {
-        NVIDIA_MODEL: "llama-3.3-70b-versatile",
-        REVIEWER_MODEL: "llama-3.3-70b-versatile",
-        FILE_PICKER_MODEL: "llama-3.1-8b-instant",
-        THINKER_MODEL: "llama-3.3-70b-versatile",
-        COMMANDER_MODEL: "llama-3.1-8b-instant",
-        CONTEXT_PRUNER_MODEL: "llama-3.1-8b-instant",
-        RESEARCHER_MODEL: "llama-3.3-70b-versatile",
-        GENERAL_AGENT_MODEL: "llama-3.3-70b-versatile"
-      }
-    },
-    gemini: {
-      label: "Google Gemini",
-      baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
-      envKey: "GEMINI_API_KEY",
-      models: {
-        NVIDIA_MODEL: "gemini-2.5-flash",
-        REVIEWER_MODEL: "gemini-2.5-pro",
-        FILE_PICKER_MODEL: "gemini-2.5-flash",
-        THINKER_MODEL: "gemini-2.5-pro",
-        COMMANDER_MODEL: "gemini-2.5-flash",
-        CONTEXT_PRUNER_MODEL: "gemini-2.5-flash",
-        RESEARCHER_MODEL: "gemini-2.5-pro",
-        GENERAL_AGENT_MODEL: "gemini-2.5-pro"
-      }
-    },
-    together: {
-      label: "Together AI",
-      baseURL: "https://api.together.ai/v1",
-      envKey: "TOGETHER_API_KEY",
-      models: {
-        NVIDIA_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-        REVIEWER_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-        FILE_PICKER_MODEL: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
-        THINKER_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-        COMMANDER_MODEL: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
-        CONTEXT_PRUNER_MODEL: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
-        RESEARCHER_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-        GENERAL_AGENT_MODEL: "meta-llama/Llama-3.3-70B-Instruct-Turbo"
-      }
-    },
-    baseten: {
-      label: "Baseten",
-      baseURL: "https://inference.baseten.co/v1",
-      envKey: "BASETEN_API_KEY",
-      models: {
-        NVIDIA_MODEL: "moonshotai/Kimi-K2.6",
-        REVIEWER_MODEL: "deepseek-ai/DeepSeek-V4-Pro",
-        FILE_PICKER_MODEL: "zai-org/GLM-5.1",
-        THINKER_MODEL: "moonshotai/Kimi-K2.6",
-        COMMANDER_MODEL: "zai-org/GLM-5.1",
-        CONTEXT_PRUNER_MODEL: "zai-org/GLM-5.1",
-        RESEARCHER_MODEL: "deepseek-ai/DeepSeek-V4-Pro",
-        GENERAL_AGENT_MODEL: "moonshotai/Kimi-K2.6"
-      }
     }
   };
-  function detectInitialProvider() {
-    if (process.env.APEX_PROVIDER && PROVIDERS[process.env.APEX_PROVIDER])
-      return process.env.APEX_PROVIDER;
-    if (process.env.OPENAI_API_KEY)
-      return "openai";
-    if (process.env.OPENROUTER_API_KEY)
-      return "openrouter";
-    if (process.env.GROQ_API_KEY)
-      return "groq";
-    if (process.env.GEMINI_API_KEY)
-      return "gemini";
-    if (process.env.TOGETHER_API_KEY)
-      return "together";
-    if (process.env.BASETEN_API_KEY)
-      return "baseten";
-    return "nvidia";
-  }
-  let currentProvider = detectInitialProvider();
-  try {
-    const hasEnvKey = Object.values(PROVIDERS).some((p) => process.env[p.envKey]);
-    if (!hasEnvKey) {
-      const saved = getFirstSavedProvider();
-      if (saved) {
-        currentProvider = saved.providerKey;
-        process.env[saved.provider.envKey] = saved.apiKey;
-      }
-    }
-  } catch {}
-  const currentModels = Object.assign({}, PROVIDERS[currentProvider].models);
+  const currentProvider = "nvidia";
+  process.env.NVIDIA_API_KEY ||= "dummy";
+  const currentModels = Object.assign({}, PROVIDERS.nvidia.models);
   const MAX_TOOL_ITERATIONS = 50;
   const MAX_OUTPUT_LEN = 12000;
   const TOOL_TIMEOUT = 60000;
@@ -1023,35 +840,12 @@ Output JSON only, no markdown fences:
   function _makeClient(apiKey, baseURL, extraOpts = {}) {
     return new OpenAI2({ apiKey: apiKey || "dummy", baseURL, dangerouslyAllowBrowser: true, fetch: safeFetch, ...extraOpts });
   }
-  function providerFetchOpts(provider) {
-    return provider?.fetch ? { fetch: provider.fetch } : {};
-  }
   function setApiKey(key) {
-    const _p = PROVIDERS[currentProvider];
-    _internalClient = _makeClient(key, _p.baseURL, providerFetchOpts(_p));
+    _internalClient = _makeClient(key || "dummy", PROVIDERS.nvidia.baseURL);
     if (globalThis.require_server) {
       const srv = globalThis.require_server();
       if (srv && srv.updateApiKey)
         srv.updateApiKey(key);
-    }
-  }
-  function setProvider(providerKey, apiKey) {
-    const provider = PROVIDERS[providerKey];
-    if (!provider)
-      return;
-    for (const p of Object.values(PROVIDERS)) {
-      delete process.env[p.envKey];
-    }
-    currentProvider = providerKey;
-    _internalClient = _makeClient(apiKey, provider.baseURL, providerFetchOpts(provider));
-    Object.assign(currentModels, provider.models);
-    if (apiKey || provider.noKey) {
-      process.env[provider.envKey] = apiKey || "dummy";
-    }
-    if (globalThis.require_server) {
-      const srv = globalThis.require_server();
-      if (srv && srv.updateApiKey)
-        srv.updateApiKey(apiKey || "");
     }
   }
   function resolveAgentConfig(agentName, mode = currentMode) {
@@ -1109,24 +903,6 @@ Output JSON only, no markdown fences:
   function sleep(ms) {
     return new Promise((r) => setTimeout(r, ms));
   }
-  async function validateApiKey(providerKey, apiKey) {
-    const provider = PROVIDERS[providerKey];
-    if (!provider || provider.noKey)
-      return { valid: true };
-    if (!apiKey)
-      return { valid: false, error: "No API key provided" };
-    try {
-      const client = _makeClient(apiKey, provider.baseURL, providerFetchOpts(provider));
-      await client.models.list();
-      return { valid: true };
-    } catch (err) {
-      const status = err?.status;
-      if (status === 401 || status === 403) {
-        return { valid: false, error: `${provider.label} key is invalid or expired` };
-      }
-      return { valid: true };
-    }
-  }
   function getMode() {
     return currentMode;
   }
@@ -1160,17 +936,6 @@ Output JSON only, no markdown fences:
     get currentProvider() {
       return currentProvider;
     },
-    detectInitialProvider,
-    setProvider,
-    readSavedApiKeys,
-    writeSavedApiKeys,
-    getSavedApiKey,
-    getProviderLoginState,
-    updateSavedApiKey,
-    clearSavedApiKey,
-    loginProvider,
-    logoutProvider,
-    getFirstSavedProvider,
     agentConfigs,
     agentModes,
     codeEditorModelVariants,
@@ -1205,7 +970,6 @@ Output JSON only, no markdown fences:
     PROJECT_ROOT,
     nvidiaClient,
     setApiKey,
-    validateApiKey,
     session,
     truncateOutput,
     resolvePath,
@@ -2385,7 +2149,7 @@ ${gitDiff}
             }
           ];
           try {
-            const header = `Code Review (${currentModels.REVIEWER_MODEL}) \u2014 ${allFiles.size} file(s)
+            const header = `Code Review \u2014 ${allFiles.size} file(s)
 ${"\u2500".repeat(40)}
 `;
             const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
@@ -2415,7 +2179,7 @@ ${args.prompt}`
             }
           ];
           try {
-            const header = `Thinker (${currentModels.THINKER_MODEL})
+            const header = `Thinker
 ${"\u2500".repeat(40)}
 `;
             const streamCb = onStream ? (text) => onStream(truncateOutput(header + text)) : null;
@@ -2721,7 +2485,7 @@ ${review.result}
           return truncateOutput(result);
         }
         case "Commander": {
-          const header = `Commander (${currentModels.COMMANDER_MODEL})
+          const header = `Commander
 ${"\u2500".repeat(40)}
 `;
           if (onStream)
@@ -2823,7 +2587,7 @@ ${summary}`;
           }
         }
         case "ResearcherWeb": {
-          const header = `Web Research (${currentModels.RESEARCHER_MODEL})
+          const header = `Web Research
 ${"\u2500".repeat(40)}
 `;
           if (onStream)
@@ -2863,7 +2627,7 @@ ${searchResults}` }
           }
         }
         case "ResearcherDocs": {
-          const header = `Docs Research (${currentModels.RESEARCHER_MODEL})
+          const header = `Docs Research
 ${"\u2500".repeat(40)}
 `;
           if (onStream)
@@ -2936,7 +2700,7 @@ ${searchResults}`
           }
         }
         case "GeneralAgent": {
-          const header = `General Agent (${currentModels.GENERAL_AGENT_MODEL})
+          const header = `General Agent
 ${"\u2500".repeat(40)}
 `;
           if (onStream)
@@ -3378,7 +3142,7 @@ var require_commands = __commonJS((exports, module2) => {
   var fs2 = __require2("fs");
   var path2 = __require2("path");
   var { execSync } = __require2("child_process");
-  var { PROJECT_ROOT, session, resolvePath, logoutProvider, getProviderLoginState } = require_config();
+  var { PROJECT_ROOT, session, resolvePath } = require_config();
   var { executeTool } = require_toolExecutors();
   var store = require_store();
   async function handleSlashCommand(input) {
@@ -3388,20 +3152,6 @@ var require_commands = __commonJS((exports, module2) => {
       case "/help":
         store.setState({ showHelp: true });
         break;
-      case "/login":
-      case "/provider":
-        store.setState({ showHelp: false, needsConfig: true });
-        break;
-      case "/logout": {
-        const provider = store.getSnapshot().provider;
-        if (getProviderLoginState(provider) === "logged-in") {
-          logoutProvider(provider);
-          store.setState({ showHelp: false, needsConfig: true, apiKey: "" });
-        } else {
-          store.setState({ showHelp: false, needsConfig: false });
-        }
-        break;
-      }
       case "/clear":
         session.conversationHistory = [];
         store.clearMessages();
@@ -3530,8 +3280,6 @@ function Header() {
     } catch {}
   }, []);
   const snapshot = import_store_h.getSnapshot();
-  const provider = snapshot.provider;
-  const providerLabel = import_config.PROVIDERS[provider]?.label || provider;
   const configReady = !snapshot.needsConfig;
   const projectLabel = isNarrow && cwd.length > 14 ? cwd.slice(0, 14) + "\u2026" : cwd;
   return /* @__PURE__ */ jsx_runtime.jsxs("box", {
@@ -3573,19 +3321,7 @@ function Header() {
         children: [
           /* @__PURE__ */ jsx_runtime.jsx("span", {
             fg: configReady ? import_theme.colors.green : import_theme.colors.yellow,
-            children: configReady ? "\u25CF" : "\u25CB"
-          }),
-          /* @__PURE__ */ jsx_runtime.jsx("span", {
-            fg: import_theme.colors.muted,
-            children: "  " + (configReady ? "ready" : "setup needed")
-          }),
-          /* @__PURE__ */ jsx_runtime.jsx("span", {
-            fg: import_theme.colors.borderStrong,
-            children: "  \xB7  "
-          }),
-          /* @__PURE__ */ jsx_runtime.jsx("span", {
-            fg: import_theme.colors.accent,
-            children: providerLabel
+            children: configReady ? "\u25CF ready" : "\u25CB unavailable"
           })
         ]
       }) : null
@@ -4316,7 +4052,6 @@ var SB_SPINNER_FRAMES = import_theme13.SPINNER_FRAMES;
 function StatusBar({ isProcessing }) {
   const { isNarrow } = useLayout();
   const snapshot = import_config3.session;
-  const state = import_store3.getSnapshot();
   const c = import_theme13.colors;
   const [tick, setTick] = import_react_sb.useState(0);
   import_react_sb.useEffect(() => {
@@ -4332,7 +4067,6 @@ function StatusBar({ isProcessing }) {
   }, [isProcessing]);
   const elapsed = ((Date.now() - snapshot.startTime) / 1000 / 60).toFixed(1);
   const tokStr = snapshot.totalTokens >= 1000 ? (snapshot.totalTokens / 1000).toFixed(1) + "k" : String(snapshot.totalTokens);
-  const providerLabel = state.provider ? import_config3.PROVIDERS[state.provider]?.label || state.provider : "unknown";
   const sep = /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.borderStrong, children: "  \xB7  " });
   return /* @__PURE__ */ jsx_runtime13.jsxs("box", {
     style: { flexDirection: "row", paddingLeft: 2, paddingRight: 2, paddingTop: 1, paddingBottom: 1 },
@@ -4361,13 +4095,7 @@ function StatusBar({ isProcessing }) {
           ]
         })
       }),
-      !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsxs("text", {
-        children: [
-          /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.dim, children: providerLabel }),
-          /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: c.borderStrong, children: "  " }),
-          /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: isProcessing ? c.yellow : c.green, children: isProcessing ? "\u25C9" : "\u25CF" })
-        ]
-      }) : null
+      !isNarrow ? /* @__PURE__ */ jsx_runtime13.jsx("span", { fg: isProcessing ? c.yellow : c.green, children: isProcessing ? "\u25C9" : "\u25CF" }) : null
     ]
   });
 }
@@ -4388,7 +4116,7 @@ var QUICK_TIPS = [
   "Ctrl+C exits the app",
   "Esc closes overlays",
   "Ask to run npm, bun, pnpm, or yarn commands \u2014 all supported",
-  "On first launch, choose a provider and enter your API key"
+  "Apex manages the AI service configuration automatically"
 ];
 var TOOLS = [
   "Read",
@@ -4521,399 +4249,6 @@ function HelpModal({ onClose, onCommand }) {
     ]
   });
 }
-var import_react3 = __toESM(require_react(), 1);
-var import_theme = __toESM(require_theme(), 1);
-var import_store = __toESM(require_store(), 1);
-var import_config = __toESM(require_config(), 1);
-var import_useLayout = __toESM(require_useLayout(), 1);
-var jsx_runtime = __toESM(require_jsx_runtime(), 1);
-var PROVIDER_ORDER = ["nvidia", "openai", "openrouter", "groq", "gemini", "together", "baseten"];
-var PROVIDER_EMOJI = {
-  nvidia: "\uD83D\uDFE2",
-  openai: "\uD83E\uDD16",
-  openrouter: "\uD83D\uDD00",
-  groq: "\u26A1",
-  gemini: "\uD83D\uDC8E",
-  together: "\uD83E\uDD1D",
-  baseten: "\uD83D\uDD3A"
-};
-function ProviderSelector() {
-  var state = useStore();
-  var [input, setInput] = import_react3.useState("");
-  var [focusedIdx, setFocusedIdx] = import_react3.useState(0);
-  var [step, setStep] = import_react3.useState("select");
-  var { width } = import_useLayout.useLayout();
-  var providers = import_config.PROVIDERS;
-  var providerKey = PROVIDER_ORDER[focusedIdx];
-  var provider = providers[providerKey];
-  function getStoredKey(key) {
-    return import_config.getSavedApiKey(key);
-  }
-  function loginState(key) {
-    return import_config.getProviderLoginState(key);
-  }
-  function isConfigured(key) {
-    return loginState(key) !== "empty";
-  }
-  function isLoggedIn(key) {
-    return loginState(key) === "logged-in";
-  }
-  function finishLogin(providerKey2, key) {
-    import_config.loginProvider(providerKey2, key);
-    import_store.setState({
-      apiKey: key,
-      provider: providerKey2,
-      needsConfig: false,
-      keyValidationError: null
-    });
-  }
-  function handleLogin() {
-    var key = input.trim();
-    if (!key)
-      return;
-    finishLogin(providerKey, key);
-    setInput("");
-    setStep("select");
-  }
-  function handleLogout() {
-    var remaining = import_config.logoutProvider(providerKey);
-    if (remaining) {
-      import_store.setState({
-        apiKey: remaining.apiKey,
-        provider: remaining.providerKey,
-        needsConfig: false
-      });
-    } else {
-      import_store.setState({
-        apiKey: "",
-        provider: providerKey,
-        needsConfig: true
-      });
-    }
-    setInput("");
-    setStep("select");
-  }
-  function handleSelect() {
-    var providerObj = providers[providerKey];
-    if (providerObj && providerObj.noKey) {
-      finishLogin(providerKey, undefined);
-      return;
-    }
-    if (isLoggedIn(providerKey)) {
-      handleLogout();
-      return;
-    }
-    if (isConfigured(providerKey)) {
-      finishLogin(providerKey, getStoredKey(providerKey));
-      return;
-    }
-    setStep("key");
-  }
-  useKeyboard(function(key) {
-    if (step === "select") {
-      if (key.name === "up" || key.name === "k") {
-        setFocusedIdx(function(i) {
-          return (i - 1 + PROVIDER_ORDER.length) % PROVIDER_ORDER.length;
-        });
-      } else if (key.name === "down" || key.name === "j") {
-        setFocusedIdx(function(i) {
-          return (i + 1) % PROVIDER_ORDER.length;
-        });
-      } else if (key.name === "return" || key.name === "enter") {
-        handleSelect();
-      } else if (key.name === "l") {
-        if (isLoggedIn(providerKey) && !providers[providerKey].noKey)
-          handleLogout();
-      }
-    } else {
-      if (key.name === "escape") {
-        setStep("select");
-        setInput("");
-      }
-    }
-  });
-  var selectedState = loginState(providerKey);
-  return jsx_runtime.jsx("box", {
-    style: {
-      flexDirection: "column",
-      flexGrow: 1,
-      paddingTop: 2
-    },
-    focused: true,
-    children: step === "select" ? jsx_runtime.jsxs(jsx_runtime.Fragment, {
-      children: [
-        jsx_runtime.jsx("box", {
-          style: { paddingLeft: 4, paddingRight: 4, marginBottom: 1 },
-          children: jsx_runtime.jsx("text", {
-            attributes: TextAttributes.BOLD,
-            fg: import_theme.colors.white,
-            children: "Choose your AI provider"
-          })
-        }),
-        jsx_runtime.jsx("box", {
-          style: { paddingLeft: 4, paddingRight: 4, marginBottom: 1 },
-          children: jsx_runtime.jsx("text", {
-            fg: import_theme.colors.dim,
-            children: "Use \u2191\u2193 or j/k to navigate. Enter logs in or out depending on the selected provider's state."
-          })
-        }),
-        state.keyValidationError ? jsx_runtime.jsx("box", {
-          style: { paddingLeft: 4, paddingRight: 4, marginBottom: 1 },
-          children: jsx_runtime.jsx("text", {
-            fg: import_theme.colors.red,
-            children: "\u26A0  " + state.keyValidationError + " \u2014 please enter a new key."
-          })
-        }) : null,
-        PROVIDER_ORDER.map(function(key, idx) {
-          var focused = idx === focusedIdx;
-          var stateLabel = loginState(key);
-          var statusFg = stateLabel === "logged-in" || stateLabel === "no-key" ? import_theme.colors.green : stateLabel === "saved" ? import_theme.colors.yellow : import_theme.colors.dim;
-          var statusText = stateLabel === "no-key" ? "Free (no key)" : stateLabel === "logged-in" ? "Logged in" : stateLabel === "saved" ? "Logged out" : "Needs key";
-          return jsx_runtime.jsxs("box", {
-            style: {
-              flexDirection: "row",
-              paddingLeft: 4,
-              paddingRight: 4
-            },
-            onMouseEnter: function() {
-              setFocusedIdx(idx);
-            },
-            onMouseDown: function() {
-              setFocusedIdx(idx);
-              if (providers[key].noKey) {
-                finishLogin(key, undefined);
-              } else if (stateLabel === "logged-in") {
-                handleLogout();
-              } else if (stateLabel === "saved") {
-                finishLogin(key, getStoredKey(key));
-              } else {
-                setStep("key");
-              }
-            },
-            children: [
-              jsx_runtime.jsx("text", {
-                fg: focused ? import_theme.colors.primary : import_theme.colors.dim,
-                attributes: focused ? TextAttributes.BOLD : 0,
-                children: focused ? "\u25B6 " : "  "
-              }),
-              jsx_runtime.jsx("text", {
-                fg: focused ? import_theme.colors.white : import_theme.colors.text,
-                attributes: focused ? TextAttributes.BOLD : 0,
-                children: PROVIDER_EMOJI[key] + "  " + providers[key].label
-              }),
-              jsx_runtime.jsx("text", {
-                fg: import_theme.colors.dim,
-                children: "  "
-              }),
-              jsx_runtime.jsx("text", {
-                fg: statusFg,
-                children: statusText
-              })
-            ]
-          }, key);
-        }),
-        jsx_runtime.jsx("box", {
-          style: { paddingLeft: 4, paddingRight: 4, marginTop: 2 },
-          children: jsx_runtime.jsx("text", {
-            fg: import_theme.colors.dim,
-            children: provider.noKey ? "Press Enter to use this provider \u2014 no API key required." : selectedState === "logged-in" ? "Press Enter to log out of the selected provider." : selectedState === "saved" ? "Press Enter to log in with the saved key." : "Press Enter to log in with a new key. Keys are stored in ~/.apex-dev/config.json or can be supplied via environment variables."
-          })
-        })
-      ]
-    }) : jsx_runtime.jsxs(jsx_runtime.Fragment, {
-      children: [
-        jsx_runtime.jsx("box", {
-          style: { paddingLeft: 4, paddingRight: 4, marginBottom: 0 },
-          children: jsx_runtime.jsx("text", {
-            attributes: TextAttributes.BOLD,
-            fg: import_theme.colors.primary,
-            children: PROVIDER_EMOJI[providerKey] + "  " + provider.label + " API Key"
-          })
-        }),
-        jsx_runtime.jsx("box", {
-          style: { paddingLeft: 4, paddingRight: 4, marginBottom: 2 },
-          children: jsx_runtime.jsxs("text", {
-            fg: import_theme.colors.dim,
-            children: [
-              "Env var: ",
-              jsx_runtime.jsx("span", {
-                fg: import_theme.colors.yellow,
-                children: provider.envKey
-              }),
-              "  \xB7  Esc to go back"
-            ]
-          })
-        }),
-        jsx_runtime.jsx("box", {
-          style: {
-            paddingLeft: 4,
-            paddingRight: 4,
-            marginBottom: 1
-          },
-          children: jsx_runtime.jsx("box", {
-            style: {
-              borderStyle: "single",
-              borderColor: import_theme.colors.primary,
-              paddingLeft: 1,
-              paddingRight: 1
-            },
-            children: jsx_runtime.jsx("input", {
-              focused: true,
-              value: input,
-              onChange: setInput,
-              onSubmit: handleLogin,
-              placeholder: "Paste your API key here...",
-              fg: import_theme.colors.text
-            })
-          })
-        }),
-        jsx_runtime.jsx("box", {
-          style: { paddingLeft: 4, paddingRight: 4 },
-          children: jsx_runtime.jsx("text", {
-            fg: import_theme.colors.dim,
-            children: "Press Enter to login"
-          })
-        })
-      ]
-    })
-  });
-}
-globalThis._ProviderSelector = ProviderSelector;
-var import_react3 = __toESM(require_react(), 1);
-var import_theme = __toESM(require_theme(), 1);
-var import_store = __toESM(require_store(), 1);
-var import_config = __toESM(require_config(), 1);
-var import_useLayout = __toESM(require_useLayout(), 1);
-var jsx_runtime = __toESM(require_jsx_runtime(), 1);
-var PROVIDER_ORDER = ["nvidia", "openai", "openrouter", "groq", "gemini", "together", "baseten"];
-function ApiKeyModal() {
-  var [input, setInput] = import_react3.useState("");
-  var [selectedIdx, setSelectedIdx] = import_react3.useState(0);
-  var [step, setStep] = import_react3.useState("provider");
-  var { width, height } = import_useLayout.useLayout();
-  var providers = import_config.PROVIDERS;
-  var providerKey = PROVIDER_ORDER[selectedIdx];
-  var provider = providers[providerKey];
-  var handleKeyPress = function(key) {
-    if (step === "provider") {
-      if (key.name === "up" || key.name === "k") {
-        setSelectedIdx(function(i) {
-          return (i - 1 + PROVIDER_ORDER.length) % PROVIDER_ORDER.length;
-        });
-      } else if (key.name === "down" || key.name === "j") {
-        setSelectedIdx(function(i) {
-          return (i + 1) % PROVIDER_ORDER.length;
-        });
-      } else if (key.name === "return" || key.name === "enter") {
-        if (provider && provider.noKey) {
-          import_config.setProvider(providerKey, undefined);
-          import_store.setState({ apiKey: "", provider: providerKey, needsConfig: false });
-        } else {
-          setStep("key");
-        }
-      }
-    } else {
-      if (key.name === "escape") {
-        setStep("provider");
-        setInput("");
-      } else if (key.name === "return" || key.name === "enter") {
-        handleSubmit();
-      }
-    }
-  };
-  var handleSubmit = function() {
-    var key = input.trim();
-    if (!key && !provider.noKey)
-      return;
-    import_config.setProvider(providerKey, key);
-    import_store.setState({ apiKey: key, provider: providerKey, needsConfig: false });
-  };
-  var modalWidth = Math.min(62, width - 4);
-  var modalHeight = step === "provider" ? PROVIDER_ORDER.length + 6 : 10;
-  var left = Math.floor((width - modalWidth) / 2);
-  var top = Math.floor((height - modalHeight) / 2);
-  var renderProviderStep = function() {
-    return jsx_runtime.jsxs(jsx_runtime.Fragment, {
-      children: [
-        jsx_runtime.jsx("text", {
-          style: { marginBottom: 1 },
-          attributes: TextAttributes.BOLD,
-          fg: import_theme.colors.primary,
-          children: "Select AI Provider"
-        }),
-        jsx_runtime.jsx("text", {
-          style: { marginBottom: 1 },
-          fg: import_theme.colors.dim,
-          children: "Use \u2191\u2193 or j/k to navigate, Enter to confirm"
-        }),
-        ...PROVIDER_ORDER.map(function(key, idx) {
-          var isSelected = idx === selectedIdx;
-          return jsx_runtime.jsx("text", {
-            fg: isSelected ? import_theme.colors.primary : import_theme.colors.text,
-            attributes: isSelected ? TextAttributes.BOLD : 0,
-            children: (isSelected ? "\u25B6 " : "  ") + providers[key].label
-          }, key);
-        })
-      ]
-    });
-  };
-  var renderKeyStep = function() {
-    return jsx_runtime.jsxs(jsx_runtime.Fragment, {
-      children: [
-        jsx_runtime.jsx("text", {
-          style: { marginBottom: 1 },
-          attributes: TextAttributes.BOLD,
-          fg: import_theme.colors.primary,
-          children: provider.label + " API Key"
-        }),
-        jsx_runtime.jsx("text", {
-          style: { marginBottom: 1 },
-          fg: import_theme.colors.dim,
-          children: provider.noKey ? "No API key required  \xB7  Esc to go back" : "Env var: " + provider.envKey + "  \xB7  Esc to go back"
-        }),
-        jsx_runtime.jsx("box", {
-          style: {
-            borderStyle: "single",
-            borderColor: import_theme.colors.dim,
-            paddingLeft: 1,
-            paddingRight: 1,
-            marginBottom: 1
-          },
-          children: jsx_runtime.jsx("input", {
-            focused: true,
-            value: input,
-            onChange: setInput,
-            onSubmit: handleSubmit,
-            placeholder: provider.noKey ? "No API key required" : "Paste your API key here...",
-            fg: import_theme.colors.text
-          })
-        }),
-        jsx_runtime.jsx("text", {
-          fg: import_theme.colors.dim,
-          children: provider.noKey ? "Press Enter to confirm no-key provider" : "Press Enter to confirm"
-        })
-      ]
-    });
-  };
-  return jsx_runtime.jsx("box", {
-    style: {
-      position: "absolute",
-      left,
-      top,
-      width: modalWidth,
-      height: modalHeight,
-      borderStyle: "rounded",
-      borderColor: import_theme.colors.primary,
-      paddingLeft: 2,
-      paddingRight: 2,
-      paddingTop: 1,
-      flexDirection: "column"
-    },
-    onKeyDown: handleKeyPress,
-    children: step === "provider" ? renderProviderStep() : renderKeyStep()
-  });
-}
-globalThis._ApiKeyModal = ApiKeyModal;
 var import_react17 = __toESM(require_react(), 1);
 var import_store5 = __toESM(require_store(), 1);
 var import_config4 = __toESM(require_config(), 1);
@@ -4976,8 +4311,7 @@ function App() {
       });
     }
   }, []);
-  const shouldShowSetup = process.env.APEX_DEV_NEEDS_CONFIG === "true" || state.needsConfig;
-  const inputDisabled = state.isProcessing || state.showHelp || shouldShowSetup;
+  const inputDisabled = state.isProcessing || state.showHelp;
   const keepChatInputFocused = import_react17.useCallback((event) => {
     if (inputDisabled)
       return;
@@ -4988,7 +4322,7 @@ function App() {
     style: { flexDirection: "column", flexGrow: 1 },
     onMouseDown: keepChatInputFocused,
     children: [
-      shouldShowSetup ? /* @__PURE__ */ jsx_runtime15.jsx(globalThis._ProviderSelector, {}) : /* @__PURE__ */ jsx_runtime15.jsxs(jsx_runtime15.Fragment, {
+      /* @__PURE__ */ jsx_runtime15.jsxs(jsx_runtime15.Fragment, {
         children: [
           /* @__PURE__ */ jsx_runtime15.jsx(Header, {}),
           /* @__PURE__ */ jsx_runtime15.jsx(Divider, {}),

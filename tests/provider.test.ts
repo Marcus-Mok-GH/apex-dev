@@ -6,7 +6,7 @@ const testsDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(testsDir, "..");
 const cliPath = join(projectRoot, "cli.js");
 
-test("all expected providers are supported", async ({ $ }) => {
+test("help exposes managed service flags", async ({ $ }) => {
   const result = await $`node ${cliPath} --help`;
 
   expect(result.code).toBe(0);
@@ -14,15 +14,10 @@ test("all expected providers are supported", async ({ $ }) => {
   expect(result.output).toContain("--keys");
 });
 
-test("provider list includes known services", async ({ $ }) => {
+test("keys reports the managed service without listing providers", async ({ $ }) => {
   const result = await $`node ${cliPath} --keys`;
 
   expect(result.code).toBe(0);
-
-  const output = result.output;
-  const knownProviders = ["NVIDIA", "OpenAI", "Groq", "Gemini", "Together", "OpenRouter", "Baseten"];
-  const foundProviders = knownProviders.filter(p => output.includes(p));
-
-  const hasOutput = foundProviders.length > 0 || output.includes("No API keys");
-  expect(hasOutput).toBe(true);
+  expect(result.stderr).toContain("service ready");
+  expect(result.stderr).not.toMatch(/NVIDIA|OpenAI|OpenRouter|Groq|Gemini|Together|Baseten/);
 });
