@@ -232,7 +232,7 @@ function ProviderSelector() {
                   children: jsx_runtime.jsx("text", {
                     fg: import_theme.colors.dim,
                     children: provider.noKey
-                      ? "Press Enter to use this provider —"no API key required."
+                      ? "Press Enter to use this provider — no API key required."
                       : selectedState === "logged-in"
                         ? "Press Enter to log out of the selected provider."
                         : selectedState === "saved"

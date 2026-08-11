@@ -7,14 +7,15 @@ function UserMessage({ content }) {
   const msgLines = (content || "").split("\n");
 
   return /* @__PURE__ */ jsx_runtime4.jsxs("box", {
-    style: { flexDirection: "row", marginTop: 1, paddingLeft: 1 },
+    style: { flexDirection: "row", marginTop: 1, paddingLeft: 2 },
     children: [
       /* @__PURE__ */ jsx_runtime4.jsx("text", {
         fg: c.primary,
-        content: "┃"
+        attributes: TextAttributes.BOLD,
+        content: "▌"
       }),
       /* @__PURE__ */ jsx_runtime4.jsxs("box", {
-        style: { flexDirection: "column", paddingLeft: 2 },
+        style: { flexDirection: "column", paddingLeft: 2, paddingRight: 2 },
         children: [
           /* @__PURE__ */ jsx_runtime4.jsxs("text", {
             children: [
@@ -23,6 +24,10 @@ function UserMessage({ content }) {
                 attributes: TextAttributes.BOLD,
                 children: "you"
               }),
+              /* @__PURE__ */ jsx_runtime4.jsx("span", {
+                fg: c.dim,
+                children: "  ·  request"
+              })
             ]
           }),
           msgLines.map((line, i) => /* @__PURE__ */ jsx_runtime4.jsx("text", {

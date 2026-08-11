@@ -19,7 +19,7 @@ import {
 import { createRoot, useTerminalDimensions, useKeyboard } from "@opentui/react";
 import React from "react";
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
-import { OpenAI } from "openai";
+import OpenAI from "openai";
 var __create = Object.create;
 var __getProtoOf = Object.getPrototypeOf;
 var __defProp = Object.defineProperty;
@@ -69,7 +69,7 @@ var __require = import.meta.require;
 // External package re-exports (resolved at build time via static imports above)
 var require_react = () => React;
 var require_jsx_runtime = () => ({ jsx: _jsx, jsxs: _jsxs, Fragment: _Fragment });
-var require_openai = () => ({ OpenAI });
+var require_openai = () => OpenAI;
 
 `;
 

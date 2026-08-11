@@ -3,15 +3,15 @@ var import_theme12 = __toESM(require_theme(), 1);
 var jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
 
 var CMD_LIST = [
-  { cmd: "/help",    desc: "Show help menu" },
+  { cmd: "/help", desc: "Show help menu" },
   { cmd: "/compact", desc: "Summarize context" },
-  { cmd: "/files",   desc: "Show file tree" },
-  { cmd: "/clear",   desc: "Clear conversation" },
-  { cmd: "/cost",    desc: "Show session stats" },
-  { cmd: "/undo",    desc: "Undo last edit" },
-  { cmd: "/diff",    desc: "Show git diff" },
-  { cmd: "/git",     desc: "Run a git command" },
-  { cmd: "/quit",    desc: "Exit" },
+  { cmd: "/files", desc: "Show file tree" },
+  { cmd: "/clear", desc: "Clear conversation" },
+  { cmd: "/cost", desc: "Show session stats" },
+  { cmd: "/undo", desc: "Undo last edit" },
+  { cmd: "/diff", desc: "Show git diff" },
+  { cmd: "/git", desc: "Run a git command" },
+  { cmd: "/quit", desc: "Exit" },
 ];
 
 function fuzzyScore(cmdStr, query) {
@@ -33,10 +33,8 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
   const internalInputRef = import_react15.useRef(null);
   const inputRef = externalInputRef || internalInputRef;
   const { isNarrow } = useLayout();
-
   const [inputValue, setInputValue] = import_react15.useState("");
   const [selectedIdx, setSelectedIdx] = import_react15.useState(0);
-
   const showPicker = !disabled && inputValue.startsWith("/");
   const query = showPicker ? inputValue.slice(1) : "";
 
@@ -54,24 +52,15 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
 
   function selectCommand(cmd) {
     if (!cmd) return;
-    const fill = cmd.cmd + " ";
-    setInputValue(fill);
+    setInputValue(cmd.cmd + " ");
   }
 
   useKeyboard((key) => {
     if (!showPicker || filtered.length === 0) return;
-    if (key.name === "down") {
-      setSelectedIdx((i) => Math.min(i + 1, filtered.length - 1));
-    } else if (key.name === "up") {
-      setSelectedIdx((i) => Math.max(i - 1, 0));
-    } else if (key.name === "tab") {
-      selectCommand(filtered[selectedIdx]);
-    }
+    if (key.name === "down") setSelectedIdx((i) => Math.min(i + 1, filtered.length - 1));
+    else if (key.name === "up") setSelectedIdx((i) => Math.max(i - 1, 0));
+    else if (key.name === "tab") selectCommand(filtered[selectedIdx]);
   });
-
-  const handleChange = (val) => {
-    setInputValue(val);
-  };
 
   const handleSubmit = (value) => {
     const trimmed = value.trim();
@@ -80,95 +69,43 @@ function InputBar({ disabled, onSubmit, inputRef: externalInputRef }) {
     onSubmit(trimmed);
   };
 
-  const hint = isNarrow ? "ctrl+c" : "↑↓ history  ctrl+c exit";
-  const placeholder = disabled
-    ? "setting up…"
-    : isNarrow
-      ? "message apex…"
-      : "ask apex anything, or /command";
-
-  const colors = import_theme12.colors;
-  const inputBorderColor = disabled
-    ? colors.border
-    : showPicker
-      ? colors.primary
-      : colors.dim;
+  const c = import_theme12.colors;
+  const inputBorderColor = disabled ? c.border : showPicker ? c.primary : c.borderStrong;
+  const hint = isNarrow ? "ctrl+c to exit" : "↑↓ navigate  ·  ctrl+c exit";
+  const placeholder = disabled ? "setting up…" : isNarrow ? "message apex…" : "ask apex anything, or /command";
 
   return /* @__PURE__ */ jsx_runtime12.jsxs("box", {
-    style: { flexDirection: "column", paddingLeft: 1, paddingRight: 1, paddingBottom: 1 },
+    style: { flexDirection: "column", paddingLeft: 2, paddingRight: 2, paddingBottom: 1 },
     children: [
-      showPicker && filtered.length > 0
-        ? /* @__PURE__ */ jsx_runtime12.jsxs("box", {
-            style: {
-              flexDirection: "column",
-              paddingLeft: 2,
-              paddingRight: 2,
-              paddingTop: 0,
-              paddingBottom: 0,
-              marginBottom: 0,
-              borderStyle: "single",
-              borderColor: colors.border,
-            },
-            children: [
-              /* @__PURE__ */ jsx_runtime12.jsxs("text", {
-                children: [
-                  /* @__PURE__ */ jsx_runtime12.jsx("span", { fg: colors.dim, children: "commands" }),
-                  /* @__PURE__ */ jsx_runtime12.jsx("span", { fg: colors.dim, children: "  ↑↓ navigate  tab select" }),
-                ]
-              }),
-              filtered.map((item, idx) => {
-                const isActive = idx === selectedIdx;
-                return /* @__PURE__ */ jsx_runtime12.jsxs("box", {
-                  style: { flexDirection: "row" },
-                  onMouseDown: () => selectCommand(item),
-                  children: [
-                    /* @__PURE__ */ jsx_runtime12.jsx("text", {
-                      fg: isActive ? colors.primary : colors.border,
-                      content: isActive ? "› " : "  "
-                    }),
-                    /* @__PURE__ */ jsx_runtime12.jsx("text", {
-                      fg: isActive ? colors.text : colors.muted,
-                      attributes: isActive ? TextAttributes.BOLD : 0,
-                      content: item.cmd
-                    }),
-                    /* @__PURE__ */ jsx_runtime12.jsx("text", {
-                      fg: colors.dim,
-                      content: "  " + item.desc
-                    })
-                  ]
-                }, item.cmd);
-              })
-            ]
-          })
-        : null,
-      /* @__PURE__ */ jsx_runtime12.jsxs("box", {
-        style: {
-          flexDirection: "row",
-          paddingLeft: 1,
-          paddingRight: 1,
-          borderStyle: "single",
-          borderColor: inputBorderColor,
-        },
+      showPicker && filtered.length > 0 ? /* @__PURE__ */ jsx_runtime12.jsxs("box", {
+        style: { flexDirection: "column", paddingLeft: 2, paddingRight: 2, borderStyle: "single", borderColor: c.border, marginBottom: 1 },
         children: [
-          /* @__PURE__ */ jsx_runtime12.jsx("text", {
-            fg: disabled ? colors.dim : colors.primary,
-            attributes: disabled ? 0 : TextAttributes.BOLD,
-            content: "›  "
+          /* @__PURE__ */ jsx_runtime12.jsxs("text", {
+            children: [
+              /* @__PURE__ */ jsx_runtime12.jsx("span", { fg: c.accent, attributes: TextAttributes.BOLD, children: "commands" }),
+              /* @__PURE__ */ jsx_runtime12.jsx("span", { fg: c.dim, children: "  ·  ↑↓ navigate  tab select" })
+            ]
           }),
-          /* @__PURE__ */ jsx_runtime12.jsx("input", {
-            ref: inputRef,
-            focused: !disabled,
-            value: inputValue,
-            onChange: handleChange,
-            placeholder,
-            onSubmit: handleSubmit,
-            fg: colors.text,
-            style: { flexGrow: 1 }
-          }),
-          /* @__PURE__ */ jsx_runtime12.jsx("text", {
-            fg: colors.dim,
-            content: "  " + hint
+          filtered.map((item, idx) => {
+            const isActive = idx === selectedIdx;
+            return /* @__PURE__ */ jsx_runtime12.jsxs("box", {
+              style: { flexDirection: "row" },
+              onMouseDown: () => selectCommand(item),
+              children: [
+                /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: isActive ? c.primary : c.border, children: isActive ? "› " : "  " }),
+                /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: isActive ? c.text : c.muted, attributes: isActive ? TextAttributes.BOLD : 0, children: item.cmd }),
+                /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: c.dim, children: "  " + item.desc })
+              ]
+            }, item.cmd);
           })
+        ]
+      }) : null,
+      /* @__PURE__ */ jsx_runtime12.jsxs("box", {
+        style: { flexDirection: "row", paddingLeft: 1, paddingRight: 1, borderStyle: "single", borderColor: inputBorderColor },
+        children: [
+          /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: disabled ? c.dim : c.primary, attributes: disabled ? 0 : TextAttributes.BOLD, children: "›  " }),
+          /* @__PURE__ */ jsx_runtime12.jsx("input", { ref: inputRef, focused: !disabled, value: inputValue, onChange: setInputValue, placeholder, onSubmit: handleSubmit, fg: c.text, style: { flexGrow: 1 } }),
+          !isNarrow ? /* @__PURE__ */ jsx_runtime12.jsx("text", { fg: c.dim, children: "  " + hint }) : null
         ]
       })
     ]
