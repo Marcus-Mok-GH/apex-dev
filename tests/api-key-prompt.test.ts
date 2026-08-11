@@ -42,13 +42,13 @@ test("APEX_DEV_NEEDS_CONFIG message shown when no keys configured", async ({ $ }
 test("stored keys are loaded from config file", async ({ $ }) => {
   // Create config directory and file BEFORE running CLI
   mkdirSync(testConfigDir, { recursive: true });
-  writeFileSync(testConfigPath, JSON.stringify({ fireworks: "test-key-abc123" }), "utf-8");
+  writeFileSync(testConfigPath, JSON.stringify({ openai: "test-key-abc123" }), "utf-8");
   
   // Run --keys with isolated HOME and cleared env vars
   const result = await $`HOME=${testHomeDir} FIREWORKS_API_KEY= OPENAI_API_KEY= ANTHROPIC_API_KEY= node ${cliPath} --keys`;
   
-  // Should show Fireworks as configured (loaded from config file)
-  expect(result.stderr).toContain("Fireworks");
+  // Should show NVIDIA as configured (loaded from config file)
+  expect(result.stderr).toContain("NVIDIA");
   expect(result.stderr).toContain("1 provider");
 });
 
@@ -65,15 +65,13 @@ test("config file stores provider keys", async ({ $ }) => {
   // Create config directory and file BEFORE reading
   mkdirSync(testConfigDir, { recursive: true });
   writeFileSync(testConfigPath, JSON.stringify({ 
-    fireworks: "fw-key",
-    openai: "oa-key" 
+    openai: "openai-key"
   }), "utf-8");
   
   // Read it back
   const config = JSON.parse(readFileSync(testConfigPath, "utf-8"));
   
-  expect(config.fireworks).toBe("fw-key");
-  expect(config.openai).toBe("oa-key");
+  expect(config.openai).toBe("openai-key");
 });
 
 test("config file path uses HOME directory", async ({ $ }) => {

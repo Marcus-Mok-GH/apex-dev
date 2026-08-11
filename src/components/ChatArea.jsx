@@ -4,7 +4,7 @@ var import_theme11 = __toESM(require_theme(), 1);
 var import_store4 = __toESM(require_store(), 1);
 var jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
 
-// Codebuff-style assistant label with ◆ diamond icon
+// Assistant label with a diamond glyph
 function AssistantLabel() {
   const c = import_theme11.colors;
   return /* @__PURE__ */ jsx_runtime11.jsxs("text", {

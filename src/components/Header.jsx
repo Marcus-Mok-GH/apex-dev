@@ -26,9 +26,10 @@ function Header() {
   const provider = snapshot.provider;
   const providerLabel = import_config.PROVIDERS[provider]?.label || provider;
   const configReady = !snapshot.needsConfig;
+  const projectLabel = isNarrow && cwd.length > 14 ? cwd.slice(0, 14) + "…" : cwd;
 
   return /* @__PURE__ */ jsx_runtime.jsxs("box", {
-    style: { flexDirection: "row", paddingLeft: 1, paddingRight: 1, paddingTop: 1, paddingBottom: 0 },
+    style: { flexDirection: "row", paddingLeft: 2, paddingRight: 2, paddingTop: 1, paddingBottom: 1 },
     children: [
       /* @__PURE__ */ jsx_runtime.jsx("box", {
         style: { flexGrow: 1 },
@@ -37,34 +38,25 @@ function Header() {
             /* @__PURE__ */ jsx_runtime.jsx("span", {
               fg: import_theme.colors.primary,
               attributes: TextAttributes.BOLD,
-              children: "◆"
+              children: "✦ apex"
             }),
             /* @__PURE__ */ jsx_runtime.jsx("span", {
-              fg: import_theme.colors.text,
-              attributes: TextAttributes.BOLD,
-              children: " apex"
-            }),
-            /* @__PURE__ */ jsx_runtime.jsx("span", {
-              fg: import_theme.colors.border,
+              fg: import_theme.colors.borderStrong,
               children: "  /  "
             }),
             /* @__PURE__ */ jsx_runtime.jsx("span", {
               fg: import_theme.colors.blue,
-              children: isNarrow && cwd.length > 12 ? cwd.slice(0, 12) + "…" : cwd
+              children: projectLabel
             }),
             branch && !isNarrow ? /* @__PURE__ */ jsx_runtime.jsxs(jsx_runtime.Fragment, {
               children: [
                 /* @__PURE__ */ jsx_runtime.jsx("span", {
-                  fg: import_theme.colors.border,
-                  children: "  "
+                  fg: import_theme.colors.borderStrong,
+                  children: "  ·  "
                 }),
                 /* @__PURE__ */ jsx_runtime.jsx("span", {
-                  fg: import_theme.colors.dim,
-                  children: "⎇ "
-                }),
-                /* @__PURE__ */ jsx_runtime.jsx("span", {
-                  fg: import_theme.colors.dim,
-                  children: branch
+                  fg: import_theme.colors.muted,
+                  children: "⎇ " + branch
                 })
               ]
             }) : null
@@ -75,14 +67,18 @@ function Header() {
         children: [
           /* @__PURE__ */ jsx_runtime.jsx("span", {
             fg: configReady ? import_theme.colors.green : import_theme.colors.yellow,
-            children: "●"
+            children: configReady ? "●" : "○"
           }),
           /* @__PURE__ */ jsx_runtime.jsx("span", {
-            fg: import_theme.colors.border,
-            children: "  "
+            fg: import_theme.colors.muted,
+            children: "  " + (configReady ? "ready" : "setup needed")
           }),
           /* @__PURE__ */ jsx_runtime.jsx("span", {
-            fg: import_theme.colors.dim,
+            fg: import_theme.colors.borderStrong,
+            children: "  ·  "
+          }),
+          /* @__PURE__ */ jsx_runtime.jsx("span", {
+            fg: import_theme.colors.accent,
             children: providerLabel
           })
         ]

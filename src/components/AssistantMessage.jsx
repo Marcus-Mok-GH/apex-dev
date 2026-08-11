@@ -19,9 +19,9 @@ function AssistantMessage({ content, isStreaming }) {
   function renderCodeBlock(lang, codeL, keyStr, isOpen) {
     const langLabel = lang || "code";
     const headerLabel = " " + langLabel + " ";
-    const ruleLen = Math.max(separatorWidth - headerLabel.length - 2, 4);
+    const ruleLen = Math.max(separatorWidth - headerLabel.length - 3, 1);
     const ruleFill = "─".repeat(ruleLen);
-    const footerFill = "─".repeat(Math.max(separatorWidth, 9));
+    const footerFill = "─".repeat(Math.max(separatorWidth - 2, 1));
 
     return /* @__PURE__ */ jsx_runtime5.jsxs("box", {
       style: { flexDirection: "column", paddingLeft: codeIndent, marginTop: 1, marginBottom: 0 },
